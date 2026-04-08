@@ -1,0 +1,798 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Street Vendor Order Log
+Description: Tap-to-log order tracker for food trucks, taco stands, and cash businesses
+Parameters:
+  - action (string, optional): setup|log|summary — which screen to open
+  - item (string, optional): Menu item name to log an order for (requires existing menu)
+  - qty (number, optional): Quantity to log (default 1)
+  - date (string, optional): YYYY-MM-DD date to view summary for
+Output: Daily sales summary with item counts, revenue, and best seller
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Street Vendor Order Log — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a;
+    min-height: 100vh; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .container { max-width: 740px; margin: 0 auto; padding: 1.5rem 1rem 2rem; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 24px; font-weight: 700; color: #2C3E2D; }
+  .app-header p { font-size: 14px; color: #6B6B6B; margin-top: 2px; }
+
+  .card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 20px; margin-bottom: 12px; }
+  .card-title { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #E8E0D0; }
+
+  label { font-size: 13px; color: #6B6B6B; font-weight: 500; }
+  input[type="text"], input[type="number"] {
+    font-family: 'DM Sans', sans-serif; font-size: 15px; color: #1a1a1a;
+    background: #FDFAF4; border: 1px solid #E8E0D0;
+    border-radius: 8px; padding: 10px 12px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+
+  .btn-primary {
+    background: #2C3E2D; color: #fff; padding: 12px 24px; border-radius: 8px;
+    border: none; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; display: inline-block;
+  }
+  .btn-primary:hover { background: #3A5240; }
+  .btn-secondary {
+    background: transparent; color: #2C3E2D; padding: 12px 24px; border-radius: 8px;
+    border: 1.5px solid #2C3E2D; font-family: 'DM Sans', sans-serif; font-size: 15px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: rgba(44,62,45,0.06); }
+  .btn-danger {
+    background: none; border: 1px solid #E8E0D0; color: #B85C2C; padding: 10px 16px;
+    border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  }
+  .btn-danger:hover { border-color: #B85C2C; background: #FFF8F5; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── SETUP SCREEN ── */
+  .menu-add-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .menu-add-row input:first-child { flex: 2; }
+  .menu-add-row input:last-of-type { flex: 1; }
+  .menu-add-row button { flex-shrink: 0; padding: 10px 16px; font-size: 14px; }
+
+  .menu-list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid #E8E0D0;
+  }
+  .menu-list-item:last-child { border-bottom: none; }
+  .menu-list-item .item-name { font-size: 15px; font-weight: 500; }
+  .menu-list-item .item-price { font-family: 'DM Mono', monospace; font-size: 14px; color: #2C3E2D; font-weight: 500; }
+  .menu-list-item .item-remove { background: none; border: none; font-size: 20px; cursor: pointer; color: #ccc; padding: 4px 8px; line-height: 1; }
+  .menu-list-item .item-remove:hover { color: #B85C2C; }
+  .empty-menu { text-align: center; padding: 2rem; color: #6B6B6B; font-size: 14px; }
+
+  .setup-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .setup-actions button { flex: 1; }
+
+  /* ── SERVICE SCREEN ── */
+  .revenue-bar {
+    background: #2C3E2D; color: #fff; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .revenue-bar .rev-label { font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+  .revenue-bar .rev-amount { font-family: 'Lora', serif; font-size: 32px; font-weight: 700; }
+  .revenue-bar .rev-orders { font-family: 'DM Mono', monospace; font-size: 13px; opacity: 0.7; text-align: right; }
+
+  .item-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+  .item-tap-btn {
+    background: #fff; border: 2px solid #E8E0D0; border-radius: 12px;
+    padding: 20px 12px; text-align: center; cursor: pointer;
+    transition: all 0.1s; user-select: none; -webkit-user-select: none;
+    position: relative; min-height: 90px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+  }
+  .item-tap-btn:active { transform: scale(0.96); background: #E8F0E8; border-color: #4A7C59; }
+  .item-tap-btn .tap-name { font-size: 16px; font-weight: 600; color: #1a1a1a; pointer-events: none; }
+  .item-tap-btn .tap-price { font-family: 'DM Mono', monospace; font-size: 13px; color: #4A7C59; pointer-events: none; }
+  .item-tap-btn .tap-count {
+    position: absolute; top: 8px; right: 10px;
+    background: #2C3E2D; color: #fff; font-family: 'DM Mono', monospace;
+    font-size: 12px; font-weight: 600; min-width: 24px; height: 24px;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .item-tap-btn .tap-count.zero { background: #E8E0D0; color: #6B6B6B; }
+  .item-tap-btn .tap-undo {
+    position: absolute; top: 8px; left: 8px; background: none; border: none;
+    font-size: 16px; color: #6B6B6B; cursor: pointer; padding: 2px 6px; line-height: 1;
+  }
+  .item-tap-btn .tap-undo:hover { color: #B85C2C; }
+
+  .service-actions { display: flex; gap: 10px; }
+  .service-actions button { flex: 1; }
+
+  /* ── SUMMARY SCREEN ── */
+  .summary-header { text-align: center; margin-bottom: 20px; }
+  .summary-header h2 { font-family: 'Lora', serif; font-size: 22px; color: #2C3E2D; }
+  .summary-header p { font-size: 13px; color: #6B6B6B; font-family: 'DM Mono', monospace; }
+
+  .summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-card .stat-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat-card .stat-value { font-family: 'Lora', serif; font-size: 22px; font-weight: 700; color: #2C3E2D; }
+  .stat-card .stat-compare { font-size: 12px; margin-top: 4px; font-weight: 500; }
+  .stat-card .stat-compare.up { color: #4A7C59; }
+  .stat-card .stat-compare.down { color: #B85C2C; }
+  .stat-card .stat-compare.same { color: #6B6B6B; }
+
+  .best-seller {
+    background: #C9A84C; color: #fff; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .best-seller .bs-label { font-family: 'DM Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
+  .best-seller .bs-name { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; }
+  .best-seller .bs-count { font-family: 'DM Mono', monospace; font-size: 14px; text-align: right; opacity: 0.9; }
+
+  .item-breakdown { margin-bottom: 16px; }
+  .ib-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #E8E0D0; }
+  .ib-row:last-child { border-bottom: none; }
+  .ib-name { font-size: 15px; font-weight: 500; }
+  .ib-details { font-size: 13px; color: #6B6B6B; }
+  .ib-revenue { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 600; color: #2C3E2D; }
+
+  .summary-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .summary-actions button { flex: 1; }
+
+  .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 16px; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 480px) {
+    .summary-stats { grid-template-columns: 1fr; }
+    .revenue-bar .rev-amount { font-size: 26px; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .service-actions, .summary-actions, .api-note, .no-print { display: none !important; }
+    .revenue-bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1>Street Vendor Order Log</h1>
+    <p>Tap to log orders. See your daily totals. No POS needed.</p>
+  </div>
+
+  <!-- ══════════ SETUP SCREEN ══════════ -->
+  <div class="screen active" id="screen-setup">
+    <div class="card">
+      <div class="card-title">Your Menu</div>
+      <p style="font-size:14px; color:#6B6B6B; margin-bottom:14px;">Add your items and prices. This saves on your device — you only do it once.</p>
+      <div class="menu-add-row">
+        <input type="text" id="new-item-name" placeholder="Item name (e.g. Al Pastor Taco)">
+        <input type="number" id="new-item-price" placeholder="Price" min="0" step="0.25">
+        <button class="btn-primary" onclick="addMenuItem()" style="padding:10px 16px; font-size:14px;">Add</button>
+      </div>
+      <div id="menu-list"></div>
+    </div>
+    <div class="setup-actions">
+      <button class="btn-primary" id="start-service-btn" onclick="startService()" style="width:100%;">Start Taking Orders</button>
+    </div>
+  </div>
+
+  <!-- ══════════ SERVICE SCREEN ══════════ -->
+  <div class="screen" id="screen-service">
+    <div class="revenue-bar">
+      <div>
+        <div class="rev-label">Today's Revenue</div>
+        <div class="rev-amount" id="live-revenue">$0.00</div>
+      </div>
+      <div>
+        <div class="rev-orders" id="live-orders">0 orders</div>
+      </div>
+    </div>
+    <div class="item-grid" id="item-grid"></div>
+    <div class="service-actions">
+      <button class="btn-secondary no-print" onclick="showSetup()">Edit Menu</button>
+      <button class="btn-primary no-print" onclick="endDay()">End of Day Summary</button>
+    </div>
+  </div>
+
+  <!-- ══════════ SUMMARY SCREEN ══════════ -->
+  <div class="screen" id="screen-summary">
+    <div class="summary-header">
+      <h2>End of Day Summary</h2>
+      <p id="summary-date"></p>
+    </div>
+    <div class="summary-stats" id="summary-stats"></div>
+    <div id="best-seller-section"></div>
+    <div class="card">
+      <div class="card-title">Item Breakdown</div>
+      <div class="item-breakdown" id="item-breakdown"></div>
+    </div>
+    <div class="summary-actions">
+      <button class="btn-secondary no-print" onclick="backToService()">Back to Orders</button>
+      <button class="btn-primary" onclick="generatePDF()">Download PDF Summary</button>
+    </div>
+    <button class="btn-danger no-print" onclick="confirmNewDay()" style="width:100%; margin-top:8px;">Start New Day</button>
+  </div>
+
+  <p class="api-note no-print">Callable via <code>window.vendorLog</code> for automation</p>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const MENU_KEY = 'svol_menu';
+const DAYS_KEY = 'svol_days';
+
+let menu = [];       // [{ id, name, price }]
+let todayOrders = {};  // { itemId: count }
+let todayDate = getTodayISO();
+
+function getTodayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function friendlyDate(iso) {
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// ══════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════
+function loadMenu() {
+  try { menu = JSON.parse(localStorage.getItem(MENU_KEY)) || []; } catch(e) { menu = []; }
+}
+
+function saveMenu() {
+  localStorage.setItem(MENU_KEY, JSON.stringify(menu));
+}
+
+function loadDays() {
+  try { return JSON.parse(localStorage.getItem(DAYS_KEY)) || {}; } catch(e) { return {}; }
+}
+
+function saveDays(days) {
+  localStorage.setItem(DAYS_KEY, JSON.stringify(days));
+}
+
+function loadToday() {
+  const days = loadDays();
+  todayDate = getTodayISO();
+  todayOrders = days[todayDate] || {};
+}
+
+function saveToday() {
+  const days = loadDays();
+  days[todayDate] = todayOrders;
+  saveDays(days);
+}
+
+function getYesterday() {
+  const days = loadDays();
+  const sorted = Object.keys(days).filter(d => d < todayDate).sort().reverse();
+  if (sorted.length === 0) return null;
+  return { date: sorted[0], orders: days[sorted[0]] };
+}
+
+// ══════════════════════════════════════
+//  SETUP SCREEN
+// ══════════════════════════════════════
+function renderMenu() {
+  const list = document.getElementById('menu-list');
+  if (menu.length === 0) {
+    list.innerHTML = '<div class="empty-menu">No menu items yet. Add your first item above.</div>';
+    document.getElementById('start-service-btn').style.display = 'none';
+    return;
+  }
+  document.getElementById('start-service-btn').style.display = '';
+  list.innerHTML = menu.map(item => `
+    <div class="menu-list-item">
+      <div>
+        <span class="item-name">${esc(item.name)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="item-price">$${item.price.toFixed(2)}</span>
+        <button class="item-remove" onclick="removeMenuItem('${item.id}')" title="Remove">&times;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addMenuItem() {
+  const nameEl = document.getElementById('new-item-name');
+  const priceEl = document.getElementById('new-item-price');
+  const name = nameEl.value.trim();
+  const price = parseFloat(priceEl.value);
+  if (!name) { nameEl.focus(); return; }
+  if (isNaN(price) || price < 0) { priceEl.focus(); return; }
+  menu.push({ id: 'i_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6), name, price });
+  saveMenu();
+  renderMenu();
+  nameEl.value = '';
+  priceEl.value = '';
+  nameEl.focus();
+}
+
+function removeMenuItem(id) {
+  menu = menu.filter(i => i.id !== id);
+  saveMenu();
+  renderMenu();
+}
+
+// ══════════════════════════════════════
+//  SERVICE SCREEN
+// ══════════════════════════════════════
+function startService() {
+  loadToday();
+  showScreen('screen-service');
+  renderGrid();
+  updateRevenue();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('item-grid');
+  grid.innerHTML = menu.map(item => {
+    const count = todayOrders[item.id] || 0;
+    return `
+      <div class="item-tap-btn" onmousedown="tapItem('${item.id}')" ontouchstart="tapItem('${item.id}'); event.preventDefault();">
+        <span class="tap-count ${count === 0 ? 'zero' : ''}">${count}</span>
+        ${count > 0 ? `<button class="tap-undo" onclick="undoItem('${item.id}'); event.stopPropagation();" onmousedown="event.stopPropagation();" ontouchstart="undoItem('${item.id}'); event.stopPropagation(); event.preventDefault();">&#8630;</button>` : ''}
+        <span class="tap-name">${esc(item.name)}</span>
+        <span class="tap-price">$${item.price.toFixed(2)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function tapItem(id) {
+  todayOrders[id] = (todayOrders[id] || 0) + 1;
+  saveToday();
+  renderGrid();
+  updateRevenue();
+}
+
+function undoItem(id) {
+  if (todayOrders[id] && todayOrders[id] > 0) {
+    todayOrders[id]--;
+    if (todayOrders[id] === 0) delete todayOrders[id];
+    saveToday();
+    renderGrid();
+    updateRevenue();
+  }
+}
+
+function updateRevenue() {
+  let total = 0;
+  let orders = 0;
+  for (const id in todayOrders) {
+    const item = menu.find(m => m.id === id);
+    if (item) {
+      total += item.price * todayOrders[id];
+      orders += todayOrders[id];
+    }
+  }
+  document.getElementById('live-revenue').textContent = '$' + total.toFixed(2);
+  document.getElementById('live-orders').textContent = orders + ' order' + (orders !== 1 ? 's' : '');
+}
+
+function showSetup() {
+  showScreen('screen-setup');
+  renderMenu();
+}
+
+// ══════════════════════════════════════
+//  SUMMARY SCREEN
+// ══════════════════════════════════════
+function endDay() {
+  showScreen('screen-summary');
+  renderSummary();
+
+  // Write agent result
+  setTimeout(function() {
+    const summary = window.vendorLog.getSummary();
+    const resultDiv = document.getElementById('terrapin-result') || document.createElement('div');
+    resultDiv.id = 'terrapin-result';
+    resultDiv.style.display = 'none';
+    resultDiv.textContent = JSON.stringify({
+      status: 'success',
+      tool: 'Street Vendor Order Log',
+      output: summary,
+      timestamp: new Date().toISOString()
+    });
+    document.body.appendChild(resultDiv);
+  }, 100);
+}
+
+function renderSummary() {
+  document.getElementById('summary-date').textContent = friendlyDate(todayDate);
+
+  let totalRevenue = 0;
+  let totalUnits = 0;
+  const items = [];
+
+  menu.forEach(item => {
+    const count = todayOrders[item.id] || 0;
+    const rev = item.price * count;
+    totalRevenue += rev;
+    totalUnits += count;
+    if (count > 0) items.push({ name: item.name, count, revenue: rev, price: item.price });
+  });
+
+  items.sort((a, b) => b.count - a.count);
+  const bestSeller = items.length > 0 ? items[0] : null;
+
+  // Comparison to yesterday
+  const yesterday = getYesterday();
+  let yRevenue = 0;
+  let yUnits = 0;
+  if (yesterday) {
+    for (const id in yesterday.orders) {
+      const item = menu.find(m => m.id === id);
+      if (item) {
+        yRevenue += item.price * yesterday.orders[id];
+        yUnits += yesterday.orders[id];
+      }
+    }
+  }
+
+  function compareHTML(today, yest, prefix) {
+    if (!yesterday) return '';
+    if (yest === 0) return '<div class="stat-compare same">No previous data</div>';
+    const diff = today - yest;
+    const pct = Math.round((diff / yest) * 100);
+    if (diff > 0) return `<div class="stat-compare up">${prefix}+${pct}% vs yesterday</div>`;
+    if (diff < 0) return `<div class="stat-compare down">${prefix}${pct}% vs yesterday</div>`;
+    return '<div class="stat-compare same">Same as yesterday</div>';
+  }
+
+  document.getElementById('summary-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Revenue</div>
+      <div class="stat-value">$${totalRevenue.toFixed(2)}</div>
+      ${compareHTML(totalRevenue, yRevenue, '$')}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items Sold</div>
+      <div class="stat-value">${totalUnits}</div>
+      ${compareHTML(totalUnits, yUnits, '')}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg / Order</div>
+      <div class="stat-value">$${totalUnits > 0 ? (totalRevenue / totalUnits).toFixed(2) : '0.00'}</div>
+    </div>
+  `;
+
+  if (bestSeller) {
+    document.getElementById('best-seller-section').innerHTML = `
+      <div class="best-seller">
+        <div>
+          <div class="bs-label">Best Seller</div>
+          <div class="bs-name">${esc(bestSeller.name)}</div>
+        </div>
+        <div class="bs-count">${bestSeller.count} sold<br>$${bestSeller.revenue.toFixed(2)}</div>
+      </div>
+    `;
+  } else {
+    document.getElementById('best-seller-section').innerHTML = '';
+  }
+
+  document.getElementById('item-breakdown').innerHTML = items.length > 0
+    ? items.map(it => `
+        <div class="ib-row">
+          <div>
+            <div class="ib-name">${esc(it.name)}</div>
+            <div class="ib-details">${it.count} sold &times; $${it.price.toFixed(2)}</div>
+          </div>
+          <div class="ib-revenue">$${it.revenue.toFixed(2)}</div>
+        </div>
+      `).join('')
+    : '<div style="text-align:center;color:#6B6B6B;padding:1rem;">No orders recorded today.</div>';
+}
+
+function backToService() {
+  showScreen('screen-service');
+  renderGrid();
+  updateRevenue();
+}
+
+function confirmNewDay() {
+  if (!confirm('Start a fresh day? Today\'s data is already saved — you can still view it in the PDF.')) return;
+  todayDate = getTodayISO();
+  todayOrders = {};
+  saveToday();
+  showScreen('screen-service');
+  renderGrid();
+  updateRevenue();
+}
+
+// ══════════════════════════════════════
+//  PDF GENERATION
+// ══════════════════════════════════════
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(44, 62, 45);
+  doc.text('Street Vendor Order Log', W / 2, y, { align: 'center' });
+  y += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(107, 107, 107);
+  doc.text('Daily Summary — ' + friendlyDate(todayDate), W / 2, y, { align: 'center' });
+  y += 14;
+
+  let totalRevenue = 0;
+  let totalUnits = 0;
+  const items = [];
+  menu.forEach(item => {
+    const count = todayOrders[item.id] || 0;
+    const rev = item.price * count;
+    totalRevenue += rev;
+    totalUnits += count;
+    if (count > 0) items.push({ name: item.name, count, revenue: rev, price: item.price });
+  });
+  items.sort((a, b) => b.count - a.count);
+
+  // Stats row
+  doc.setFillColor(253, 250, 244);
+  doc.roundedRect(20, y, W - 40, 18, 3, 3, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 107, 107);
+  const thirds = (W - 40) / 3;
+  doc.text('REVENUE', 20 + thirds * 0.5, y + 6, { align: 'center' });
+  doc.text('ITEMS SOLD', 20 + thirds * 1.5, y + 6, { align: 'center' });
+  doc.text('AVG / ORDER', 20 + thirds * 2.5, y + 6, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setTextColor(44, 62, 45);
+  doc.text('$' + totalRevenue.toFixed(2), 20 + thirds * 0.5, y + 14, { align: 'center' });
+  doc.text(String(totalUnits), 20 + thirds * 1.5, y + 14, { align: 'center' });
+  doc.text('$' + (totalUnits > 0 ? (totalRevenue / totalUnits).toFixed(2) : '0.00'), 20 + thirds * 2.5, y + 14, { align: 'center' });
+  y += 26;
+
+  // Best seller
+  if (items.length > 0) {
+    doc.setFillColor(201, 168, 76);
+    doc.roundedRect(20, y, W - 40, 12, 3, 3, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text('BEST SELLER: ' + items[0].name.toUpperCase() + ' — ' + items[0].count + ' sold', W / 2, y + 8, { align: 'center' });
+    y += 18;
+  }
+
+  // Item breakdown
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 107, 107);
+  doc.text('ITEM BREAKDOWN', 20, y + 4);
+  y += 10;
+
+  doc.setDrawColor(232, 224, 208);
+  items.forEach(it => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(26, 26, 26);
+    doc.text(it.name, 20, y + 4);
+    doc.setTextColor(107, 107, 107);
+    doc.setFontSize(10);
+    doc.text(it.count + ' sold x $' + it.price.toFixed(2), 20, y + 9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(44, 62, 45);
+    doc.text('$' + it.revenue.toFixed(2), W - 20, y + 6, { align: 'right' });
+    y += 14;
+    doc.line(20, y - 2, W - 20, y - 2);
+  });
+
+  y += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(44, 62, 45);
+  doc.text('TOTAL: $' + totalRevenue.toFixed(2), W - 20, y, { align: 'right' });
+
+  // Footer
+  y = doc.internal.pageSize.getHeight() - 12;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Generated by Terrapin Tools — terrapin.tools', W / 2, y, { align: 'center' });
+
+  doc.save('order-log-' + todayDate + '.pdf');
+}
+
+// ══════════════════════════════════════
+//  SCREEN NAV
+// ══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+/**
+ * window.vendorLog — programmatic API for AI agents.
+ *
+ * Menu schema:  { name: "Al Pastor Taco", price: 3.50 }
+ * Order input:  { itemName: "Al Pastor Taco", qty: 1 }
+ */
+window.vendorLog = {
+  getMenu() { return structuredClone(menu); },
+
+  setMenu(items) {
+    if (!Array.isArray(items)) throw new Error('Expected array of { name, price }');
+    menu = items.map(i => ({
+      id: 'i_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6),
+      name: i.name,
+      price: Number(i.price)
+    }));
+    saveMenu();
+    renderMenu();
+    return structuredClone(menu);
+  },
+
+  addMenuItem(name, price) {
+    if (!name) throw new Error('name is required');
+    const item = { id: 'i_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6), name, price: Number(price) };
+    menu.push(item);
+    saveMenu();
+    return structuredClone(item);
+  },
+
+  logOrder(itemName, qty) {
+    const item = menu.find(m => m.name.toLowerCase() === (itemName || '').toLowerCase());
+    if (!item) throw new Error('Item not found: ' + itemName);
+    const q = qty || 1;
+    todayOrders[item.id] = (todayOrders[item.id] || 0) + q;
+    saveToday();
+    return { item: item.name, qty: q, newCount: todayOrders[item.id] };
+  },
+
+  undoOrder(itemName, qty) {
+    const item = menu.find(m => m.name.toLowerCase() === (itemName || '').toLowerCase());
+    if (!item) throw new Error('Item not found: ' + itemName);
+    const q = qty || 1;
+    todayOrders[item.id] = Math.max(0, (todayOrders[item.id] || 0) - q);
+    if (todayOrders[item.id] === 0) delete todayOrders[item.id];
+    saveToday();
+    return { item: item.name, removed: q, newCount: todayOrders[item.id] || 0 };
+  },
+
+  getSummary(date) {
+    const d = date || todayDate;
+    const days = loadDays();
+    const orders = days[d] || {};
+    let totalRevenue = 0;
+    let totalUnits = 0;
+    const items = [];
+    menu.forEach(m => {
+      const count = orders[m.id] || 0;
+      const rev = m.price * count;
+      totalRevenue += rev;
+      totalUnits += count;
+      if (count > 0) items.push({ name: m.name, count, revenue: Math.round(rev * 100) / 100 });
+    });
+    items.sort((a, b) => b.count - a.count);
+    return {
+      date: d,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalUnits,
+      avgPerOrder: totalUnits > 0 ? Math.round((totalRevenue / totalUnits) * 100) / 100 : 0,
+      bestSeller: items[0] || null,
+      items
+    };
+  },
+
+  getDates() {
+    return Object.keys(loadDays()).sort().reverse();
+  },
+
+  resetDay() {
+    todayOrders = {};
+    saveToday();
+    return true;
+  }
+};
+
+window.vendorLogReady = Promise.resolve(true);
+
+// ══════════════════════════════════════
+//  KEYBOARD — Enter to add items
+// ══════════════════════════════════════
+document.getElementById('new-item-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { document.getElementById('new-item-price').focus(); }
+});
+document.getElementById('new-item-price').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { addMenuItem(); }
+});
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+  const item = params.get('item');
+  const qty = parseInt(params.get('qty')) || 1;
+
+  // Load first
+  loadMenu();
+  loadToday();
+
+  if (action === 'setup') {
+    renderMenu();
+    return;
+  }
+
+  if (item && menu.length > 0) {
+    for (let i = 0; i < qty; i++) {
+      const found = menu.find(m => m.name.toLowerCase() === item.toLowerCase());
+      if (found) {
+        todayOrders[found.id] = (todayOrders[found.id] || 0) + 1;
+      }
+    }
+    saveToday();
+  }
+
+  if (action === 'summary') {
+    if (menu.length > 0) {
+      startService();
+      endDay();
+    } else {
+      renderMenu();
+    }
+    return;
+  }
+
+  if (menu.length > 0) {
+    startService();
+  } else {
+    renderMenu();
+  }
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    window._terrapinProfile = profile;
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

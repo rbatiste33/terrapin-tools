@@ -1,0 +1,804 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Job Site Daily Log
+Description: Daily log for contractors — crew, work, materials, issues, PDF output
+Parameters:
+  - date (string, optional): YYYY-MM-DD date for new entry (default today)
+  - job_name (string, optional): Job/project name
+  - job_address (string, optional): Job site address
+  - weather (string, optional): Clear|Cloudy|Rain|Snow|Wind|Hot
+  - work (string, optional): Description of work completed
+  - issues (string, optional): Issues or delays
+  - notes (string, optional): Additional notes
+  - action (string, optional): new|list — open new entry form or show list
+Output: Dated PDF log entry saved to localStorage
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Site Daily Log — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 740px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; color: #2C3E2D; }
+  .app-header p { font-size: 14px; color: #6B6B6B; margin-top: 2px; }
+
+  .card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #E8E0D0; }
+
+  label { font-size: 13px; color: #6B6B6B; font-weight: 500; display: block; margin-bottom: 6px; }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1a1a1a;
+    background: #FDFAF4; border: 1px solid #E8E0D0;
+    border-radius: 8px; padding: 10px 12px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+  textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Weather chips */
+  .weather-options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .weather-chip {
+    padding: 8px 14px; border-radius: 8px; border: 1.5px solid #E8E0D0;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; background: #FDFAF4; color: #1a1a1a; transition: all 0.15s;
+  }
+  .weather-chip:hover { border-color: #2C3E2D; }
+  .weather-chip.active { background: #2C3E2D; color: #fff; border-color: #2C3E2D; }
+
+  /* Repeating rows */
+  .repeater-row { display: grid; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .crew-row { grid-template-columns: 1fr 80px 30px; }
+  .material-row { grid-template-columns: 1fr 80px 80px 30px; }
+  .repeater-row input { padding: 9px 10px; font-size: 13px; }
+  .repeater-row input[type="number"] { text-align: right; }
+  .row-remove { background: none; border: none; font-size: 20px; cursor: pointer; color: #ccc; padding: 2px 6px; line-height: 1; }
+  .row-remove:hover { color: #B85C2C; }
+  .add-row-btn { font-size: 13px; color: #2C3E2D; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; margin-top: 4px; }
+  .add-row-btn:hover { text-decoration: underline; }
+
+  .repeater-header { display: grid; gap: 8px; margin-bottom: 6px; }
+  .repeater-header.crew-row { grid-template-columns: 1fr 80px 30px; }
+  .repeater-header.material-row { grid-template-columns: 1fr 80px 80px 30px; }
+  .repeater-header span { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Buttons */
+  .btn-primary {
+    background: #2C3E2D; color: #fff; padding: 12px 24px; border-radius: 8px;
+    border: none; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; text-align: center; width: 100%;
+  }
+  .btn-primary:hover { background: #3A5240; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .btn-secondary {
+    background: transparent; color: #2C3E2D; padding: 12px 24px; border-radius: 8px;
+    border: 1.5px solid #2C3E2D; font-family: 'DM Sans', sans-serif; font-size: 15px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s; text-align: center; width: 100%;
+  }
+  .btn-secondary:hover { background: rgba(44,62,45,0.06); }
+  .btn-danger {
+    background: none; border: 1px solid #E8E0D0; color: #B85C2C; padding: 10px 16px;
+    border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; width: 100%;
+  }
+  .btn-danger:hover { border-color: #B85C2C; background: #FFF8F5; }
+
+  .actions-row { display: flex; gap: 10px; margin-top: 16px; }
+  .actions-row button { flex: 1; }
+
+  /* History */
+  .history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #E8E0D0; cursor: pointer;
+    transition: background 0.1s;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-item:hover { background: #FDFAF4; margin: 0 -12px; padding: 12px 12px; border-radius: 8px; }
+  .hi-left {}
+  .hi-date { font-weight: 600; font-size: 15px; color: #1a1a1a; }
+  .hi-job { font-size: 13px; color: #6B6B6B; }
+  .hi-right { display: flex; gap: 8px; align-items: center; }
+  .hi-crew { font-family: 'DM Mono', monospace; font-size: 12px; color: #4A7C59; background: #E8F0E8; padding: 3px 8px; border-radius: 6px; }
+  .hi-actions { display: flex; gap: 4px; }
+  .hi-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; color: #6B6B6B; }
+  .hi-btn:hover { color: #2C3E2D; }
+  .hi-btn.delete:hover { color: #B85C2C; }
+
+  .empty-state { text-align: center; padding: 2rem; color: #6B6B6B; font-size: 14px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 16px; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .row.three { grid-template-columns: 1fr 1fr; }
+    .material-row { grid-template-columns: 1fr 60px 60px 28px; }
+    .repeater-header.material-row { grid-template-columns: 1fr 60px 60px 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1>Job Site Daily Log</h1>
+    <p>Log your crew, work, and materials — pull up any past day</p>
+  </div>
+
+  <!-- ══════════ LIST SCREEN ══════════ -->
+  <div class="screen active" id="screen-list">
+    <div class="actions-row" style="margin-top:0; margin-bottom:16px;">
+      <button class="btn-primary" onclick="newEntry()">+ New Daily Log</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Past Logs</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ FORM SCREEN ══════════ -->
+  <div class="screen" id="screen-form">
+
+    <!-- Job Info -->
+    <div class="card">
+      <div class="card-title">Job Info</div>
+      <div class="row">
+        <div class="field"><label>Date</label><input type="date" id="f-date"></div>
+        <div class="field">
+          <label>Weather</label>
+          <div class="weather-options" id="weather-options">
+            <button class="weather-chip" data-val="Clear">&#9728;&#65039; Clear</button>
+            <button class="weather-chip" data-val="Cloudy">&#9729;&#65039; Cloudy</button>
+            <button class="weather-chip" data-val="Rain">&#127783;&#65039; Rain</button>
+            <button class="weather-chip" data-val="Snow">&#10052;&#65039; Snow</button>
+            <button class="weather-chip" data-val="Wind">&#127788;&#65039; Wind</button>
+            <button class="weather-chip" data-val="Hot">&#128293; Hot</button>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>Job name</label><input type="text" id="f-jobname" placeholder="e.g. Smith Kitchen Remodel"></div>
+      <div class="field"><label>Job address</label><input type="text" id="f-address" placeholder="e.g. 123 Main St, Anytown TX"></div>
+    </div>
+
+    <!-- Crew -->
+    <div class="card">
+      <div class="card-title">Crew</div>
+      <div class="repeater-header crew-row">
+        <span>Name</span><span>Hours</span><span></span>
+      </div>
+      <div id="crew-rows"></div>
+      <button class="add-row-btn" onclick="addCrewRow()">+ Add crew member</button>
+    </div>
+
+    <!-- Work Completed -->
+    <div class="card">
+      <div class="card-title">Work Completed Today</div>
+      <div class="field">
+        <textarea id="f-work" placeholder="Describe what was accomplished today..." rows="4"></textarea>
+      </div>
+    </div>
+
+    <!-- Materials -->
+    <div class="card">
+      <div class="card-title">Materials Used</div>
+      <div class="repeater-header material-row">
+        <span>Material</span><span>Qty</span><span>Unit</span><span></span>
+      </div>
+      <div id="material-rows"></div>
+      <button class="add-row-btn" onclick="addMaterialRow()">+ Add material</button>
+    </div>
+
+    <!-- Issues & Notes -->
+    <div class="card">
+      <div class="card-title">Issues & Notes</div>
+      <div class="field">
+        <label>Issues or delays</label>
+        <textarea id="f-issues" placeholder="Any problems, delays, safety concerns..." rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label>Additional notes</label>
+        <textarea id="f-notes" placeholder="Anything else worth recording..." rows="3"></textarea>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-row">
+      <button class="btn-secondary" onclick="cancelForm()">Cancel</button>
+      <button class="btn-primary" onclick="saveEntry()">Save Log Entry</button>
+    </div>
+    <div class="actions-row">
+      <button class="btn-primary" onclick="saveAndPDF()" style="background:#4A7C59;">Save & Download PDF</button>
+    </div>
+  </div>
+
+  <p class="api-note">Callable via <code>window.jobLog</code> for automation</p>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const STORAGE_KEY = 'jsdl_entries';
+let entries = [];
+let editingId = null;
+let selectedWeather = '';
+
+function getTodayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function friendlyDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ══════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════
+function load() {
+  try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { entries = []; }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+// ══════════════════════════════════════
+//  LIST SCREEN
+// ══════════════════════════════════════
+function renderList() {
+  const el = document.getElementById('history-list');
+  if (entries.length === 0) {
+    el.innerHTML = '<div class="empty-state">No logs yet. Start your first daily log above.</div>';
+    return;
+  }
+  const sorted = [...entries].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  el.innerHTML = sorted.map(e => {
+    const crewCount = (e.crew || []).filter(c => c.name).length;
+    const totalHours = (e.crew || []).reduce((s, c) => s + (parseFloat(c.hours) || 0), 0);
+    return `
+      <div class="history-item" onclick="viewEntry('${e.id}')">
+        <div class="hi-left">
+          <div class="hi-date">${friendlyDate(e.date)}</div>
+          <div class="hi-job">${esc(e.jobName || 'Untitled job')}${e.weather ? ' — ' + e.weather : ''}</div>
+        </div>
+        <div class="hi-right">
+          <span class="hi-crew">${crewCount} crew / ${totalHours}h</span>
+          <div class="hi-actions">
+            <button class="hi-btn" onclick="event.stopPropagation(); downloadPDFById('${e.id}')" title="Download PDF">&#128196;</button>
+            <button class="hi-btn delete" onclick="event.stopPropagation(); deleteEntry('${e.id}')" title="Delete">&#128465;</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+//  FORM — CREW ROWS
+// ══════════════════════════════════════
+let crewData = [];
+
+function renderCrewRows() {
+  const el = document.getElementById('crew-rows');
+  el.innerHTML = crewData.map((c, i) => `
+    <div class="repeater-row crew-row">
+      <input type="text" value="${esc(c.name)}" placeholder="Name" onchange="crewData[${i}].name=this.value">
+      <input type="number" value="${c.hours}" placeholder="Hrs" min="0" step="0.5" onchange="crewData[${i}].hours=this.value">
+      <button class="row-remove" onclick="crewData.splice(${i},1);renderCrewRows()">&times;</button>
+    </div>
+  `).join('');
+}
+
+function addCrewRow() {
+  crewData.push({ name: '', hours: 8 });
+  renderCrewRows();
+  const rows = document.querySelectorAll('#crew-rows .crew-row');
+  if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+}
+
+// ══════════════════════════════════════
+//  FORM — MATERIAL ROWS
+// ══════════════════════════════════════
+let materialData = [];
+
+function renderMaterialRows() {
+  const el = document.getElementById('material-rows');
+  el.innerHTML = materialData.map((m, i) => `
+    <div class="repeater-row material-row">
+      <input type="text" value="${esc(m.name)}" placeholder="Material" onchange="materialData[${i}].name=this.value">
+      <input type="number" value="${m.qty}" placeholder="Qty" min="0" step="1" onchange="materialData[${i}].qty=this.value">
+      <input type="text" value="${esc(m.unit)}" placeholder="Unit" onchange="materialData[${i}].unit=this.value">
+      <button class="row-remove" onclick="materialData.splice(${i},1);renderMaterialRows()">&times;</button>
+    </div>
+  `).join('');
+}
+
+function addMaterialRow() {
+  materialData.push({ name: '', qty: '', unit: 'pcs' });
+  renderMaterialRows();
+  const rows = document.querySelectorAll('#material-rows .material-row');
+  if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+}
+
+// ══════════════════════════════════════
+//  WEATHER SELECTOR
+// ══════════════════════════════════════
+document.getElementById('weather-options').addEventListener('click', function(e) {
+  const chip = e.target.closest('.weather-chip');
+  if (!chip) return;
+  document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('active'));
+  if (selectedWeather === chip.dataset.val) {
+    selectedWeather = '';
+  } else {
+    chip.classList.add('active');
+    selectedWeather = chip.dataset.val;
+  }
+});
+
+// ══════════════════════════════════════
+//  NEW / EDIT / SAVE
+// ══════════════════════════════════════
+function newEntry() {
+  editingId = null;
+  clearForm();
+  document.getElementById('f-date').value = getTodayISO();
+  crewData = [{ name: '', hours: 8 }];
+  materialData = [];
+  renderCrewRows();
+  renderMaterialRows();
+  showScreen('screen-form');
+}
+
+function viewEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('f-date').value = e.date || '';
+  document.getElementById('f-jobname').value = e.jobName || '';
+  document.getElementById('f-address').value = e.address || '';
+  document.getElementById('f-work').value = e.workCompleted || '';
+  document.getElementById('f-issues').value = e.issues || '';
+  document.getElementById('f-notes').value = e.notes || '';
+  selectedWeather = e.weather || '';
+  document.querySelectorAll('.weather-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === selectedWeather);
+  });
+  crewData = (e.crew || []).map(c => ({ ...c }));
+  if (crewData.length === 0) crewData = [{ name: '', hours: 8 }];
+  materialData = (e.materials || []).map(m => ({ ...m }));
+  renderCrewRows();
+  renderMaterialRows();
+  showScreen('screen-form');
+}
+
+function readForm() {
+  // Sync crew/material from DOM
+  document.querySelectorAll('#crew-rows .crew-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    crewData[i] = { name: inputs[0].value.trim(), hours: inputs[1].value };
+  });
+  document.querySelectorAll('#material-rows .material-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    materialData[i] = { name: inputs[0].value.trim(), qty: inputs[1].value, unit: inputs[2].value.trim() };
+  });
+
+  return {
+    date: document.getElementById('f-date').value,
+    jobName: document.getElementById('f-jobname').value.trim(),
+    address: document.getElementById('f-address').value.trim(),
+    weather: selectedWeather,
+    crew: crewData.filter(c => c.name),
+    workCompleted: document.getElementById('f-work').value.trim(),
+    materials: materialData.filter(m => m.name),
+    issues: document.getElementById('f-issues').value.trim(),
+    notes: document.getElementById('f-notes').value.trim()
+  };
+}
+
+function saveEntry() {
+  const data = readForm();
+  if (!data.date) { alert('Please enter a date.'); return false; }
+  if (!data.jobName) { alert('Please enter a job name.'); return false; }
+
+  if (editingId) {
+    const idx = entries.findIndex(e => e.id === editingId);
+    if (idx > -1) entries[idx] = { ...entries[idx], ...data, updatedAt: new Date().toISOString() };
+  } else {
+    entries.push({
+      id: 'log_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+  save();
+  renderList();
+  showScreen('screen-list');
+
+  // Write agent result
+  const resultDiv = document.getElementById('terrapin-result') || document.createElement('div');
+  resultDiv.id = 'terrapin-result';
+  resultDiv.style.display = 'none';
+  resultDiv.textContent = JSON.stringify({
+    status: 'success',
+    tool: 'Job Site Daily Log',
+    output: 'Log entry saved for ' + data.date + ' — ' + data.jobName,
+    timestamp: new Date().toISOString()
+  });
+  document.body.appendChild(resultDiv);
+
+  return true;
+}
+
+function saveAndPDF() {
+  if (saveEntry()) {
+    const sorted = [...entries].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    if (sorted.length) downloadPDFById(sorted[0].id);
+  }
+}
+
+function deleteEntry(id) {
+  const e = entries.find(x => x.id === id);
+  if (!confirm('Delete log for ' + friendlyDate(e?.date) + '?')) return;
+  entries = entries.filter(x => x.id !== id);
+  save();
+  renderList();
+}
+
+function cancelForm() {
+  editingId = null;
+  showScreen('screen-list');
+}
+
+function clearForm() {
+  ['f-date','f-jobname','f-address','f-work','f-issues','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  selectedWeather = '';
+  document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('active'));
+}
+
+// ══════════════════════════════════════
+//  PDF GENERATION
+// ══════════════════════════════════════
+function downloadPDFById(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  generatePDF(e);
+}
+
+function generatePDF(e) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const contentW = W - margin * 2;
+  let y = 20;
+
+  function checkPage(needed) {
+    if (y + needed > doc.internal.pageSize.getHeight() - 20) {
+      doc.addPage();
+      y = 20;
+    }
+  }
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(44, 62, 45);
+  doc.text('Job Site Daily Log', margin, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 107, 107);
+  doc.text(friendlyDate(e.date) + (e.weather ? '  |  ' + e.weather : ''), margin, y);
+  y += 10;
+
+  // Job info bar
+  doc.setFillColor(253, 250, 244);
+  doc.roundedRect(margin, y, contentW, 16, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(26, 26, 26);
+  doc.text(e.jobName || 'Untitled', margin + 6, y + 7);
+  if (e.address) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 107, 107);
+    doc.text(e.address, margin + 6, y + 13);
+  }
+  y += 22;
+
+  // Crew
+  if (e.crew && e.crew.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 107, 107);
+    doc.text('CREW', margin, y);
+    y += 6;
+    const totalHours = e.crew.reduce((s, c) => s + (parseFloat(c.hours) || 0), 0);
+    e.crew.forEach(c => {
+      checkPage(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(26, 26, 26);
+      doc.text(c.name, margin + 4, y);
+      doc.setTextColor(74, 124, 89);
+      doc.text((parseFloat(c.hours) || 0) + 'h', margin + contentW - 4, y, { align: 'right' });
+      y += 5.5;
+    });
+    doc.setDrawColor(232, 224, 208);
+    doc.line(margin, y, margin + contentW, y);
+    y += 1;
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 45);
+    doc.text(e.crew.length + ' crew  |  ' + totalHours + ' total hours', margin + 4, y + 4);
+    y += 10;
+  }
+
+  // Work completed
+  if (e.workCompleted) {
+    checkPage(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 107, 107);
+    doc.text('WORK COMPLETED', margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(26, 26, 26);
+    const lines = doc.splitTextToSize(e.workCompleted, contentW - 8);
+    lines.forEach(line => {
+      checkPage(5);
+      doc.text(line, margin + 4, y);
+      y += 5;
+    });
+    y += 6;
+  }
+
+  // Materials
+  if (e.materials && e.materials.length) {
+    checkPage(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 107, 107);
+    doc.text('MATERIALS USED', margin, y);
+    y += 6;
+    e.materials.forEach(m => {
+      checkPage(6);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(26, 26, 26);
+      doc.text(m.name, margin + 4, y);
+      doc.setTextColor(107, 107, 107);
+      doc.text((m.qty || '') + ' ' + (m.unit || ''), margin + contentW - 4, y, { align: 'right' });
+      y += 5.5;
+    });
+    y += 6;
+  }
+
+  // Issues
+  if (e.issues) {
+    checkPage(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(184, 92, 44);
+    doc.text('ISSUES / DELAYS', margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(26, 26, 26);
+    const lines = doc.splitTextToSize(e.issues, contentW - 8);
+    lines.forEach(line => { checkPage(5); doc.text(line, margin + 4, y); y += 5; });
+    y += 6;
+  }
+
+  // Notes
+  if (e.notes) {
+    checkPage(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 107, 107);
+    doc.text('NOTES', margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(26, 26, 26);
+    const lines = doc.splitTextToSize(e.notes, contentW - 8);
+    lines.forEach(line => { checkPage(5); doc.text(line, margin + 4, y); y += 5; });
+    y += 6;
+  }
+
+  // Footer
+  const fY = doc.internal.pageSize.getHeight() - 10;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Generated by Terrapin Tools — terrapin.tools', W / 2, fY, { align: 'center' });
+
+  doc.save('job-log-' + (e.date || 'undated') + '.pdf');
+}
+
+// ══════════════════════════════════════
+//  SCREEN NAV
+// ══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+/**
+ * window.jobLog — programmatic API for AI agents.
+ *
+ * Entry schema:
+ *   {
+ *     date: "2026-04-07",
+ *     jobName: "Smith Kitchen Remodel",
+ *     address: "123 Main St",
+ *     weather: "Clear",
+ *     crew: [{ name: "Mike", hours: 8 }, { name: "Dave", hours: 6 }],
+ *     workCompleted: "Framed kitchen walls, ran electrical rough-in.",
+ *     materials: [{ name: "2x4 lumber", qty: 40, unit: "pcs" }],
+ *     issues: "Delayed 1hr waiting for inspection.",
+ *     notes: "Inspector passed rough-in."
+ *   }
+ */
+window.jobLog = {
+  addEntry(data) {
+    if (!data || !data.date || !data.jobName) throw new Error('date and jobName are required');
+    const entry = {
+      id: 'log_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      date: data.date,
+      jobName: data.jobName,
+      address: data.address || '',
+      weather: data.weather || '',
+      crew: data.crew || [],
+      workCompleted: data.workCompleted || '',
+      materials: data.materials || [],
+      issues: data.issues || '',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    entries.push(entry);
+    save();
+    renderList();
+    return structuredClone(entry);
+  },
+
+  updateEntry(id, data) {
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx === -1) throw new Error('Entry not found: ' + id);
+    const allowed = ['date','jobName','address','weather','crew','workCompleted','materials','issues','notes'];
+    allowed.forEach(k => { if (data[k] !== undefined) entries[idx][k] = data[k]; });
+    entries[idx].updatedAt = new Date().toISOString();
+    save();
+    renderList();
+    return structuredClone(entries[idx]);
+  },
+
+  deleteEntry(id) {
+    const idx = entries.findIndex(e => e.id === id);
+    if (idx === -1) throw new Error('Entry not found: ' + id);
+    entries.splice(idx, 1);
+    save();
+    renderList();
+    return true;
+  },
+
+  getEntries() { return structuredClone(entries); },
+
+  getEntry(id) {
+    const e = entries.find(x => x.id === id);
+    return e ? structuredClone(e) : null;
+  },
+
+  getEntriesByDate(date) {
+    return structuredClone(entries.filter(e => e.date === date));
+  },
+
+  getEntriesByJob(jobName) {
+    const q = (jobName || '').toLowerCase();
+    return structuredClone(entries.filter(e => (e.jobName || '').toLowerCase().includes(q)));
+  },
+
+  exportJSON() { return JSON.stringify(entries, null, 2); },
+
+  importEntries(arr) {
+    if (!Array.isArray(arr)) throw new Error('Expected array');
+    let count = 0;
+    arr.forEach(item => {
+      if (!item.date || !item.jobName) return;
+      if (item.id && entries.find(e => e.id === item.id)) {
+        const idx = entries.findIndex(e => e.id === item.id);
+        entries[idx] = { ...entries[idx], ...item, updatedAt: new Date().toISOString() };
+      } else {
+        entries.push({
+          id: item.id || 'log_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+          ...item,
+          createdAt: item.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+      count++;
+    });
+    save();
+    renderList();
+    return count;
+  }
+};
+
+window.jobLogReady = Promise.resolve(true);
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  load();
+
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+
+  if (action === 'new' || params.get('job_name')) {
+    newEntry();
+    const map = {
+      'date': 'f-date',
+      'job_name': 'f-jobname',
+      'job_address': 'f-address',
+      'work': 'f-work',
+      'issues': 'f-issues',
+      'notes': 'f-notes'
+    };
+    for (const [param, id] of Object.entries(map)) {
+      const val = params.get(param);
+      if (val) document.getElementById(id).value = val;
+    }
+    const weather = params.get('weather');
+    if (weather) {
+      const chip = document.querySelector('.weather-chip[data-val="' + weather + '"]');
+      if (chip) {
+        document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedWeather = weather;
+      }
+    }
+  } else {
+    renderList();
+  }
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    window._terrapinProfile = profile;
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

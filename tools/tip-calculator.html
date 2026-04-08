@@ -1,0 +1,468 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Tip Calculator & Staff Splitter
+Description: Calculate tips and split across staff roles
+Parameters:
+  - bill (number, required): Total bill amount
+  - tip_percent (number, optional): Tip percentage (default 18)
+  - servers (number, optional): Number of servers
+  - servers_pct (number, optional): Server tip share percentage
+  - bussers (number, optional): Number of bussers
+  - bussers_pct (number, optional): Busser tip share percentage
+  - bartenders (number, optional): Number of bartenders
+  - bartenders_pct (number, optional): Bartender tip share percentage
+  - hosts (number, optional): Number of hosts
+  - hosts_pct (number, optional): Host tip share percentage
+Output: Tip breakdown per role with per-person amounts
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tip Calculator &amp; Staff Splitter — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 740px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 2rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; color: #2C3E2D; }
+  .app-header p { font-size: 14px; color: #6B6B6B; margin-top: 4px; }
+
+  .card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #E8E0D0; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 13px; color: #6B6B6B; font-weight: 500; }
+  input[type="text"], input[type="number"], select {
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1a1a1a;
+    background: #FDFAF4; border: 1px solid #E8E0D0;
+    border-radius: 8px; padding: 10px 12px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+
+  /* Tip buttons */
+  .tip-options { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tip-btn {
+    padding: 10px 18px; border-radius: 8px; border: 1.5px solid #E8E0D0;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; background: #FDFAF4; color: #1a1a1a;
+    transition: all 0.15s;
+  }
+  .tip-btn:hover { border-color: #2C3E2D; color: #2C3E2D; }
+  .tip-btn.active { background: #2C3E2D; color: #fff; border-color: #2C3E2D; }
+  .custom-tip-wrap { display: flex; align-items: center; gap: 6px; }
+  .custom-tip-wrap input { width: 70px; text-align: center; }
+  .custom-tip-wrap span { font-size: 14px; color: #6B6B6B; }
+
+  /* Role split */
+  .role-row { display: grid; grid-template-columns: 1fr 80px 60px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #E8E0D0; }
+  .role-row:last-child { border-bottom: none; }
+  .role-name { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+  .role-count-wrap { display: flex; align-items: center; gap: 4px; }
+  .role-count-wrap input { width: 60px; text-align: center; }
+  .role-pct-wrap { display: flex; align-items: center; gap: 2px; }
+  .role-pct-wrap input { width: 50px; text-align: center; font-size: 13px; padding: 8px 4px; }
+  .role-pct-wrap span { font-size: 13px; color: #6B6B6B; }
+  .role-header { display: grid; grid-template-columns: 1fr 80px 60px; gap: 12px; padding-bottom: 6px; margin-bottom: 4px; }
+  .role-header span { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; }
+  .pct-total { font-family: 'DM Mono', monospace; font-size: 13px; color: #6B6B6B; margin-top: 8px; text-align: right; }
+  .pct-total.error { color: #B85C2C; font-weight: 600; }
+  .pct-total.ok { color: #4A7C59; }
+
+  /* Results */
+  .results { background: #FDFAF4; border-radius: 12px; border: 1px solid #E8E0D0; padding: 24px; margin-top: 16px; }
+  .result-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #E8E0D0; }
+  .result-item { text-align: center; }
+  .result-item .result-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .result-item .result-value { font-family: 'Lora', serif; font-size: 24px; font-weight: 700; color: #2C3E2D; }
+
+  .breakdown-title { font-family: 'DM Mono', monospace; font-size: 12px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #E8E0D0; }
+  .breakdown-row:last-child { border-bottom: none; }
+  .br-role { font-size: 15px; font-weight: 500; color: #1a1a1a; }
+  .br-details { font-size: 13px; color: #6B6B6B; }
+  .br-amount { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 600; color: #2C3E2D; }
+  .br-per-person { font-size: 12px; color: #6B6B6B; display: block; text-align: right; }
+
+  .grand-total { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #4A7C59; margin-top: 12px; padding-top: 14px; }
+  .grand-total .br-role { font-size: 17px; font-weight: 700; color: #2C3E2D; }
+  .grand-total .br-amount { font-size: 20px; font-weight: 700; color: #2C3E2D; }
+
+  /* Print button */
+  .print-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 600;
+    background: #2C3E2D; border: none; border-radius: 8px;
+    cursor: pointer; color: #fff; font-family: 'DM Sans', sans-serif;
+    margin-top: 16px; transition: background 0.15s;
+  }
+  .print-btn:hover { background: #3A5240; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+
+  .reset-btn {
+    width: 100%; padding: 12px; font-size: 14px; font-weight: 500;
+    background: transparent; border: 1.5px solid #2C3E2D; border-radius: 8px;
+    cursor: pointer; color: #2C3E2D; font-family: 'DM Sans', sans-serif;
+    margin-top: 8px; transition: all 0.15s;
+  }
+  .reset-btn:hover { background: rgba(44, 62, 45, 0.06); }
+
+  .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 12px; }
+
+  #results-section { display: none; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .result-summary { grid-template-columns: 1fr; gap: 12px; }
+    .tip-options { gap: 6px; }
+    .tip-btn { padding: 8px 14px; font-size: 13px; }
+  }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media print {
+    body { background: #fff; padding: 1rem; }
+    .card, .no-print { display: none !important; }
+    .results { border: none; box-shadow: none; }
+    .print-btn, .reset-btn, .api-note { display: none !important; }
+    #results-section { display: block !important; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1>Tip Calculator & Staff Splitter</h1>
+    <p>Calculate tips and split them across your team by role</p>
+  </div>
+
+  <!-- BILL & TIP -->
+  <div class="card">
+    <div class="card-title">Bill & Tip</div>
+    <div class="field">
+      <label>Total bill amount</label>
+      <input type="number" id="bill-amount" placeholder="0.00" min="0" step="0.01" oninput="calculate()">
+    </div>
+    <label style="margin-bottom: 8px; display: block;">Tip percentage</label>
+    <div class="tip-options">
+      <button class="tip-btn" onclick="setTip(15)">15%</button>
+      <button class="tip-btn active" onclick="setTip(18)">18%</button>
+      <button class="tip-btn" onclick="setTip(20)">20%</button>
+      <button class="tip-btn" onclick="setTip(25)">25%</button>
+      <div class="custom-tip-wrap">
+        <input type="number" id="custom-tip" placeholder="—" min="0" max="100" step="1" oninput="setCustomTip()">
+        <span>%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAFF ROLES -->
+  <div class="card">
+    <div class="card-title">Staff Roles & Split</div>
+    <div class="role-header">
+      <span>Role</span>
+      <span>Staff</span>
+      <span>Share %</span>
+    </div>
+    <div id="roles-container">
+      <div class="role-row" data-role="Servers">
+        <span class="role-name">Servers</span>
+        <div class="role-count-wrap"><input type="number" min="0" max="99" value="2" oninput="calculate()"></div>
+        <div class="role-pct-wrap"><input type="number" min="0" max="100" value="50" oninput="calculate()"><span>%</span></div>
+      </div>
+      <div class="role-row" data-role="Bussers">
+        <span class="role-name">Bussers</span>
+        <div class="role-count-wrap"><input type="number" min="0" max="99" value="1" oninput="calculate()"></div>
+        <div class="role-pct-wrap"><input type="number" min="0" max="100" value="15" oninput="calculate()"><span>%</span></div>
+      </div>
+      <div class="role-row" data-role="Bartenders">
+        <span class="role-name">Bartenders</span>
+        <div class="role-count-wrap"><input type="number" min="0" max="99" value="1" oninput="calculate()"></div>
+        <div class="role-pct-wrap"><input type="number" min="0" max="100" value="25" oninput="calculate()"><span>%</span></div>
+      </div>
+      <div class="role-row" data-role="Hosts">
+        <span class="role-name">Hosts</span>
+        <div class="role-count-wrap"><input type="number" min="0" max="99" value="1" oninput="calculate()"></div>
+        <div class="role-pct-wrap"><input type="number" min="0" max="100" value="10" oninput="calculate()"><span>%</span></div>
+      </div>
+    </div>
+    <div class="pct-total" id="pct-total">Total: 100%</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-section">
+    <div class="results">
+      <div class="result-summary">
+        <div class="result-item">
+          <div class="result-label">Bill</div>
+          <div class="result-value" id="r-bill">$0.00</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Tip</div>
+          <div class="result-value" id="r-tip">$0.00</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Total</div>
+          <div class="result-value" id="r-total">$0.00</div>
+        </div>
+      </div>
+      <div class="breakdown-title">Tip split by role</div>
+      <div id="breakdown-rows"></div>
+      <div class="grand-total">
+        <span class="br-role">Total tips distributed</span>
+        <span class="br-amount" id="r-distributed">$0.00</span>
+      </div>
+    </div>
+    <button class="print-btn" onclick="window.print()">Print Breakdown</button>
+    <button class="reset-btn no-print" onclick="resetAll()">Start Over</button>
+  </div>
+
+  <p class="api-note no-print">Callable via <code>window.tipCalc</code> for automation</p>
+</div>
+
+<script>
+let tipPercent = 18;
+
+function setTip(pct) {
+  tipPercent = pct;
+  document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('custom-tip').value = '';
+  calculate();
+}
+
+function setCustomTip() {
+  const val = parseFloat(document.getElementById('custom-tip').value);
+  if (!isNaN(val) && val >= 0) {
+    tipPercent = val;
+    document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+  }
+  calculate();
+}
+
+function getRoles() {
+  const rows = document.querySelectorAll('.role-row');
+  const roles = [];
+  rows.forEach(row => {
+    const name = row.getAttribute('data-role');
+    const count = parseInt(row.querySelector('.role-count-wrap input').value) || 0;
+    const pct = parseFloat(row.querySelector('.role-pct-wrap input').value) || 0;
+    roles.push({ name, count, pct });
+  });
+  return roles;
+}
+
+function calculate() {
+  const bill = parseFloat(document.getElementById('bill-amount').value) || 0;
+  const tip = bill * (tipPercent / 100);
+  const total = bill + tip;
+  const roles = getRoles();
+
+  const totalPct = roles.reduce((s, r) => s + r.pct, 0);
+  const pctEl = document.getElementById('pct-total');
+  pctEl.textContent = `Total: ${totalPct}%`;
+  pctEl.className = 'pct-total' + (totalPct === 100 ? ' ok' : ' error');
+
+  document.getElementById('r-bill').textContent = fmt(bill);
+  document.getElementById('r-tip').textContent = fmt(tip);
+  document.getElementById('r-total').textContent = fmt(total);
+
+  const breakdownEl = document.getElementById('breakdown-rows');
+  let html = '';
+  let distributed = 0;
+
+  roles.forEach(r => {
+    if (r.count === 0) return;
+    const roleTotal = tip * (r.pct / 100);
+    const perPerson = r.count > 0 ? roleTotal / r.count : 0;
+    distributed += roleTotal;
+    html += `
+      <div class="breakdown-row">
+        <div>
+          <div class="br-role">${esc(r.name)}</div>
+          <div class="br-details">${r.count} staff × ${r.pct}% of tips</div>
+        </div>
+        <div>
+          <span class="br-amount">${fmt(perPerson)}</span>
+          <span class="br-per-person">each (${fmt(roleTotal)} total)</span>
+        </div>
+      </div>
+    `;
+  });
+
+  breakdownEl.innerHTML = html || '<div style="color:#6B6B6B;font-size:14px;padding:8px 0;">Add staff above to see the split</div>';
+  document.getElementById('r-distributed').textContent = fmt(distributed);
+
+  document.getElementById('results-section').style.display = bill > 0 ? 'block' : 'none';
+
+  // Write agent result
+  if (bill > 0) {
+    const resultDiv = document.getElementById('terrapin-result') || document.createElement('div');
+    resultDiv.id = 'terrapin-result';
+    resultDiv.style.display = 'none';
+    const roleResults = getRoles().filter(r => r.count > 0).map(r => {
+      const roleTotal = tip * (r.pct / 100);
+      const perPerson = r.count > 0 ? roleTotal / r.count : 0;
+      return { role: r.name, count: r.count, pct: r.pct, perPerson: Math.round(perPerson * 100) / 100, total: Math.round(roleTotal * 100) / 100 };
+    });
+    resultDiv.textContent = JSON.stringify({
+      status: 'success',
+      tool: 'Tip Calculator & Staff Splitter',
+      output: { bill, tip, total, tipPercent, roles: roleResults },
+      timestamp: new Date().toISOString()
+    });
+    document.body.appendChild(resultDiv);
+  }
+}
+
+function resetAll() {
+  document.getElementById('bill-amount').value = '';
+  document.getElementById('custom-tip').value = '';
+  tipPercent = 18;
+  document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tip-btn')[1].classList.add('active');
+  const rows = document.querySelectorAll('.role-row');
+  const defaults = [
+    { count: 2, pct: 50 },
+    { count: 1, pct: 15 },
+    { count: 1, pct: 25 },
+    { count: 1, pct: 10 }
+  ];
+  rows.forEach((row, i) => {
+    row.querySelector('.role-count-wrap input').value = defaults[i].count;
+    row.querySelector('.role-pct-wrap input').value = defaults[i].pct;
+  });
+  calculate();
+}
+
+function fmt(n) {
+  return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+
+/**
+ * window.tipCalc — programmatic API for automation / AI agents.
+ *
+ * Input schema:
+ *   {
+ *     bill: 250.00,              // required, total bill amount
+ *     tipPercent: 20,            // optional, default 18
+ *     roles: [                   // optional, default split
+ *       { name: "Servers", count: 2, pct: 50 },
+ *       { name: "Bussers", count: 1, pct: 15 },
+ *       { name: "Bartenders", count: 1, pct: 25 },
+ *       { name: "Hosts", count: 1, pct: 10 }
+ *     ]
+ *   }
+ *
+ * Returns:
+ *   {
+ *     bill: 250, tip: 50, total: 300, tipPercent: 20,
+ *     roles: [
+ *       { name: "Servers", count: 2, pct: 50, roleTotal: 25, perPerson: 12.50 },
+ *       ...
+ *     ],
+ *     totalDistributed: 50
+ *   }
+ */
+window.tipCalc = {
+  calculate(data) {
+    if (!data || typeof data.bill !== 'number' || data.bill < 0) {
+      throw new Error('bill is required and must be a non-negative number');
+    }
+    const bill = data.bill;
+    const tp = typeof data.tipPercent === 'number' ? data.tipPercent : 18;
+    const tip = bill * (tp / 100);
+    const total = bill + tip;
+
+    const defaultRoles = [
+      { name: 'Servers', count: 2, pct: 50 },
+      { name: 'Bussers', count: 1, pct: 15 },
+      { name: 'Bartenders', count: 1, pct: 25 },
+      { name: 'Hosts', count: 1, pct: 10 }
+    ];
+    const roles = (data.roles || defaultRoles).map(r => {
+      const roleTotal = tip * ((r.pct || 0) / 100);
+      const perPerson = r.count > 0 ? roleTotal / r.count : 0;
+      return {
+        name: r.name,
+        count: r.count || 0,
+        pct: r.pct || 0,
+        roleTotal: Math.round(roleTotal * 100) / 100,
+        perPerson: Math.round(perPerson * 100) / 100
+      };
+    });
+
+    const totalDistributed = roles.reduce((s, r) => s + r.roleTotal, 0);
+
+    return {
+      bill,
+      tip: Math.round(tip * 100) / 100,
+      total: Math.round(total * 100) / 100,
+      tipPercent: tp,
+      roles,
+      totalDistributed: Math.round(totalDistributed * 100) / 100
+    };
+  }
+};
+
+window.tipCalcReady = Promise.resolve(true);
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const bill = params.get('bill');
+  if (bill) { document.getElementById('bill-amount').value = bill; }
+  const tp = params.get('tip_percent');
+  if (tp) {
+    tipPercent = parseFloat(tp);
+    document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+    const match = document.querySelector('.tip-btn[onclick="setTip(' + tp + ')"]');
+    if (match) match.classList.add('active');
+    else document.getElementById('custom-tip').value = tp;
+  }
+  const roles = document.querySelectorAll('.role-row');
+  const roleParams = [
+    { count: 'servers', pct: 'servers_pct', idx: 0 },
+    { count: 'bussers', pct: 'bussers_pct', idx: 1 },
+    { count: 'bartenders', pct: 'bartenders_pct', idx: 2 },
+    { count: 'hosts', pct: 'hosts_pct', idx: 3 }
+  ];
+  roleParams.forEach(rp => {
+    const c = params.get(rp.count);
+    const p = params.get(rp.pct);
+    if (c) roles[rp.idx].querySelector('.role-count-wrap input').value = c;
+    if (p) roles[rp.idx].querySelector('.role-pct-wrap input').value = p;
+  });
+  if (params.toString()) calculate();
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    // Tip calculator doesn't have direct profile fields to fill,
+    // but we make the profile available for agent queries
+    window._terrapinProfile = profile;
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catering Quote Builder — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 740px; margin: 0 auto; }
+
+  /* Header */
+  .app-header { text-align: center; margin-bottom: 2rem; }
+  .app-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: #1a1a1a; font-family: 'Lora', serif; }
+  .app-header p { font-size: 14px; color: #888; margin-top: 4px; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 1.5rem; margin-bottom: 1rem; position: relative; }
+  .card-title { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; padding-bottom: 8px; border-bottom: 1px solid #f0f0ec; font-family: 'DM Mono', monospace; }
+
+  /* Form elements */
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 13px; color: #666; font-weight: 500; }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    font-family: inherit; font-size: 14px; color: #1a1a1a;
+    background: #fafaf8; border: 1px solid #e0e0db;
+    border-radius: 8px; padding: 9px 11px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #4A7C59; background: #fff; }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+  /* Category tabs */
+  .cat-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .cat-tab {
+    padding: 5px 11px; border-radius: 20px; border: 1px solid #e0e0db;
+    font-size: 12px; cursor: pointer; background: #fafaf8; color: #666;
+    font-family: inherit; transition: all 0.12s;
+  }
+  .cat-tab:hover { border-color: #4A7C59; color: #2C3E2D; }
+  .cat-tab.active { background: #E8F0E8; color: #2C3E2D; border-color: #4A7C59; font-weight: 600; }
+
+  /* Menu grid */
+  .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 5px; max-height: 220px; overflow-y: auto; padding: 2px; border: 1px solid #f0f0ec; border-radius: 8px; background: #fafaf8; }
+  .menu-item {
+    padding: 7px 10px; border-radius: 6px; border: 1px solid transparent;
+    font-size: 12px; cursor: pointer; background: transparent; color: #555;
+    font-family: inherit; text-align: left; line-height: 1.3; transition: all 0.1s;
+  }
+  .menu-item:hover { background: #E8F0E8; color: #2C3E2D; }
+  .menu-item.selected { background: #E8F0E8; color: #2C3E2D; border-color: #4A7C59; font-weight: 500; }
+
+  /* Chips */
+  .selected-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; min-height: 22px; }
+  .chip { padding: 3px 9px; background: #E8F0E8; color: #2C3E2D; border-radius: 20px; font-size: 11px; display: flex; align-items: center; gap: 4px; border: 1px solid #B0D0B0; }
+  .chip-x { cursor: pointer; font-size: 15px; line-height: 1; opacity: 0.6; }
+  .chip-x:hover { opacity: 1; }
+  .no-items { font-size: 12px; color: #bbb; padding: 2px 0; }
+
+  /* Servers */
+  .servers-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .servers-inline label { font-size: 13px; color: #666; white-space: nowrap; }
+
+  /* Breakdown */
+  .breakdown { background: #fafaf8; border-radius: 10px; border: 1px solid #e8e8e4; padding: 1.25rem; margin-top: 1rem; }
+  .br-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; color: #666; }
+  .br-row.head { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 14px; padding-bottom: 4px; }
+  .br-row.head:first-child { padding-top: 0; }
+  .br-row.total { font-size: 16px; font-weight: 600; color: #1a1a1a; border-top: 1px solid #e0e0db; margin-top: 6px; padding-top: 10px; }
+  .br-row.grand { font-size: 19px; font-weight: 700; color: #2C3E2D; border-top: 2px solid #4A7C59; margin-top: 14px; padding-top: 14px; }
+
+  /* Buttons */
+  .add-event-btn { font-size: 13px; color: #2C3E2D; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; font-weight: 500; }
+  .add-event-btn:hover { text-decoration: underline; }
+  .remove-btn { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 22px; cursor: pointer; color: #ccc; line-height: 1; }
+  .remove-btn:hover { color: #e05050; }
+  .generate-btn, .next-btn {
+    width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
+    background: #2C3E2D; border: none; border-radius: 10px;
+    cursor: pointer; color: #fff; font-family: inherit;
+    margin-top: 1rem; transition: background 0.15s;
+    letter-spacing: 0.01em;
+  }
+  .generate-btn:hover, .next-btn:hover { background: #3A5240; }
+  .back-btn {
+    width: 100%; padding: 12px; font-size: 14px; font-weight: 500;
+    background: transparent; border: 1px solid #e0e0db; border-radius: 10px;
+    cursor: pointer; color: #888; font-family: inherit;
+    margin-top: 8px; transition: all 0.15s;
+  }
+  .back-btn:hover { border-color: #4A7C59; color: #2C3E2D; }
+
+  /* Email output */
+  .email-card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 1.5rem; margin-top: 1rem; }
+  .email-label { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; font-family: 'DM Mono', monospace; }
+  .email-box { background: #fafaf8; border: 1px solid #e8e8e4; border-radius: 8px; padding: 1rem; }
+  .email-box pre { font-family: inherit; font-size: 13px; line-height: 1.75; color: #1a1a1a; white-space: pre-wrap; word-break: break-word; }
+  .copy-btn {
+    margin-top: 12px; padding: 9px 20px; font-size: 13px; font-weight: 500;
+    background: #E8F0E8; border: 1px solid #4A7C59; border-radius: 8px;
+    cursor: pointer; color: #2C3E2D; font-family: inherit; transition: background 0.12s;
+  }
+  .copy-btn:hover { background: #D8E8D8; }
+  .copy-btn.copied { background: #e8f4e8; border-color: #90c890; color: #307030; }
+
+  .ev-num { font-size: 11px; font-weight: 600; color: #bbb; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; font-family: 'DM Mono', monospace; }
+
+  /* Edit links */
+  .edit-link { font-size: 12px; color: #999; cursor: pointer; background: none; border: none; font-family: inherit; }
+  .edit-link:hover { color: #2C3E2D; text-decoration: underline; }
+
+  /* Onboarding */
+  .onboard-step { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-family: 'DM Mono', monospace; }
+  .onboard-welcome { text-align: center; margin-bottom: 1.5rem; }
+  .onboard-welcome h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .onboard-welcome p { font-size: 15px; color: #888; }
+
+  /* Fee toggle rows */
+  .fee-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0ec; }
+  .fee-row:last-child { border-bottom: none; }
+  .fee-row label.fee-name { font-size: 14px; color: #1a1a1a; font-weight: 500; flex: 1; }
+  .fee-row input[type="number"] { width: 90px; text-align: right; }
+  .fee-row .fee-unit { font-size: 13px; color: #999; width: 20px; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: #ddd; border-radius: 24px; cursor: pointer; transition: 0.2s;
+  }
+  .toggle .slider::before {
+    content: ''; position: absolute; height: 18px; width: 18px;
+    left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s;
+  }
+  .toggle input:checked + .slider { background: #2C3E2D; }
+  .toggle input:checked + .slider::before { transform: translateX(20px); }
+  .fee-value-group { display: flex; align-items: center; gap: 4px; }
+  .fee-disabled { opacity: 0.35; pointer-events: none; }
+
+  /* Menu setup */
+  .setup-cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .setup-cat-header h3 { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .setup-cat-items { font-size: 13px; color: #555; line-height: 1.7; margin-bottom: 8px; }
+  .setup-cat-items span { display: inline-block; background: #E8F0E8; color: #2C3E2D; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin: 2px 3px 2px 0; }
+  .setup-remove-cat { background: none; border: none; font-size: 18px; cursor: pointer; color: #ccc; line-height: 1; padding: 4px; }
+  .setup-remove-cat:hover { color: #e05050; }
+  .setup-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .setup-add-row input { flex: 1; }
+  .setup-add-btn {
+    padding: 8px 16px; font-size: 13px; font-weight: 500;
+    background: #E8F0E8; border: 1px solid #4A7C59; border-radius: 8px;
+    cursor: pointer; color: #2C3E2D; font-family: inherit; white-space: nowrap;
+  }
+  .setup-add-btn:hover { background: #D8E8D8; }
+  .setup-hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .setup-tab-bar { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid #e8e8e4; padding-bottom: 10px; }
+  .setup-tab {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid #e0e0db;
+    font-size: 13px; cursor: pointer; background: #fafaf8; color: #666;
+    font-family: inherit; font-weight: 500;
+  }
+  .setup-tab.active { background: #E8F0E8; color: #2C3E2D; border-color: #4A7C59; }
+
+  /* Settings summary on quote screen */
+  .settings-bar { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .settings-bar span { font-size: 12px; color: #aaa; }
+  .settings-bar .divider { color: #ddd; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .row.three { grid-template-columns: 1fr 1fr; }
+    .fee-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <!-- ═══════════════════════════════════ -->
+  <!--  STEP 1: BUSINESS INFO             -->
+  <!-- ═══════════════════════════════════ -->
+  <div id="step-business" style="display:none">
+    <div class="onboard-welcome">
+      <h1>Catering Quote Builder</h1>
+      <p>Let's get your business set up — takes about 2 minutes</p>
+    </div>
+
+    <div class="card">
+      <div class="onboard-step">Step 1 of 3</div>
+      <div class="card-title">Your business</div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Business name</label>
+        <input type="text" id="ob-biz-name" placeholder="e.g. Sunrise Catering Co.">
+      </div>
+      <div class="row">
+        <div class="field"><label>Your name</label><input type="text" id="ob-your-name" placeholder="e.g. Maria"></div>
+        <div class="field"><label>Your email (optional)</label><input type="text" id="ob-email" placeholder="e.g. maria@sunrise.com"></div>
+      </div>
+      <div class="field">
+        <label>Phone (optional)</label>
+        <input type="text" id="ob-phone" placeholder="e.g. (555) 123-4567" style="max-width:240px">
+      </div>
+    </div>
+
+    <button class="next-btn" onclick="goToStep2()">Next — set your rates</button>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!--  STEP 2: FEES & RATES              -->
+  <!-- ═══════════════════════════════════ -->
+  <div id="step-fees" style="display:none">
+    <div class="onboard-welcome">
+      <h1>Catering Quote Builder</h1>
+      <p>Turn on the fees you charge — set each one to your rate</p>
+    </div>
+
+    <div class="card">
+      <div class="onboard-step">Step 2 of 3</div>
+      <div class="card-title">Your fees & rates</div>
+
+      <div class="fee-row">
+        <label class="toggle"><input type="checkbox" id="ob-sc-on" checked onchange="toggleFeeRow('sc')"><span class="slider"></span></label>
+        <label class="fee-name">Service charge</label>
+        <div class="fee-value-group" id="ob-sc-val">
+          <input type="number" id="ob-sc" value="20" step="0.5" min="0">
+          <span class="fee-unit">%</span>
+        </div>
+      </div>
+
+      <div class="fee-row">
+        <label class="toggle"><input type="checkbox" id="ob-tax-on" checked onchange="toggleFeeRow('tax')"><span class="slider"></span></label>
+        <label class="fee-name">Sales tax</label>
+        <div class="fee-value-group" id="ob-tax-val">
+          <input type="number" id="ob-tax" value="9.75" step="0.25" min="0">
+          <span class="fee-unit">%</span>
+        </div>
+      </div>
+
+      <div class="fee-row">
+        <label class="toggle"><input type="checkbox" id="ob-cc-on" checked onchange="toggleFeeRow('cc')"><span class="slider"></span></label>
+        <label class="fee-name">Credit card fee</label>
+        <div class="fee-value-group" id="ob-cc-val">
+          <input type="number" id="ob-cc" value="4" step="0.5" min="0">
+          <span class="fee-unit">%</span>
+        </div>
+      </div>
+
+      <div class="fee-row">
+        <label class="toggle"><input type="checkbox" id="ob-del-on" checked onchange="toggleFeeRow('del')"><span class="slider"></span></label>
+        <label class="fee-name">Delivery fee</label>
+        <div class="fee-value-group" id="ob-del-val">
+          <span class="fee-unit">$</span>
+          <input type="number" id="ob-del" value="100" step="5" min="0">
+        </div>
+      </div>
+
+      <div class="fee-row">
+        <label class="toggle"><input type="checkbox" id="ob-svr-on" checked onchange="toggleFeeRow('svr')"><span class="slider"></span></label>
+        <label class="fee-name">Servers</label>
+        <div class="fee-value-group" id="ob-svr-val" style="gap:8px">
+          <span class="fee-unit">$</span>
+          <input type="number" id="ob-svr" value="35" step="1" min="0" style="width:70px">
+          <span style="font-size:12px;color:#999">/hr, min</span>
+          <input type="number" id="ob-svr-min" value="4" step="1" min="1" style="width:55px">
+          <span style="font-size:12px;color:#999">hrs</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="next-btn" onclick="goToStep3()">Next — add your menu</button>
+    <button class="back-btn" onclick="showStep('step-business')">Back</button>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!--  STEP 3: MENU                      -->
+  <!-- ═══════════════════════════════════ -->
+  <div id="step-menu" style="display:none">
+    <div class="onboard-welcome">
+      <h1>Catering Quote Builder</h1>
+      <p>Add your menu items — you can always edit these later</p>
+    </div>
+
+    <div class="card">
+      <div class="onboard-step">Step 3 of 3</div>
+      <div class="card-title">Your menu</div>
+
+      <div class="setup-tab-bar">
+        <button class="setup-tab active" onclick="setSetupMode('manual', this)">Type it in</button>
+        <button class="setup-tab" onclick="setSetupMode('paste', this)">Paste a menu</button>
+      </div>
+
+      <!-- Manual entry mode -->
+      <div id="setup-manual">
+        <div class="field" style="margin-bottom:14px">
+          <label>New category</label>
+          <div class="setup-add-row">
+            <input type="text" id="new-cat-name" placeholder="e.g. Entrees, Sides, Desserts">
+            <button class="setup-add-btn" onclick="addSetupCategory()">Add category</button>
+          </div>
+        </div>
+        <div id="setup-categories"></div>
+      </div>
+
+      <!-- Paste mode -->
+      <div id="setup-paste" style="display:none">
+        <div class="field">
+          <label>Paste your menu below</label>
+          <textarea id="paste-area" style="min-height:180px" placeholder="Format: put a category name on its own line, then list items below it (one per line). Separate categories with a blank line.
+
+Example:
+
+Entrees
+Grilled Chicken
+Pan-Seared Salmon
+Beef Tenderloin
+
+Sides
+Roasted Vegetables
+Mashed Potatoes
+Caesar Salad
+
+Desserts
+Chocolate Cake
+Key Lime Pie"></textarea>
+        </div>
+        <div class="setup-hint">One item per line. Category names go on their own line, followed by items. Blank lines between categories.</div>
+        <button class="setup-add-btn" style="margin-top:10px" onclick="parsePastedMenu()">Import menu</button>
+      </div>
+    </div>
+
+    <button class="next-btn" id="finish-btn" onclick="finishOnboarding()" style="display:none">Finish setup — start building quotes</button>
+    <button class="back-btn" onclick="showStep('step-fees')">Back</button>
+  </div>
+
+  <!-- ═══════════════════════════════════ -->
+  <!--  QUOTE BUILDER SCREEN              -->
+  <!-- ═══════════════════════════════════ -->
+  <div id="quote-screen" style="display:none">
+    <div class="app-header">
+      <h1 id="quote-title">Catering Quote Builder</h1>
+      <p>Fill in the details — all fees calculate automatically</p>
+    </div>
+
+    <div class="settings-bar">
+      <button class="edit-link" onclick="editSettings('step-business')">Edit business info</button>
+      <span class="divider">|</span>
+      <button class="edit-link" onclick="editSettings('step-fees')">Edit fees</button>
+      <span class="divider">|</span>
+      <button class="edit-link" onclick="editSettings('step-menu')">Edit menu</button>
+    </div>
+
+    <!-- Header card -->
+    <div class="card">
+      <div class="card-title">Email header</div>
+      <div class="row">
+        <div class="field"><label>To (recipient name)</label><input type="text" id="recipient"></div>
+        <div class="field"><label>From (your name)</label><input type="text" id="sender"></div>
+      </div>
+    </div>
+
+    <!-- Events -->
+    <div id="events-container"></div>
+    <div style="margin-bottom:1rem">
+      <button class="add-event-btn" onclick="addEvent()">+ Add another event</button>
+    </div>
+
+    <!-- Breakdown -->
+    <div id="breakdown-section" style="display:none">
+      <div class="card">
+        <div class="card-title">Quote summary</div>
+        <div class="breakdown" id="breakdown"></div>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="generateEmail()">Generate email draft</button>
+
+    <div id="email-output" style="display:none">
+      <div class="email-card">
+        <div class="email-label">Email draft — ready to copy</div>
+        <div class="email-box"><pre id="email-text"></pre></div>
+        <button class="copy-btn" id="copy-btn" onclick="copyEmail()">Copy to clipboard</button>
+      </div>
+    </div>
+
+    <div style="height:3rem"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Storage keys ──
+const STORAGE_MENU     = 'cqb_menu';
+const STORAGE_FEES     = 'cqb_fees';
+const STORAGE_BUSINESS = 'cqb_business';
+
+// ── State ──
+let MENU = {}, CATS = [];
+let SC = 0, TAX = 0, CC = 0, DELIVERY = 0, SVR_RATE = 0, SVR_MIN = 4;
+let SC_ON = true, TAX_ON = true, CC_ON = true, DEL_ON = true, SVR_ON = true;
+let BIZ = { name: '', yourName: '', email: '', phone: '' };
+
+let events = [], counter = 0, activeCat = {};
+let setupMenu = {};
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function init() {
+  loadBusiness();
+  loadFees();
+  loadMenu();
+
+  // If business profile was never completed, always start onboarding from step 1
+  const hasCompletedOnboarding = localStorage.getItem(STORAGE_BUSINESS) !== null;
+
+  if (!hasCompletedOnboarding) {
+    showStep('step-business');
+  } else if (CATS.length === 0) {
+    showStep('step-menu');
+  } else {
+    showQuoteScreen();
+  }
+}
+
+function loadBusiness() {
+  const saved = localStorage.getItem(STORAGE_BUSINESS);
+  if (saved) {
+    try { BIZ = JSON.parse(saved); } catch(e) {}
+  }
+}
+
+function loadFees() {
+  const saved = localStorage.getItem(STORAGE_FEES);
+  if (saved) {
+    try {
+      const f = JSON.parse(saved);
+      SC = (f.sc ?? 0) / 100;
+      TAX = (f.tax ?? 0) / 100;
+      CC = (f.cc ?? 0) / 100;
+      DELIVERY = f.del ?? 0;
+      SVR_RATE = f.svr ?? 0;
+      SVR_MIN = f.svrMin ?? 4;
+      SC_ON = f.scOn !== false;
+      TAX_ON = f.taxOn !== false;
+      CC_ON = f.ccOn !== false;
+      DEL_ON = f.delOn !== false;
+      SVR_ON = f.svrOn !== false;
+    } catch(e) {}
+  }
+}
+
+function loadMenu() {
+  const saved = localStorage.getItem(STORAGE_MENU);
+  if (saved) {
+    try {
+      MENU = JSON.parse(saved);
+      CATS = Object.keys(MENU);
+    } catch(e) { MENU = {}; CATS = []; }
+  }
+}
+
+// ══════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════
+const ALL_STEPS = ['step-business', 'step-fees', 'step-menu', 'quote-screen'];
+
+function showStep(id) {
+  ALL_STEPS.forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+  window.scrollTo(0, 0);
+
+  // Populate fields when showing a step
+  if (id === 'step-business') populateBusinessStep();
+  if (id === 'step-fees') populateFeesStep();
+  if (id === 'step-menu') {
+    setupMenu = JSON.parse(JSON.stringify(MENU));
+    renderSetupCategories();
+    updateFinishBtn();
+  }
+}
+
+function editSettings(step) {
+  showStep(step);
+}
+
+// ══════════════════════════════════════
+//  STEP 1: BUSINESS INFO
+// ══════════════════════════════════════
+function populateBusinessStep() {
+  document.getElementById('ob-biz-name').value = BIZ.name || '';
+  document.getElementById('ob-your-name').value = BIZ.yourName || '';
+  document.getElementById('ob-email').value = BIZ.email || '';
+  document.getElementById('ob-phone').value = BIZ.phone || '';
+}
+
+function saveBusiness() {
+  BIZ.name = document.getElementById('ob-biz-name').value.trim();
+  BIZ.yourName = document.getElementById('ob-your-name').value.trim();
+  BIZ.email = document.getElementById('ob-email').value.trim();
+  BIZ.phone = document.getElementById('ob-phone').value.trim();
+  localStorage.setItem(STORAGE_BUSINESS, JSON.stringify(BIZ));
+}
+
+function goToStep2() {
+  saveBusiness();
+  showStep('step-fees');
+}
+
+// ══════════════════════════════════════
+//  STEP 2: FEES
+// ══════════════════════════════════════
+function populateFeesStep() {
+  document.getElementById('ob-sc-on').checked = SC_ON;
+  document.getElementById('ob-sc').value = SC_ON ? (SC * 100 || 20) : (SC * 100 || 20);
+  document.getElementById('ob-tax-on').checked = TAX_ON;
+  document.getElementById('ob-tax').value = TAX_ON ? (TAX * 100 || 9.75) : (TAX * 100 || 9.75);
+  document.getElementById('ob-cc-on').checked = CC_ON;
+  document.getElementById('ob-cc').value = CC_ON ? (CC * 100 || 4) : (CC * 100 || 4);
+  document.getElementById('ob-del-on').checked = DEL_ON;
+  document.getElementById('ob-del').value = DEL_ON ? (DELIVERY || 100) : (DELIVERY || 100);
+  document.getElementById('ob-svr-on').checked = SVR_ON;
+  document.getElementById('ob-svr').value = SVR_ON ? (SVR_RATE || 35) : (SVR_RATE || 35);
+  document.getElementById('ob-svr-min').value = SVR_MIN || 4;
+
+  ['sc', 'tax', 'cc', 'del', 'svr'].forEach(toggleFeeRow);
+}
+
+function toggleFeeRow(key) {
+  const on = document.getElementById(`ob-${key}-on`).checked;
+  const valEl = document.getElementById(`ob-${key}-val`);
+  if (on) valEl.classList.remove('fee-disabled');
+  else valEl.classList.add('fee-disabled');
+}
+
+function saveFeesFromOnboarding() {
+  SC_ON = document.getElementById('ob-sc-on').checked;
+  TAX_ON = document.getElementById('ob-tax-on').checked;
+  CC_ON = document.getElementById('ob-cc-on').checked;
+  DEL_ON = document.getElementById('ob-del-on').checked;
+  SVR_ON = document.getElementById('ob-svr-on').checked;
+
+  SC = SC_ON ? (parseFloat(document.getElementById('ob-sc').value) || 0) / 100 : 0;
+  TAX = TAX_ON ? (parseFloat(document.getElementById('ob-tax').value) || 0) / 100 : 0;
+  CC = CC_ON ? (parseFloat(document.getElementById('ob-cc').value) || 0) / 100 : 0;
+  DELIVERY = DEL_ON ? (parseFloat(document.getElementById('ob-del').value) || 0) : 0;
+  SVR_RATE = SVR_ON ? (parseFloat(document.getElementById('ob-svr').value) || 0) : 0;
+  SVR_MIN = parseFloat(document.getElementById('ob-svr-min').value) || 4;
+
+  localStorage.setItem(STORAGE_FEES, JSON.stringify({
+    sc: SC * 100, tax: TAX * 100, cc: CC * 100, del: DELIVERY, svr: SVR_RATE, svrMin: SVR_MIN,
+    scOn: SC_ON, taxOn: TAX_ON, ccOn: CC_ON, delOn: DEL_ON, svrOn: SVR_ON
+  }));
+}
+
+function goToStep3() {
+  saveFeesFromOnboarding();
+  showStep('step-menu');
+}
+
+// ══════════════════════════════════════
+//  STEP 3: MENU SETUP
+// ══════════════════════════════════════
+function setSetupMode(mode, btn) {
+  document.querySelectorAll('.setup-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('setup-manual').style.display = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('setup-paste').style.display = mode === 'paste' ? 'block' : 'none';
+}
+
+function addSetupCategory() {
+  const input = document.getElementById('new-cat-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (setupMenu[name]) { input.focus(); return; }
+  setupMenu[name] = [];
+  input.value = '';
+  renderSetupCategories();
+  updateFinishBtn();
+  setTimeout(() => {
+    const el = document.getElementById(`setup-item-input-${slugify(name)}`);
+    if (el) el.focus();
+  }, 50);
+}
+
+function removeSetupCategory(name) {
+  delete setupMenu[name];
+  renderSetupCategories();
+  updateFinishBtn();
+}
+
+function addSetupItem(catName) {
+  const slug = slugify(catName);
+  const input = document.getElementById(`setup-item-input-${slug}`);
+  const val = input.value.trim();
+  if (!val) return;
+  const items = val.split(',').map(s => s.trim()).filter(Boolean);
+  items.forEach(item => {
+    if (!setupMenu[catName].includes(item)) setupMenu[catName].push(item);
+  });
+  input.value = '';
+  renderSetupCategories();
+  updateFinishBtn();
+  setTimeout(() => {
+    const el = document.getElementById(`setup-item-input-${slug}`);
+    if (el) el.focus();
+  }, 50);
+}
+
+function removeSetupItem(catName, idx) {
+  setupMenu[catName].splice(idx, 1);
+  renderSetupCategories();
+  updateFinishBtn();
+}
+
+function slugify(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+function renderSetupCategories() {
+  const el = document.getElementById('setup-categories');
+  const cats = Object.keys(setupMenu);
+  if (!cats.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#bbb;padding:8px 0">No categories yet — add one above</p>';
+    return;
+  }
+  el.innerHTML = cats.map(cat => {
+    const slug = slugify(cat);
+    const items = setupMenu[cat];
+    return `
+      <div style="margin-bottom:16px;padding:12px;background:#fafaf8;border-radius:10px;border:1px solid #e8e8e4">
+        <div class="setup-cat-header">
+          <h3>${esc(cat)} <span style="font-size:12px;font-weight:400;color:#aaa">(${items.length} item${items.length!==1?'s':''})</span></h3>
+          <button class="setup-remove-cat" onclick="removeSetupCategory('${esc4attr(cat)}')" title="Remove category">×</button>
+        </div>
+        ${items.length ? `<div class="setup-cat-items">${items.map((it,i) => `<span>${esc(it)} <span style="cursor:pointer;opacity:0.5;margin-left:2px" onclick="removeSetupItem('${esc4attr(cat)}',${i})">×</span></span>`).join('')}</div>` : '<p style="font-size:12px;color:#ccc;margin-bottom:8px">No items yet</p>'}
+        <div class="setup-add-row">
+          <input type="text" id="setup-item-input-${slug}" placeholder="Add item (or comma-separated items)" onkeydown="if(event.key==='Enter')addSetupItem('${esc4attr(cat)}')">
+          <button class="setup-add-btn" onclick="addSetupItem('${esc4attr(cat)}')">Add</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function parsePastedMenu() {
+  const raw = document.getElementById('paste-area').value;
+  if (!raw.trim()) return;
+  const lines = raw.split('\n');
+  let currentCat = null;
+  const parsed = {};
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { currentCat = null; continue; }
+    if (currentCat === null) {
+      currentCat = trimmed;
+      if (!parsed[currentCat]) parsed[currentCat] = [];
+    } else {
+      const item = trimmed.replace(/^[-•*]\s*/, '');
+      if (item && !parsed[currentCat].includes(item)) {
+        parsed[currentCat].push(item);
+      }
+    }
+  }
+
+  for (const cat of Object.keys(parsed)) {
+    if (!setupMenu[cat]) setupMenu[cat] = [];
+    parsed[cat].forEach(item => {
+      if (!setupMenu[cat].includes(item)) setupMenu[cat].push(item);
+    });
+  }
+
+  document.getElementById('paste-area').value = '';
+  setSetupMode('manual', document.querySelector('.setup-tab'));
+  renderSetupCategories();
+  updateFinishBtn();
+}
+
+function updateFinishBtn() {
+  const cats = Object.keys(setupMenu);
+  const hasItems = cats.some(c => setupMenu[c].length > 0);
+  document.getElementById('finish-btn').style.display = hasItems ? 'block' : 'none';
+}
+
+function finishOnboarding() {
+  // Save everything
+  saveBusiness();
+  saveFeesFromOnboarding();
+
+  // Save menu (remove empty categories)
+  for (const cat of Object.keys(setupMenu)) {
+    if (!setupMenu[cat].length) delete setupMenu[cat];
+  }
+  MENU = setupMenu;
+  CATS = Object.keys(MENU);
+  localStorage.setItem(STORAGE_MENU, JSON.stringify(MENU));
+
+  // Reset quote state
+  events = [];
+  counter = 0;
+  activeCat = {};
+  showQuoteScreen();
+}
+
+// ══════════════════════════════════════
+//  QUOTE BUILDER SCREEN
+// ══════════════════════════════════════
+function showQuoteScreen() {
+  showStep('quote-screen');
+
+  // Set title to business name
+  const title = document.getElementById('quote-title');
+  title.textContent = BIZ.name ? `${BIZ.name} — Quote Builder` : 'Catering Quote Builder';
+  document.title = BIZ.name ? `${BIZ.name} Quote Builder` : 'Catering Quote Builder';
+
+  // Pre-fill sender
+  const sender = document.getElementById('sender');
+  if (!sender.value && BIZ.yourName) sender.value = BIZ.yourName;
+
+  if (!events.length) addEvent();
+}
+
+// ══════════════════════════════════════
+//  ESCAPE HELPERS
+// ══════════════════════════════════════
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function esc4attr(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════
+function addEvent() {
+  const id = counter++;
+  events.push({ id, selectedItems: [] });
+  activeCat[id] = CATS[0] || '';
+  renderEvents();
+  updateBreakdown();
+}
+
+function removeEvent(id) {
+  events = events.filter(e => e.id !== id);
+  delete activeCat[id];
+  renderEvents();
+  updateBreakdown();
+}
+
+function renderEvents() {
+  const c = document.getElementById('events-container');
+  c.innerHTML = '';
+  events.forEach((ev, idx) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.id = `ev-${ev.id}`;
+    const delFee = DELIVERY.toFixed(0);
+    const showDel = DEL_ON && DELIVERY > 0;
+    const showSvr = SVR_ON && SVR_RATE > 0;
+    div.innerHTML = `
+      ${events.length > 1 ? `<button class="remove-btn" onclick="removeEvent(${ev.id})" title="Remove event">×</button>` : ''}
+      <div class="ev-num">Event ${idx + 1}</div>
+      <div class="row">
+        <div class="field"><label>Date</label><input type="date" id="date-${ev.id}" onchange="updateBreakdown()"></div>
+        <div class="field"><label>Event label</label><input type="text" id="label-${ev.id}" placeholder="e.g. Rehearsal Dinner" onchange="updateBreakdown()"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Location / delivery note</label><input type="text" id="loc-${ev.id}" placeholder="e.g. 123 Main St"></div>
+        <div class="field"><label>Time</label><input type="text" id="time-${ev.id}" placeholder="e.g. 3:30 PM"></div>
+      </div>
+      <div class="row three">
+        <div class="field"><label>Headcount</label><input type="number" id="hc-${ev.id}" value="50" min="1" onchange="updateBreakdown()"></div>
+        <div class="field"><label>Price per head ($)</label><input type="number" id="pph-${ev.id}" value="55.00" step="0.01" min="0" onchange="updateBreakdown()"></div>
+        ${showDel ? `<div class="field"><label>Delivery?</label>
+          <select id="del-${ev.id}" onchange="updateBreakdown()">
+            <option value="yes">Yes – $${delFee}</option>
+            <option value="no">No delivery</option>
+          </select>
+        </div>` : `<div class="field"></div>`}
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Allergies / notes</label>
+          <input type="text" id="allergy-${ev.id}" placeholder="e.g. 1 shrimp allergy">
+        </div>
+        <div class="field">
+          <label>Add-on items (qty × price)</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+            <input type="number" id="addon-qty-${ev.id}" value="0" min="0" style="width:60px" onchange="updateBreakdown()">
+            <span style="font-size:13px;color:#888">×</span>
+            <span style="font-size:13px;color:#888">$</span>
+            <input type="number" id="addon-price-${ev.id}" value="6.00" step="0.50" min="0" style="width:70px" onchange="updateBreakdown()">
+            <input type="text" id="addon-label-${ev.id}" placeholder="Label" style="width:100px" value="">
+          </div>
+        </div>
+      </div>
+      ${showSvr ? `<div class="field" style="margin-bottom:14px">
+        <label>Servers (on-site service)?</label>
+        <div class="servers-inline">
+          <select id="svr-yn-${ev.id}" onchange="toggleSvr(${ev.id})">
+            <option value="no">No servers</option>
+            <option value="yes">Yes – add servers</option>
+          </select>
+          <span id="svr-detail-${ev.id}" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+            <input type="number" id="svr-count-${ev.id}" value="2" min="1" style="width:60px" onchange="updateBreakdown()">
+            <label>servers ×</label>
+            <input type="number" id="svr-hrs-${ev.id}" value="${SVR_MIN}" min="${SVR_MIN}" style="width:60px" onchange="updateBreakdown()">
+            <label>hrs (${SVR_MIN} hr minimum)</label>
+          </span>
+        </div>
+      </div>` : ''}
+      <div class="field" style="margin-bottom:8px">
+        <label>Menu items — click a category, then click items to select</label>
+        <div class="cat-tabs" id="cattabs-${ev.id}"></div>
+        <div class="menu-grid" id="menugrid-${ev.id}"></div>
+        <div class="selected-chips" id="chips-${ev.id}"><span class="no-items">No items selected yet</span></div>
+      </div>
+      <div class="field">
+        <label>Additional / custom items (one per line)</label>
+        <textarea id="extra-${ev.id}" placeholder="e.g. Custom birthday cake&#10;Branded water bottles"></textarea>
+      </div>
+    `;
+    c.appendChild(div);
+    renderCatTabs(ev.id);
+    renderMenuGrid(ev.id);
+    renderChips(ev.id);
+  });
+}
+
+function renderCatTabs(evId) {
+  const ev = events.find(e => e.id === evId);
+  const el = document.getElementById(`cattabs-${evId}`);
+  if (!el) return;
+  el.innerHTML = CATS.map(cat => {
+    const count = ev.selectedItems.filter(i => MENU[cat] && MENU[cat].includes(i)).length;
+    const badge = count > 0 ? ` (${count})` : '';
+    return `<button class="cat-tab${activeCat[evId]===cat?' active':''}" onclick="setTab(${evId},this,'${esc4attr(cat)}')">${esc(cat)}${badge}</button>`;
+  }).join('');
+}
+
+function setTab(evId, btn, cat) {
+  activeCat[evId] = cat;
+  renderCatTabs(evId);
+  renderMenuGrid(evId);
+}
+
+function renderMenuGrid(evId) {
+  const ev = events.find(e => e.id === evId);
+  const el = document.getElementById(`menugrid-${evId}`);
+  if (!el) return;
+  const cat = activeCat[evId];
+  el.innerHTML = (MENU[cat] || []).map(item => {
+    const sel = ev.selectedItems.includes(item);
+    return `<button class="menu-item${sel?' selected':''}" onclick="toggleItem(${evId},'${esc4attr(item)}')">${esc(item)}</button>`;
+  }).join('');
+}
+
+function toggleItem(evId, item) {
+  const ev = events.find(e => e.id === evId);
+  const idx = ev.selectedItems.indexOf(item);
+  if (idx > -1) ev.selectedItems.splice(idx, 1);
+  else ev.selectedItems.push(item);
+  renderCatTabs(evId);
+  renderMenuGrid(evId);
+  renderChips(evId);
+  updateBreakdown();
+}
+
+function removeItem(evId, item) {
+  const ev = events.find(e => e.id === evId);
+  ev.selectedItems = ev.selectedItems.filter(i => i !== item);
+  renderCatTabs(evId);
+  renderMenuGrid(evId);
+  renderChips(evId);
+  updateBreakdown();
+}
+
+function renderChips(evId) {
+  const ev = events.find(e => e.id === evId);
+  const el = document.getElementById(`chips-${evId}`);
+  if (!el) return;
+  if (!ev.selectedItems.length) {
+    el.innerHTML = '<span class="no-items">No items selected yet</span>';
+    return;
+  }
+  el.innerHTML = ev.selectedItems.map(item =>
+    `<span class="chip">${esc(item)}<span class="chip-x" onclick="removeItem(${evId},'${esc4attr(item)}')">×</span></span>`
+  ).join('');
+}
+
+function toggleSvr(evId) {
+  const yn = document.getElementById(`svr-yn-${evId}`).value;
+  const d = document.getElementById(`svr-detail-${evId}`);
+  d.style.display = yn === 'yes' ? 'flex' : 'none';
+  updateBreakdown();
+}
+
+// ══════════════════════════════════════
+//  CALCULATIONS
+// ══════════════════════════════════════
+function calc(evId) {
+  const hc      = parseFloat(document.getElementById(`hc-${evId}`)?.value)  || 0;
+  const pph     = parseFloat(document.getElementById(`pph-${evId}`)?.value) || 0;
+  const addonQ  = parseFloat(document.getElementById(`addon-qty-${evId}`)?.value) || 0;
+  const addonP  = parseFloat(document.getElementById(`addon-price-${evId}`)?.value) || 0;
+  const delEl   = document.getElementById(`del-${evId}`);
+  const del     = delEl && delEl.value === 'yes' ? DELIVERY : 0;
+  let svr = 0;
+  const svrEl = document.getElementById(`svr-yn-${evId}`);
+  if (svrEl && svrEl.value === 'yes') {
+    const sc = parseFloat(document.getElementById(`svr-count-${evId}`)?.value) || 2;
+    const sh = Math.max(SVR_MIN, parseFloat(document.getElementById(`svr-hrs-${evId}`)?.value) || SVR_MIN);
+    svr = sc * sh * SVR_RATE;
+  }
+  const hcTotal    = hc * pph;
+  const addonTotal = addonQ * addonP;
+  const sub        = hcTotal + addonTotal + del + svr;
+  const svc        = sub * SC;
+  const tax        = (sub + svc) * TAX;
+  const ccBase     = sub + svc + tax;
+  const ccFee      = ccBase * CC;
+  const total      = ccBase + ccFee;
+  return { hc, pph, hcTotal, addonQ, addonP, addonTotal, del, svr, sub, svc, tax, ccFee, total };
+}
+
+function fmt(n) { return n.toFixed(2); }
+function pctLabel(rate) { return (rate * 100).toFixed(2).replace(/\.?0+$/, ''); }
+
+function updateBreakdown() {
+  if (!events.length) { document.getElementById('breakdown-section').style.display='none'; return; }
+  document.getElementById('breakdown-section').style.display='block';
+  let html = '', grand = 0;
+  events.forEach((ev, idx) => {
+    const lbl = document.getElementById(`label-${ev.id}`)?.value || `Event ${idx+1}`;
+    const c = calc(ev.id);
+    grand += c.total;
+    html += `<div class="br-row head">${esc(lbl)}</div>`;
+    html += `<div class="br-row"><span>Headcount (${c.hc} × $${fmt(c.pph)})</span><span>$${fmt(c.hcTotal)}</span></div>`;
+    if (c.addonQ > 0) {
+      const addonLbl = document.getElementById(`addon-label-${ev.id}`)?.value || 'Add-on items';
+      html += `<div class="br-row"><span>${esc(addonLbl)} (${c.addonQ} × $${fmt(c.addonP)})</span><span>$${fmt(c.addonTotal)}</span></div>`;
+    }
+    if (c.del > 0) html += `<div class="br-row"><span>Delivery</span><span>$${fmt(c.del)}</span></div>`;
+    if (c.svr > 0) html += `<div class="br-row"><span>Servers</span><span>$${fmt(c.svr)}</span></div>`;
+    html += `<div class="br-row"><span>Subtotal</span><span>$${fmt(c.sub)}</span></div>`;
+    if (SC > 0) html += `<div class="br-row"><span>${pctLabel(SC)}% service charge</span><span>$${fmt(c.svc)}</span></div>`;
+    if (TAX > 0) html += `<div class="br-row"><span>${pctLabel(TAX)}% sales tax</span><span>$${fmt(c.tax)}</span></div>`;
+    if (CC > 0) html += `<div class="br-row"><span>${pctLabel(CC)}% credit card fee</span><span>$${fmt(c.ccFee)}</span></div>`;
+    html += `<div class="br-row total"><span>Event total</span><span>$${fmt(c.total)}</span></div>`;
+  });
+  if (events.length > 1) {
+    html += `<div class="br-row grand"><span>Grand total</span><span>$${fmt(grand)}</span></div>`;
+  }
+  document.getElementById('breakdown').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+//  EMAIL GENERATION
+// ══════════════════════════════════════
+function fmtDate(val) {
+  if (!val) return '';
+  const d = new Date(val + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'long', month:'numeric', day:'numeric' });
+}
+
+function generateEmail() {
+  if (!events.length) { alert('Please add at least one event.'); return; }
+  const to   = document.getElementById('recipient').value.trim() || 'there';
+  const from = document.getElementById('sender').value.trim()    || BIZ.yourName || '';
+
+  let body = `Hi ${to},\n\nPlease find the quote below and let me know if you have any questions.\n\nThank you,\n${from}`;
+  if (BIZ.name) body += `\n${BIZ.name}`;
+  if (BIZ.phone) body += `\n${BIZ.phone}`;
+  if (BIZ.email) body += `\n${BIZ.email}`;
+  body += '\n';
+
+  events.forEach((ev, idx) => {
+    const lbl     = document.getElementById(`label-${ev.id}`)?.value   || `Event ${idx+1}`;
+    const dateStr = fmtDate(document.getElementById(`date-${ev.id}`)?.value);
+    const time    = document.getElementById(`time-${ev.id}`)?.value.trim();
+    const loc     = document.getElementById(`loc-${ev.id}`)?.value.trim();
+    const allergy = document.getElementById(`allergy-${ev.id}`)?.value.trim();
+    const extraRaw= document.getElementById(`extra-${ev.id}`)?.value || '';
+    const extra   = extraRaw.split('\n').map(s=>s.trim()).filter(Boolean);
+    const allItems= [...ev.selectedItems, ...extra];
+    const c       = calc(ev.id);
+    const svrEl   = document.getElementById(`svr-yn-${ev.id}`);
+    const svrYN   = svrEl ? svrEl.value : 'no';
+
+    body += `\n───────────────────────────────\n`;
+    body += `${lbl}${dateStr ? ` (${dateStr})` : ''}\n`;
+    if (loc && time)       body += `${loc} at ${time}\n`;
+    else if (loc)          body += `${loc}\n`;
+    else if (time)         body += `On-site service at ${time}\n`;
+    body += `Headcount: ${c.hc}${allergy ? ` (${allergy})` : ''}\n`;
+
+    if (allItems.length) {
+      body += `\nMenu:\n`;
+      allItems.forEach(i => body += `- ${i}\n`);
+    }
+
+    body += `\nCost Breakdown:\n`;
+    body += `- Headcount: ${c.hc} x $${fmt(c.pph)} = $${fmt(c.hcTotal)}\n`;
+    if (c.addonQ > 0) {
+      const addonLbl = document.getElementById(`addon-label-${ev.id}`)?.value || 'Add-on items';
+      body += `- ${c.addonQ} ${addonLbl} x $${fmt(c.addonP)} = $${fmt(c.addonTotal)}\n`;
+    }
+    if (svrYN === 'yes') {
+      const sc = parseFloat(document.getElementById(`svr-count-${ev.id}`)?.value) || 2;
+      const sh = Math.max(SVR_MIN, parseFloat(document.getElementById(`svr-hrs-${ev.id}`)?.value) || SVR_MIN);
+      body += `- ${sc} Servers at $${SVR_RATE}/hr (${sh}-hour minimum) = $${fmt(c.svr)}\n`;
+    }
+    if (c.del > 0) body += `- Delivery = $${fmt(c.del)}\n`;
+    body += `- Subtotal = $${fmt(c.sub)}\n`;
+    if (SC > 0) body += `- ${pctLabel(SC)}% Service Charge = $${fmt(c.svc)}\n`;
+    if (TAX > 0) body += `- ${pctLabel(TAX)}% Sales Tax = $${fmt(c.tax)}\n`;
+    if (CC > 0) body += `- ${pctLabel(CC)}% Credit Card Fee = $${fmt(c.ccFee)}\n`;
+    body += `- Total = $${fmt(c.total)}\n`;
+  });
+
+  document.getElementById('email-text').textContent = body;
+  document.getElementById('email-output').style.display = 'block';
+  document.getElementById('email-output').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function copyEmail() {
+  const text = document.getElementById('email-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy to clipboard'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
+// Enter key on category input
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('new-cat-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addSetupCategory();
+  });
+});
+
+// Boot
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,705 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Business Profile
+Description: Set up business identity — every other Terrapin tool reads this profile
+Parameters:
+  - business_name (string, required): Business name
+  - owner_name (string, required): Owner's full name
+  - business_type (string, optional): contractor|restaurant_cafe|food_truck|catering|retail|freelancer|bar_venue|other
+  - address (string, optional): Business address
+  - phone (string, optional): Phone number
+  - email (string, optional): Email address
+  - website (string, optional): Website URL
+  - tax_rate (number, optional): Tax rate percentage
+  - payment_terms (string, optional): due_on_receipt|net_15|net_30|custom
+  - default_rate (number, optional): Default hourly rate
+  - tagline (string, optional): Business description
+Output: business.md file and localStorage profile (terrapin_business_profile)
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Profile — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 740px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; color: #2C3E2D; }
+  .app-header p { font-size: 14px; color: #6B6B6B; margin-top: 2px; }
+  .app-header .alpha-badge {
+    display: inline-block; background: #C9A84C; color: #fff; font-family: 'DM Mono', monospace;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 12px; border-radius: 6px; margin-bottom: 8px;
+  }
+
+  .card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #E8E0D0; }
+
+  label { font-size: 13px; color: #6B6B6B; font-weight: 500; display: block; margin-bottom: 6px; }
+  input[type="text"], input[type="number"], input[type="email"], input[type="tel"], input[type="url"], select, textarea {
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1a1a1a;
+    background: #FDFAF4; border: 1px solid #E8E0D0;
+    border-radius: 8px; padding: 10px 12px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+  textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Logo upload */
+  .logo-zone {
+    border: 2px dashed #E8E0D0; border-radius: 12px; padding: 24px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s; position: relative; background: #FDFAF4;
+  }
+  .logo-zone:hover { border-color: #2C3E2D; }
+  .logo-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .logo-zone p { font-size: 13px; color: #6B6B6B; }
+  .logo-zone img { max-height: 80px; max-width: 240px; margin-bottom: 6px; border-radius: 8px; }
+  .logo-remove { font-size: 12px; color: #B85C2C; cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; margin-top: 6px; }
+  .logo-remove:hover { text-decoration: underline; }
+
+  /* Repeater rows */
+  .repeater-row { display: grid; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .staff-row { grid-template-columns: 1fr 1fr 30px; }
+  .client-row { grid-template-columns: 1fr 1fr 1fr 30px; }
+  .repeater-row input { padding: 9px 10px; font-size: 13px; }
+  .row-remove { background: none; border: none; font-size: 20px; cursor: pointer; color: #ccc; padding: 2px 6px; line-height: 1; }
+  .row-remove:hover { color: #B85C2C; }
+  .add-row-btn { font-size: 13px; color: #2C3E2D; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600; margin-top: 4px; }
+  .add-row-btn:hover { text-decoration: underline; }
+  .repeater-header { display: grid; gap: 8px; margin-bottom: 6px; }
+  .repeater-header.staff-row { grid-template-columns: 1fr 1fr 30px; }
+  .repeater-header.client-row { grid-template-columns: 1fr 1fr 1fr 30px; }
+  .repeater-header span { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Buttons */
+  .btn-primary {
+    background: #2C3E2D; color: #fff; padding: 14px 24px; border-radius: 8px;
+    border: none; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; text-align: center; width: 100%;
+  }
+  .btn-primary:hover { background: #3A5240; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .btn-secondary {
+    background: transparent; color: #2C3E2D; padding: 12px 24px; border-radius: 8px;
+    border: 1.5px solid #2C3E2D; font-family: 'DM Sans', sans-serif; font-size: 15px;
+    font-weight: 500; cursor: pointer; transition: all 0.15s; text-align: center; width: 100%;
+  }
+  .btn-secondary:hover { background: rgba(44,62,45,0.06); }
+
+  .actions-row { display: flex; gap: 10px; margin-top: 16px; }
+  .actions-row button { flex: 1; }
+
+  .note-banner {
+    background: #FDFAF4; border: 1px solid #C9A84C; border-radius: 10px; padding: 14px 18px;
+    font-size: 14px; color: #6B6B6B; margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .note-banner .note-icon { font-size: 20px; flex-shrink: 0; }
+  .note-banner strong { color: #1a1a1a; }
+
+  .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 16px; }
+
+  /* ── LOADING OVERLAY ── */
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 1000; background: #2C3E2D;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+  }
+  .loading-overlay.active { opacity: 1; pointer-events: all; }
+  .loading-overlay.fade-out { opacity: 0; }
+  .loading-overlay .loading-text {
+    font-family: 'Playfair Display', serif; font-size: 28px; font-style: italic;
+    color: #C9A84C; text-align: center; max-width: 520px; padding: 0 24px;
+    line-height: 1.5; animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.06); opacity: 0.85; }
+  }
+
+  /* ── SUCCESS SCREEN ── */
+  .success-screen {
+    display: none; text-align: center; padding: 60px 20px;
+  }
+  .success-screen.active { display: block; }
+  .success-icon { font-size: 64px; margin-bottom: 20px; }
+  .success-screen h2 { font-family: 'Lora', serif; font-size: 28px; color: #2C3E2D; margin-bottom: 12px; }
+  .success-screen p { font-size: 16px; color: #6B6B6B; margin-bottom: 32px; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .success-actions { display: flex; flex-direction: column; gap: 10px; max-width: 360px; margin: 0 auto; }
+  .success-note { font-size: 13px; color: #6B6B6B; margin-top: 20px; font-style: italic; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .row.three { grid-template-columns: 1fr; }
+    .client-row { grid-template-columns: 1fr 1fr 30px; }
+    .repeater-header.client-row { grid-template-columns: 1fr 1fr 30px; }
+    .loading-overlay .loading-text { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-text">Tantalizing terrapin terraforming agentic planetary contributions...</div>
+</div>
+
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <div class="alpha-badge">Start Here</div>
+    <h1>Business Profile</h1>
+    <p>Set up once — every Terrapin tool reads this</p>
+  </div>
+
+  <!-- ══════════ FORM SCREEN ══════════ -->
+  <div class="screen active" id="screen-form">
+
+    <div class="note-banner">
+      <span class="note-icon">&#128209;</span>
+      <div><strong>Save your business.md file somewhere easy to find.</strong> The Terrapin agent will need to read it.</div>
+    </div>
+
+    <!-- Business basics -->
+    <div class="card">
+      <div class="card-title">Business Basics</div>
+      <div class="field"><label>Business name</label><input type="text" id="f-bizname" placeholder="e.g. Smith Contracting LLC"></div>
+      <div class="row">
+        <div class="field"><label>Owner name</label><input type="text" id="f-owner" placeholder="e.g. John Smith"></div>
+        <div class="field">
+          <label>Business type</label>
+          <select id="f-type">
+            <option value="">Select...</option>
+            <option value="Contractor">Contractor</option>
+            <option value="Restaurant / Cafe">Restaurant / Cafe</option>
+            <option value="Food Truck">Food Truck</option>
+            <option value="Catering">Catering</option>
+            <option value="Retail">Retail</option>
+            <option value="Freelancer">Freelancer</option>
+            <option value="Bar / Venue">Bar / Venue</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Tagline or business description (optional)</label><textarea id="f-tagline" rows="2" placeholder="What does your business do? One or two sentences."></textarea></div>
+    </div>
+
+    <!-- Contact info -->
+    <div class="card">
+      <div class="card-title">Contact Info</div>
+      <div class="field"><label>Address</label><input type="text" id="f-address" placeholder="123 Main St, Anytown TX 75001"></div>
+      <div class="row">
+        <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
+        <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="you@business.com"></div>
+      </div>
+      <div class="field"><label>Website (optional)</label><input type="url" id="f-website" placeholder="https://yourbusiness.com"></div>
+    </div>
+
+    <!-- Logo -->
+    <div class="card">
+      <div class="card-title">Logo (Optional)</div>
+      <div class="logo-zone" id="logo-zone">
+        <div id="logo-preview"></div>
+        <p id="logo-placeholder">Click or drag to upload your logo</p>
+        <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp" onchange="handleLogo(event)">
+      </div>
+    </div>
+
+    <!-- Financial -->
+    <div class="card">
+      <div class="card-title">Financial Defaults</div>
+      <div class="row three">
+        <div class="field">
+          <label>Tax rate %</label>
+          <input type="number" id="f-tax" placeholder="8.25" min="0" max="100" step="0.01">
+        </div>
+        <div class="field">
+          <label>Payment terms</label>
+          <select id="f-terms">
+            <option value="Due on receipt">Due on receipt</option>
+            <option value="Net 15">Net 15</option>
+            <option value="Net 30" selected>Net 30</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Default hourly rate (optional)</label>
+          <input type="number" id="f-rate" placeholder="75" min="0" step="0.50">
+        </div>
+      </div>
+      <div class="field" id="custom-terms-field" style="display:none;">
+        <label>Custom payment terms</label>
+        <input type="text" id="f-custom-terms" placeholder="e.g. 50% upfront, 50% on completion">
+      </div>
+    </div>
+
+    <!-- Staff -->
+    <div class="card">
+      <div class="card-title">Staff Members (Optional)</div>
+      <div class="repeater-header staff-row">
+        <span>Name</span><span>Role</span><span></span>
+      </div>
+      <div id="staff-rows"></div>
+      <button class="add-row-btn" onclick="addStaffRow()">+ Add staff member</button>
+    </div>
+
+    <!-- Regular Clients -->
+    <div class="card">
+      <div class="card-title">Regular Clients (Optional)</div>
+      <div class="repeater-header client-row">
+        <span>Name</span><span>Email</span><span class="hide-sm">Phone</span><span></span>
+      </div>
+      <div id="client-rows"></div>
+      <button class="add-row-btn" onclick="addClientRow()">+ Add client</button>
+    </div>
+
+    <!-- Save -->
+    <button class="btn-primary" onclick="saveProfile()">Save Business Profile</button>
+    <p class="api-note" style="margin-top:12px;">Callable via <code>window.bizProfile</code> for automation</p>
+
+  </div>
+
+  <!-- ══════════ SUCCESS SCREEN ══════════ -->
+  <div class="success-screen" id="screen-success">
+    <div class="success-icon">&#9989;</div>
+    <h2>Your business profile is ready.</h2>
+    <p>Every Terrapin tool will now know who you are.</p>
+    <div class="success-actions">
+      <button class="btn-primary" onclick="downloadMD()">Download business.md</button>
+      <button class="btn-secondary" onclick="downloadJSON()">Download business-profile.json</button>
+      <button class="btn-secondary" onclick="editProfile()">Edit Profile</button>
+    </div>
+    <p class="success-note">Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.</p>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const STORAGE_KEY = 'terrapin_business_profile';
+let logoBase64 = '';
+let staffData = [];
+let clientData = [];
+
+// ══════════════════════════════════════
+//  LOGO
+// ══════════════════════════════════════
+function handleLogo(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    logoBase64 = ev.target.result;
+    document.getElementById('logo-preview').innerHTML = `<img src="${logoBase64}" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(); event.stopPropagation();">Remove logo</button>`;
+    document.getElementById('logo-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  logoBase64 = '';
+  document.getElementById('logo-preview').innerHTML = '';
+  document.getElementById('logo-placeholder').style.display = '';
+  document.getElementById('logo-input').value = '';
+}
+
+// ══════════════════════════════════════
+//  STAFF REPEATER
+// ══════════════════════════════════════
+function renderStaffRows() {
+  const el = document.getElementById('staff-rows');
+  el.innerHTML = staffData.map((s, i) => `
+    <div class="repeater-row staff-row">
+      <input type="text" value="${esc(s.name)}" placeholder="Name" onchange="staffData[${i}].name=this.value">
+      <input type="text" value="${esc(s.role)}" placeholder="Role" onchange="staffData[${i}].role=this.value">
+      <button class="row-remove" onclick="staffData.splice(${i},1);renderStaffRows()">&times;</button>
+    </div>
+  `).join('');
+}
+
+function addStaffRow() {
+  staffData.push({ name: '', role: '' });
+  renderStaffRows();
+  const rows = document.querySelectorAll('#staff-rows .staff-row');
+  if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+}
+
+// ══════════════════════════════════════
+//  CLIENT REPEATER
+// ══════════════════════════════════════
+function renderClientRows() {
+  const el = document.getElementById('client-rows');
+  el.innerHTML = clientData.map((c, i) => `
+    <div class="repeater-row client-row">
+      <input type="text" value="${esc(c.name)}" placeholder="Name" onchange="clientData[${i}].name=this.value">
+      <input type="email" value="${esc(c.email)}" placeholder="Email" onchange="clientData[${i}].email=this.value">
+      <input type="tel" value="${esc(c.phone)}" placeholder="Phone" class="hide-sm-input" onchange="clientData[${i}].phone=this.value">
+      <button class="row-remove" onclick="clientData.splice(${i},1);renderClientRows()">&times;</button>
+    </div>
+  `).join('');
+}
+
+function addClientRow() {
+  clientData.push({ name: '', email: '', phone: '' });
+  renderClientRows();
+  const rows = document.querySelectorAll('#client-rows .client-row');
+  if (rows.length) rows[rows.length - 1].querySelector('input').focus();
+}
+
+// ══════════════════════════════════════
+//  CUSTOM TERMS TOGGLE
+// ══════════════════════════════════════
+document.getElementById('f-terms').addEventListener('change', function() {
+  document.getElementById('custom-terms-field').style.display = this.value === 'Custom' ? '' : 'none';
+});
+
+// ══════════════════════════════════════
+//  READ FORM
+// ══════════════════════════════════════
+function syncRepeaters() {
+  document.querySelectorAll('#staff-rows .staff-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    staffData[i] = { name: inputs[0].value.trim(), role: inputs[1].value.trim() };
+  });
+  document.querySelectorAll('#client-rows .client-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    clientData[i] = { name: inputs[0].value.trim(), email: inputs[1].value.trim(), phone: inputs[2].value.trim() };
+  });
+}
+
+function readForm() {
+  syncRepeaters();
+  const terms = document.getElementById('f-terms').value;
+  return {
+    businessName: document.getElementById('f-bizname').value.trim(),
+    ownerName: document.getElementById('f-owner').value.trim(),
+    businessType: document.getElementById('f-type').value,
+    address: document.getElementById('f-address').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    website: document.getElementById('f-website').value.trim(),
+    logo: logoBase64,
+    taxRate: document.getElementById('f-tax').value,
+    paymentTerms: terms === 'Custom' ? document.getElementById('f-custom-terms').value.trim() : terms,
+    defaultRate: document.getElementById('f-rate').value,
+    staff: staffData.filter(s => s.name),
+    clients: clientData.filter(c => c.name),
+    tagline: document.getElementById('f-tagline').value.trim(),
+    savedAt: new Date().toISOString()
+  };
+}
+
+// ══════════════════════════════════════
+//  SAVE
+// ══════════════════════════════════════
+function saveProfile() {
+  const data = readForm();
+  if (!data.businessName) { alert('Please enter your business name.'); document.getElementById('f-bizname').focus(); return; }
+  if (!data.ownerName) { alert('Please enter your name.'); document.getElementById('f-owner').focus(); return; }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+  // Show loading overlay
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.add('active');
+
+  setTimeout(function() {
+    overlay.classList.add('fade-out');
+    setTimeout(function() {
+      overlay.classList.remove('active', 'fade-out');
+      document.getElementById('screen-form').classList.remove('active');
+      document.getElementById('screen-success').classList.add('active');
+
+      // Write agent result
+      const resultDiv = document.getElementById('terrapin-result') || document.createElement('div');
+      resultDiv.id = 'terrapin-result';
+      resultDiv.style.display = 'none';
+      resultDiv.textContent = JSON.stringify({
+        status: 'success',
+        tool: 'Business Profile',
+        output: 'Business profile saved to localStorage and business.md ready for download',
+        timestamp: new Date().toISOString()
+      });
+      document.body.appendChild(resultDiv);
+    }, 500);
+  }, 2500);
+}
+
+// ══════════════════════════════════════
+//  GENERATE BUSINESS.MD
+// ══════════════════════════════════════
+function generateMD() {
+  const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  let md = `# Business Profile — ${d.businessName || 'Untitled'}\n\n`;
+  md += `Owner: ${d.ownerName || ''}\n`;
+  md += `Type: ${d.businessType || ''}\n`;
+  md += `Address: ${d.address || ''}\n`;
+  md += `Phone: ${d.phone || ''}\n`;
+  md += `Email: ${d.email || ''}\n`;
+  if (d.website) md += `Website: ${d.website}\n`;
+  md += `Tax Rate: ${d.taxRate || '0'}%\n`;
+  md += `Payment Terms: ${d.paymentTerms || 'Net 30'}\n`;
+  if (d.defaultRate) md += `Default Rate: $${d.defaultRate}/hr\n`;
+  if (d.staff && d.staff.length) {
+    md += `Staff: ${d.staff.map(s => s.name + ' — ' + s.role).join(', ')}\n`;
+  }
+  if (d.clients && d.clients.length) {
+    md += `\n## Regular Clients\n\n`;
+    d.clients.forEach(c => {
+      md += `- ${c.name}`;
+      if (c.email) md += `, ${c.email}`;
+      if (c.phone) md += `, ${c.phone}`;
+      md += '\n';
+    });
+  }
+  if (d.tagline) md += `\nTagline: ${d.tagline}\n`;
+  md += `\n---\n*Generated by Terrapin Tools — terrapin.tools*\n`;
+  return md;
+}
+
+function downloadMD() {
+  const md = generateMD();
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const link = document.createElement('a');
+  link.download = 'business.md';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function downloadJSON() {
+  const data = localStorage.getItem(STORAGE_KEY) || '{}';
+  const blob = new Blob([data], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.download = 'business-profile.json';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function editProfile() {
+  document.getElementById('screen-success').classList.remove('active');
+  document.getElementById('screen-form').classList.add('active');
+}
+
+// ══════════════════════════════════════
+//  LOAD EXISTING PROFILE
+// ══════════════════════════════════════
+function loadExisting() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    document.getElementById('f-bizname').value = d.businessName || '';
+    document.getElementById('f-owner').value = d.ownerName || '';
+    document.getElementById('f-type').value = d.businessType || '';
+    document.getElementById('f-address').value = d.address || '';
+    document.getElementById('f-phone').value = d.phone || '';
+    document.getElementById('f-email').value = d.email || '';
+    document.getElementById('f-website').value = d.website || '';
+    document.getElementById('f-tax').value = d.taxRate || '';
+    document.getElementById('f-rate').value = d.defaultRate || '';
+    document.getElementById('f-tagline').value = d.tagline || '';
+
+    // Payment terms
+    const termsSelect = document.getElementById('f-terms');
+    const knownTerms = ['Due on receipt', 'Net 15', 'Net 30', 'Custom'];
+    if (knownTerms.includes(d.paymentTerms)) {
+      termsSelect.value = d.paymentTerms;
+    } else if (d.paymentTerms) {
+      termsSelect.value = 'Custom';
+      document.getElementById('f-custom-terms').value = d.paymentTerms;
+      document.getElementById('custom-terms-field').style.display = '';
+    }
+
+    // Logo
+    if (d.logo) {
+      logoBase64 = d.logo;
+      document.getElementById('logo-preview').innerHTML = `<img src="${logoBase64}" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(); event.stopPropagation();">Remove logo</button>`;
+      document.getElementById('logo-placeholder').style.display = 'none';
+    }
+
+    // Staff
+    staffData = (d.staff || []).map(s => ({ ...s }));
+    renderStaffRows();
+
+    // Clients
+    clientData = (d.clients || []).map(c => ({ ...c }));
+    renderClientRows();
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+/**
+ * window.bizProfile — programmatic API for AI agents.
+ *
+ * Profile schema:
+ *   {
+ *     businessName: "Smith Contracting LLC",
+ *     ownerName: "John Smith",
+ *     businessType: "Contractor",
+ *     address: "123 Main St, Anytown TX",
+ *     phone: "(555) 123-4567",
+ *     email: "john@smithcontracting.com",
+ *     website: "https://smithcontracting.com",
+ *     taxRate: "8.25",
+ *     paymentTerms: "Net 30",
+ *     defaultRate: "75",
+ *     staff: [{ name: "Mike", role: "Foreman" }],
+ *     clients: [{ name: "Jane Doe", email: "jane@example.com", phone: "(555) 987-6543" }],
+ *     tagline: "Quality work, fair prices."
+ *   }
+ */
+window.bizProfile = {
+  getProfile() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e) { return null; }
+  },
+
+  setProfile(data) {
+    if (!data || !data.businessName) throw new Error('businessName is required');
+    const profile = {
+      businessName: data.businessName,
+      ownerName: data.ownerName || '',
+      businessType: data.businessType || '',
+      address: data.address || '',
+      phone: data.phone || '',
+      email: data.email || '',
+      website: data.website || '',
+      logo: data.logo || '',
+      taxRate: data.taxRate || '',
+      paymentTerms: data.paymentTerms || 'Net 30',
+      defaultRate: data.defaultRate || '',
+      staff: data.staff || [],
+      clients: data.clients || [],
+      tagline: data.tagline || '',
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    return structuredClone(profile);
+  },
+
+  getMarkdown() {
+    return generateMD();
+  },
+
+  getField(field) {
+    const p = this.getProfile();
+    if (!p) return null;
+    return p[field] !== undefined ? p[field] : null;
+  },
+
+  updateField(field, value) {
+    const p = this.getProfile() || {};
+    p[field] = value;
+    p.savedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    return structuredClone(p);
+  },
+
+  addStaff(name, role) {
+    const p = this.getProfile() || {};
+    if (!p.staff) p.staff = [];
+    p.staff.push({ name, role: role || '' });
+    p.savedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    return p.staff;
+  },
+
+  addClient(name, email, phone) {
+    const p = this.getProfile() || {};
+    if (!p.clients) p.clients = [];
+    p.clients.push({ name, email: email || '', phone: phone || '' });
+    p.savedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    return p.clients;
+  },
+
+  exportJSON() {
+    return localStorage.getItem(STORAGE_KEY) || '{}';
+  }
+};
+
+window.bizProfileReady = Promise.resolve(true);
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const map = {
+    'business_name': 'f-bizname',
+    'owner_name': 'f-owner',
+    'address': 'f-address',
+    'phone': 'f-phone',
+    'email': 'f-email',
+    'website': 'f-website',
+    'tax_rate': 'f-tax',
+    'default_rate': 'f-rate',
+    'tagline': 'f-tagline'
+  };
+  for (const [param, id] of Object.entries(map)) {
+    const val = params.get(param);
+    if (val) document.getElementById(id).value = val;
+  }
+  const typeMap = {
+    'contractor': 'Contractor',
+    'restaurant_cafe': 'Restaurant / Cafe',
+    'food_truck': 'Food Truck',
+    'catering': 'Catering',
+    'retail': 'Retail',
+    'freelancer': 'Freelancer',
+    'bar_venue': 'Bar / Venue',
+    'other': 'Other'
+  };
+  const typeParam = params.get('business_type');
+  if (typeParam && typeMap[typeParam]) {
+    document.getElementById('f-type').value = typeMap[typeParam];
+  }
+  const termsMap = {
+    'due_on_receipt': 'Due on receipt',
+    'net_15': 'Net 15',
+    'net_30': 'Net 30',
+    'custom': 'Custom'
+  };
+  const termsParam = params.get('payment_terms');
+  if (termsParam && termsMap[termsParam]) {
+    document.getElementById('f-terms').value = termsMap[termsParam];
+    if (termsParam === 'custom') document.getElementById('custom-terms-field').style.display = '';
+  }
+})();
+
+// ══════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════
+loadExisting();
+renderStaffRows();
+renderClientRows();
+</script>
+</body>
+</html>

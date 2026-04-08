@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contractor Invoice Generator — Terrapin Tools</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 740px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 2rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .app-header p { font-size: 14px; color: #888; margin-top: 4px; }
+
+  .card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e4; padding: 1.5rem; margin-bottom: 1rem; }
+  .card-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; padding-bottom: 8px; border-bottom: 1px solid #f0f0ec; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 13px; color: #666; font-weight: 500; }
+  input[type="text"], input[type="number"], input[type="date"], input[type="email"], select, textarea {
+    font-family: inherit; font-size: 14px; color: #1a1a1a;
+    background: #fafaf8; border: 1px solid #e0e0db;
+    border-radius: 8px; padding: 9px 11px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+
+  /* Logo upload */
+  .logo-zone {
+    border: 2px dashed #e0e0db; border-radius: 10px; padding: 20px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s; position: relative; background: #fafaf8;
+  }
+  .logo-zone:hover { border-color: #2C3E2D; }
+  .logo-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .logo-zone p { font-size: 13px; color: #999; }
+  .logo-zone img { max-height: 60px; max-width: 200px; margin-bottom: 6px; }
+  .logo-remove { font-size: 11px; color: #e05050; cursor: pointer; background: none; border: none; font-family: inherit; margin-top: 4px; }
+  .logo-remove:hover { text-decoration: underline; }
+
+  /* Line items */
+  .line-header { display: grid; grid-template-columns: 1fr 70px 90px 90px 30px; gap: 8px; margin-bottom: 6px; padding: 0 2px; }
+  .line-header span { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+  .line-header span:nth-child(2), .line-header span:nth-child(3), .line-header span:nth-child(4) { text-align: right; }
+  .line-row { display: grid; grid-template-columns: 1fr 70px 90px 90px 30px; gap: 8px; margin-bottom: 6px; align-items: center; }
+  .line-row input { padding: 8px 10px; font-size: 13px; }
+  .line-row input[type="number"] { text-align: right; }
+  .line-amount { font-size: 13px; font-weight: 500; color: #1a1a1a; text-align: right; padding-right: 4px; }
+  .line-remove { background: none; border: none; font-size: 18px; cursor: pointer; color: #ccc; line-height: 1; padding: 4px; }
+  .line-remove:hover { color: #e05050; }
+  .add-line-btn { font-size: 13px; color: #2C3E2D; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; font-weight: 500; margin-top: 4px; }
+  .add-line-btn:hover { text-decoration: underline; }
+  .section-label { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: #2C3E2D; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; margin-top: 14px; }
+  .section-label:first-child { margin-top: 0; }
+
+  /* Totals */
+  .totals { background: #fafaf8; border-radius: 10px; border: 1px solid #e8e8e4; padding: 1rem 1.25rem; margin-top: 1rem; }
+  .total-row { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; color: #666; }
+  .total-row.grand { font-size: 19px; font-weight: 700; color: #2C3E2D; border-top: 2px solid #4A7C59; margin-top: 8px; padding-top: 12px; }
+  .tax-input-row { display: flex; align-items: center; gap: 6px; }
+  .tax-input-row input { width: 70px; text-align: right; padding: 6px 8px; font-size: 13px; }
+  .tax-input-row span { font-size: 13px; color: #999; }
+
+  /* Generate button */
+  .generate-btn {
+    width: 100%; padding: 14px; font-size: 16px; font-weight: 600;
+    background: #2C3E2D; border: none; border-radius: 10px;
+    cursor: pointer; color: #fff; font-family: inherit;
+    margin-top: 1rem; transition: background 0.15s; letter-spacing: 0.01em;
+  }
+  .generate-btn:hover { background: #3A5240; }
+  .generate-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  /* Misc */
+  .hint { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .api-note { text-align: center; font-size: 11px; color: #ccc; margin-top: 12px; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 600px) {
+    .row { grid-template-columns: 1fr; }
+    .row.three { grid-template-columns: 1fr 1fr; }
+    .line-header, .line-row { grid-template-columns: 1fr 60px 75px 75px 28px; gap: 5px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1>Invoice Generator</h1>
+    <p>Fill in the details, generate a professional PDF</p>
+  </div>
+
+  <!-- YOUR BUSINESS -->
+  <div class="card">
+    <div class="card-title">Your business</div>
+    <div class="field">
+      <label>Business name</label>
+      <input type="text" id="biz-name" placeholder="e.g. Smith Contracting LLC">
+    </div>
+    <div class="field">
+      <label>Logo (optional)</label>
+      <div class="logo-zone" id="logo-zone">
+        <div id="logo-preview"></div>
+        <p id="logo-placeholder">Click or drag to upload your logo</p>
+        <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp">
+      </div>
+    </div>
+    <div class="field">
+      <label>Business address</label>
+      <textarea id="biz-address" rows="2" placeholder="123 Main St&#10;Anytown, TX 75001"></textarea>
+    </div>
+    <div class="row">
+      <div class="field"><label>Phone</label><input type="text" id="biz-phone" placeholder="(555) 123-4567"></div>
+      <div class="field"><label>Email</label><input type="email" id="biz-email" placeholder="you@business.com"></div>
+    </div>
+  </div>
+
+  <!-- CLIENT INFO -->
+  <div class="card">
+    <div class="card-title">Client</div>
+    <div class="field">
+      <label>Client name</label>
+      <input type="text" id="client-name" placeholder="e.g. Jane Doe">
+    </div>
+    <div class="field">
+      <label>Client address</label>
+      <textarea id="client-address" rows="2" placeholder="456 Oak Ave&#10;Othertown, TX 75002"></textarea>
+    </div>
+  </div>
+
+  <!-- INVOICE DETAILS -->
+  <div class="card">
+    <div class="card-title">Invoice details</div>
+    <div class="row three">
+      <div class="field"><label>Invoice #</label><input type="text" id="inv-number" placeholder="INV-001"></div>
+      <div class="field"><label>Invoice date</label><input type="date" id="inv-date"></div>
+      <div class="field"><label>Due date</label><input type="date" id="inv-due"></div>
+    </div>
+    <div class="field">
+      <label>Job description</label>
+      <textarea id="job-desc" rows="2" placeholder="e.g. Kitchen remodel — full demolition and cabinet installation"></textarea>
+    </div>
+  </div>
+
+  <!-- LINE ITEMS -->
+  <div class="card">
+    <div class="card-title">Line items</div>
+
+    <div class="section-label">Labor</div>
+    <div class="line-header">
+      <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span>
+    </div>
+    <div id="labor-rows"></div>
+    <button class="add-line-btn" onclick="addLine('labor')">+ Add labor item</button>
+
+    <div class="section-label" style="margin-top:20px">Materials</div>
+    <div class="line-header">
+      <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span>
+    </div>
+    <div id="materials-rows"></div>
+    <button class="add-line-btn" onclick="addLine('materials')">+ Add material item</button>
+
+    <!-- Totals -->
+    <div class="totals" id="totals-section">
+      <div class="total-row"><span>Labor subtotal</span><span id="labor-sub">$0.00</span></div>
+      <div class="total-row"><span>Materials subtotal</span><span id="materials-sub">$0.00</span></div>
+      <div class="total-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+      <div class="total-row">
+        <span>Tax</span>
+        <div class="tax-input-row">
+          <input type="number" id="tax-rate" value="0" min="0" step="0.25" oninput="recalc()">
+          <span>%</span>
+          <span id="tax-amount" style="min-width:70px;text-align:right">$0.00</span>
+        </div>
+      </div>
+      <div class="total-row grand"><span>Total</span><span id="grand-total">$0.00</span></div>
+    </div>
+  </div>
+
+  <!-- PAYMENT & NOTES -->
+  <div class="card">
+    <div class="card-title">Payment & notes</div>
+    <div class="row">
+      <div class="field">
+        <label>Payment terms</label>
+        <select id="pay-terms" onchange="handleTermsChange()">
+          <option value="Due on receipt">Due on receipt</option>
+          <option value="Net 15">Net 15</option>
+          <option value="Net 30" selected>Net 30</option>
+          <option value="Net 60">Net 60</option>
+          <option value="custom">Custom...</option>
+        </select>
+        <input type="text" id="pay-terms-custom" placeholder="Enter custom terms" style="display:none;margin-top:6px">
+      </div>
+      <div class="field">
+        <label>Payment methods</label>
+        <input type="text" id="pay-methods" placeholder="e.g. Check, Zelle, Cash">
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <textarea id="notes" rows="2" placeholder="e.g. Thank you for your business!"></textarea>
+    </div>
+  </div>
+
+  <button class="generate-btn" id="gen-btn" onclick="handleGenerate()">Generate PDF Invoice</button>
+  <p class="api-note">Also callable via <code>window.generateInvoice(data)</code> for automation</p>
+
+  <div style="height:3rem"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const STORAGE_BIZ = 'cig_business';
+const STORAGE_CNT = 'cig_inv_counter';
+let logoDataURL = null;
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function init() {
+  loadBizInfo();
+  setDefaultDates();
+  setInvoiceNumber();
+  addLine('labor');
+  addLine('materials');
+  setupLogoUpload();
+  setupBizPersistence();
+}
+
+function setDefaultDates() {
+  const today = new Date();
+  document.getElementById('inv-date').value = isoDate(today);
+  const due = new Date(today);
+  due.setDate(due.getDate() + 30);
+  document.getElementById('inv-due').value = isoDate(due);
+}
+
+function isoDate(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function setInvoiceNumber() {
+  let count = parseInt(localStorage.getItem(STORAGE_CNT)) || 0;
+  count++;
+  document.getElementById('inv-number').value = 'INV-' + String(count).padStart(3, '0');
+}
+
+function incrementInvoiceCounter() {
+  const current = document.getElementById('inv-number').value;
+  const match = current.match(/^INV-(\d+)$/);
+  if (match) {
+    localStorage.setItem(STORAGE_CNT, parseInt(match[1]));
+  }
+}
+
+// ══════════════════════════════════════
+//  BUSINESS PERSISTENCE
+// ══════════════════════════════════════
+function loadBizInfo() {
+  const saved = localStorage.getItem(STORAGE_BIZ);
+  if (!saved) return;
+  try {
+    const b = JSON.parse(saved);
+    if (b.name) document.getElementById('biz-name').value = b.name;
+    if (b.address) document.getElementById('biz-address').value = b.address;
+    if (b.phone) document.getElementById('biz-phone').value = b.phone;
+    if (b.email) document.getElementById('biz-email').value = b.email;
+    if (b.payMethods) document.getElementById('pay-methods').value = b.payMethods;
+    if (b.taxRate !== undefined) document.getElementById('tax-rate').value = b.taxRate;
+    if (b.logo) { logoDataURL = b.logo; showLogoPreview(b.logo); }
+  } catch(e) {}
+}
+
+function saveBizInfo() {
+  const data = {
+    name: document.getElementById('biz-name').value,
+    address: document.getElementById('biz-address').value,
+    phone: document.getElementById('biz-phone').value,
+    email: document.getElementById('biz-email').value,
+    payMethods: document.getElementById('pay-methods').value,
+    taxRate: document.getElementById('tax-rate').value,
+    logo: logoDataURL
+  };
+  localStorage.setItem(STORAGE_BIZ, JSON.stringify(data));
+}
+
+function setupBizPersistence() {
+  ['biz-name','biz-address','biz-phone','biz-email','pay-methods','tax-rate'].forEach(id => {
+    document.getElementById(id).addEventListener('blur', saveBizInfo);
+  });
+}
+
+// ══════════════════════════════════════
+//  LOGO
+// ══════════════════════════════════════
+function setupLogoUpload() {
+  document.getElementById('logo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    processLogoFile(file);
+  });
+}
+
+function processLogoFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize to keep localStorage small
+    const img = new Image();
+    img.onload = function() {
+      const maxW = 400, maxH = 200;
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = h * (maxW / w); w = maxW; }
+      if (h > maxH) { w = w * (maxH / h); h = maxH; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      logoDataURL = canvas.toDataURL('image/png');
+      showLogoPreview(logoDataURL);
+      saveBizInfo();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showLogoPreview(dataURL) {
+  const preview = document.getElementById('logo-preview');
+  preview.innerHTML = `<img src="${dataURL}" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(event)">Remove logo</button>`;
+  document.getElementById('logo-placeholder').style.display = 'none';
+}
+
+function removeLogo(e) {
+  e.stopPropagation();
+  logoDataURL = null;
+  document.getElementById('logo-preview').innerHTML = '';
+  document.getElementById('logo-placeholder').style.display = 'block';
+  document.getElementById('logo-input').value = '';
+  saveBizInfo();
+}
+
+// ══════════════════════════════════════
+//  LINE ITEMS
+// ══════════════════════════════════════
+function addLine(type) {
+  const container = document.getElementById(type + '-rows');
+  const row = document.createElement('div');
+  row.className = 'line-row';
+  row.dataset.type = type;
+  row.innerHTML = `
+    <input type="text" placeholder="${type === 'labor' ? 'e.g. Demolition' : 'e.g. Lumber (2x4)'}">
+    <input type="number" value="1" min="0" step="1" oninput="recalc()">
+    <input type="number" value="0" min="0" step="0.01" oninput="recalc()" placeholder="0.00">
+    <div class="line-amount">$0.00</div>
+    <button class="line-remove" onclick="removeLine(this)">×</button>
+  `;
+  container.appendChild(row);
+  recalc();
+}
+
+function removeLine(btn) {
+  const row = btn.closest('.line-row');
+  row.remove();
+  recalc();
+}
+
+function getLineItems(type) {
+  const rows = document.querySelectorAll(`#${type}-rows .line-row`);
+  const items = [];
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const desc = inputs[0].value.trim();
+    const qty = parseFloat(inputs[1].value) || 0;
+    const rate = parseFloat(inputs[2].value) || 0;
+    if (desc || qty || rate) {
+      items.push({ description: desc, quantity: qty, rate: rate });
+    }
+  });
+  return items;
+}
+
+function recalc() {
+  let laborTotal = 0, matsTotal = 0;
+
+  document.querySelectorAll('#labor-rows .line-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const qty = parseFloat(inputs[1].value) || 0;
+    const rate = parseFloat(inputs[2].value) || 0;
+    const amt = qty * rate;
+    laborTotal += amt;
+    row.querySelector('.line-amount').textContent = '$' + amt.toFixed(2);
+  });
+
+  document.querySelectorAll('#materials-rows .line-row').forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const qty = parseFloat(inputs[1].value) || 0;
+    const rate = parseFloat(inputs[2].value) || 0;
+    const amt = qty * rate;
+    matsTotal += amt;
+    row.querySelector('.line-amount').textContent = '$' + amt.toFixed(2);
+  });
+
+  const sub = laborTotal + matsTotal;
+  const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+  const taxAmt = sub * (taxRate / 100);
+  const total = sub + taxAmt;
+
+  document.getElementById('labor-sub').textContent = '$' + laborTotal.toFixed(2);
+  document.getElementById('materials-sub').textContent = '$' + matsTotal.toFixed(2);
+  document.getElementById('subtotal').textContent = '$' + sub.toFixed(2);
+  document.getElementById('tax-amount').textContent = '$' + taxAmt.toFixed(2);
+  document.getElementById('grand-total').textContent = '$' + total.toFixed(2);
+}
+
+// ══════════════════════════════════════
+//  PAYMENT TERMS
+// ══════════════════════════════════════
+function handleTermsChange() {
+  const sel = document.getElementById('pay-terms');
+  const custom = document.getElementById('pay-terms-custom');
+  custom.style.display = sel.value === 'custom' ? 'block' : 'none';
+}
+
+function getPaymentTerms() {
+  const sel = document.getElementById('pay-terms').value;
+  if (sel === 'custom') return document.getElementById('pay-terms-custom').value.trim() || 'Net 30';
+  return sel;
+}
+
+// ══════════════════════════════════════
+//  COLLECT FORM DATA
+// ══════════════════════════════════════
+function collectFormData() {
+  return {
+    business: {
+      name: document.getElementById('biz-name').value.trim(),
+      address: document.getElementById('biz-address').value.trim(),
+      phone: document.getElementById('biz-phone').value.trim(),
+      email: document.getElementById('biz-email').value.trim(),
+      logo: logoDataURL
+    },
+    client: {
+      name: document.getElementById('client-name').value.trim(),
+      address: document.getElementById('client-address').value.trim()
+    },
+    invoice: {
+      number: document.getElementById('inv-number').value.trim(),
+      date: document.getElementById('inv-date').value,
+      dueDate: document.getElementById('inv-due').value
+    },
+    jobDescription: document.getElementById('job-desc').value.trim(),
+    labor: getLineItems('labor'),
+    materials: getLineItems('materials'),
+    taxRate: parseFloat(document.getElementById('tax-rate').value) || 0,
+    paymentTerms: getPaymentTerms(),
+    paymentMethods: document.getElementById('pay-methods').value.trim(),
+    notes: document.getElementById('notes').value.trim()
+  };
+}
+
+// ══════════════════════════════════════
+//  PDF GENERATION
+// ══════════════════════════════════════
+function buildPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const W = 215.9, H = 279.4;
+  const ML = 20, MR = 20, MT = 20;
+  const PW = W - ML - MR;
+  let y = MT;
+
+  const DARK = '#1a1a1a';
+  const GRAY = '#666666';
+  const LIGHT = '#999999';
+  const ACCENT = '#2C3E2D';
+  const LINE_COLOR = '#e0e0db';
+  const BG_ALT = '#f7f7f5';
+
+  function fmt(n) { return '$' + n.toFixed(2); }
+
+  // ── HEADER ──
+  let logoW = 0;
+  if (data.business.logo) {
+    try {
+      const img = new Image();
+      img.src = data.business.logo;
+      const maxLW = 40, maxLH = 20;
+      let lw = img.width || 200, lh = img.height || 100;
+      const scale = Math.min(maxLW / lw, maxLH / lh, 1);
+      lw *= scale; lh *= scale;
+      doc.addImage(data.business.logo, 'PNG', ML, y, lw, lh);
+      logoW = lw + 6;
+    } catch(e) {}
+  }
+
+  // Business name
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(DARK);
+  doc.text(data.business.name || 'Your Business', ML + logoW, y + 6);
+
+  // Business contact below name
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(GRAY);
+  let bizY = y + 11;
+  if (data.business.address) {
+    const addrLines = data.business.address.split('\n');
+    addrLines.forEach(line => {
+      doc.text(line, ML + logoW, bizY);
+      bizY += 4;
+    });
+  }
+  const contactParts = [data.business.phone, data.business.email].filter(Boolean);
+  if (contactParts.length) {
+    doc.text(contactParts.join('  |  '), ML + logoW, bizY);
+    bizY += 4;
+  }
+
+  // INVOICE label — right side
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.setTextColor(ACCENT);
+  doc.text('INVOICE', W - MR, y + 7, { align: 'right' });
+
+  // Invoice details — right side
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(GRAY);
+  let detY = y + 14;
+  if (data.invoice.number) {
+    doc.setFont('helvetica', 'bold'); doc.text('Invoice #:', W - MR - 40, detY);
+    doc.setFont('helvetica', 'normal'); doc.text(data.invoice.number, W - MR, detY, { align: 'right' });
+    detY += 5;
+  }
+  if (data.invoice.date) {
+    doc.setFont('helvetica', 'bold'); doc.text('Date:', W - MR - 40, detY);
+    doc.setFont('helvetica', 'normal'); doc.text(formatDate(data.invoice.date), W - MR, detY, { align: 'right' });
+    detY += 5;
+  }
+  if (data.invoice.dueDate) {
+    doc.setFont('helvetica', 'bold'); doc.text('Due:', W - MR - 40, detY);
+    doc.setFont('helvetica', 'normal'); doc.text(formatDate(data.invoice.dueDate), W - MR, detY, { align: 'right' });
+    detY += 5;
+  }
+
+  y = Math.max(bizY, detY) + 6;
+
+  // ── DIVIDER ──
+  doc.setDrawColor(LINE_COLOR);
+  doc.setLineWidth(0.4);
+  doc.line(ML, y, W - MR, y);
+  y += 8;
+
+  // ── BILL TO ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(LIGHT);
+  doc.text('BILL TO', ML, y);
+  y += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(DARK);
+  doc.text(data.client.name || 'Client', ML, y);
+  y += 5;
+  if (data.client.address) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(GRAY);
+    data.client.address.split('\n').forEach(line => {
+      doc.text(line, ML, y);
+      y += 4;
+    });
+  }
+
+  // ── JOB DESCRIPTION ──
+  if (data.jobDescription) {
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(LIGHT);
+    doc.text('JOB DESCRIPTION', ML, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(DARK);
+    const descLines = doc.splitTextToSize(data.jobDescription, PW);
+    doc.text(descLines, ML, y);
+    y += descLines.length * 4;
+  }
+
+  y += 6;
+
+  // ── TABLE HELPER ──
+  const colX = { desc: ML, qty: ML + PW - 80, rate: ML + PW - 50, amt: W - MR };
+
+  function drawTableHeader() {
+    doc.setFillColor(BG_ALT);
+    doc.rect(ML, y - 4, PW, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(LIGHT);
+    doc.text('DESCRIPTION', colX.desc + 2, y);
+    doc.text('QTY', colX.qty, y, { align: 'right' });
+    doc.text('RATE', colX.rate, y, { align: 'right' });
+    doc.text('AMOUNT', colX.amt, y, { align: 'right' });
+    y += 6;
+  }
+
+  function drawLineItem(item, isAlt) {
+    if (y > H - 50) {
+      doc.addPage();
+      y = MT;
+    }
+    if (isAlt) {
+      doc.setFillColor('#fcfcfb');
+      doc.rect(ML, y - 3.5, PW, 6, 'F');
+    }
+    const amt = item.quantity * item.rate;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(DARK);
+    const descText = doc.splitTextToSize(item.description || '', PW - 90);
+    doc.text(descText, colX.desc + 2, y);
+    doc.text(String(item.quantity), colX.qty, y, { align: 'right' });
+    doc.text(fmt(item.rate), colX.rate, y, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(fmt(amt), colX.amt, y, { align: 'right' });
+    const lineH = Math.max(descText.length * 4, 6);
+    y += lineH;
+    return amt;
+  }
+
+  function drawSectionLabel(label) {
+    if (y > H - 50) { doc.addPage(); y = MT; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(ACCENT);
+    doc.text(label, ML + 2, y);
+    y += 5;
+  }
+
+  // ── LABOR ──
+  let laborTotal = 0, matsTotal = 0;
+  if (data.labor && data.labor.length) {
+    drawSectionLabel('LABOR');
+    drawTableHeader();
+    data.labor.forEach((item, i) => { laborTotal += drawLineItem(item, i % 2 === 1); });
+    y += 2;
+  }
+
+  // ── MATERIALS ──
+  if (data.materials && data.materials.length) {
+    drawSectionLabel('MATERIALS');
+    drawTableHeader();
+    data.materials.forEach((item, i) => { matsTotal += drawLineItem(item, i % 2 === 1); });
+    y += 2;
+  }
+
+  // ── TOTALS ──
+  if (y > H - 65) { doc.addPage(); y = MT; }
+  y += 4;
+  doc.setDrawColor(LINE_COLOR);
+  doc.line(ML, y, W - MR, y);
+  y += 8;
+
+  const sub = laborTotal + matsTotal;
+  const taxAmt = sub * ((data.taxRate || 0) / 100);
+  const total = sub + taxAmt;
+  const totX = W - MR;
+  const labX = totX - 45;
+
+  function drawTotalRow(label, value, bold) {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(bold ? 12 : 9);
+    doc.setTextColor(bold ? ACCENT : GRAY);
+    doc.text(label, labX, y, { align: 'right' });
+    doc.setTextColor(bold ? ACCENT : DARK);
+    doc.text(fmt(value), totX, y, { align: 'right' });
+    y += bold ? 8 : 5;
+  }
+
+  if (data.labor && data.labor.length) drawTotalRow('Labor', laborTotal, false);
+  if (data.materials && data.materials.length) drawTotalRow('Materials', matsTotal, false);
+  drawTotalRow('Subtotal', sub, false);
+  if (data.taxRate > 0) drawTotalRow('Tax (' + data.taxRate + '%)', taxAmt, false);
+  y += 2;
+  doc.setDrawColor(ACCENT);
+  doc.setLineWidth(0.6);
+  doc.line(labX - 10, y - 2, totX, y - 2);
+  y += 2;
+  drawTotalRow('TOTAL', total, true);
+
+  // ── PAYMENT & NOTES ──
+  if (y > H - 40) { doc.addPage(); y = MT; }
+  y += 6;
+  doc.setDrawColor(LINE_COLOR);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, W - MR, y);
+  y += 8;
+
+  if (data.paymentTerms) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(LIGHT);
+    doc.text('PAYMENT TERMS', ML, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(DARK);
+    doc.text(data.paymentTerms, ML + 35, y);
+    y += 5;
+  }
+  if (data.paymentMethods) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(LIGHT);
+    doc.text('ACCEPTED', ML, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(DARK);
+    doc.text(data.paymentMethods, ML + 35, y);
+    y += 5;
+  }
+  if (data.notes) {
+    y += 3;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(LIGHT);
+    doc.text('NOTES', ML, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(DARK);
+    const noteLines = doc.splitTextToSize(data.notes, PW);
+    doc.text(noteLines, ML, y);
+  }
+
+  return doc;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+// ══════════════════════════════════════
+//  UI GENERATE HANDLER
+// ══════════════════════════════════════
+function handleGenerate() {
+  const data = collectFormData();
+  if (!data.business.name) { alert('Please enter your business name.'); return; }
+  if (!data.client.name) { alert('Please enter the client name.'); return; }
+  if (!data.labor.length && !data.materials.length) { alert('Please add at least one line item.'); return; }
+
+  const doc = buildPDF(data);
+  const filename = (data.invoice.number || 'invoice') + '.pdf';
+  doc.save(filename);
+  incrementInvoiceCounter();
+  saveBizInfo();
+}
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+
+/**
+ * Generate an invoice PDF programmatically.
+ *
+ * @param {Object} data - Invoice data:
+ *   {
+ *     business: { name, address, phone, email, logo (base64 data URL or null) },
+ *     client: { name, address },
+ *     invoice: { number, date (YYYY-MM-DD), dueDate (YYYY-MM-DD) },
+ *     jobDescription: "...",
+ *     labor: [{ description, quantity, rate }],
+ *     materials: [{ description, quantity, rate }],
+ *     taxRate: 8.25,
+ *     paymentTerms: "Net 30",
+ *     paymentMethods: "Check, Zelle",
+ *     notes: "Thank you!"
+ *   }
+ * @param {Object} [opts] - Options:
+ *   { populateUI: false }  - if true, also fills the on-screen form
+ * @returns {{ blob: Blob, filename: string, doc: jsPDF }}
+ */
+window.generateInvoice = function(data, opts) {
+  if (!data) throw new Error('No data provided');
+  if (!data.business?.name) throw new Error('business.name is required');
+  if (!data.client?.name) throw new Error('client.name is required');
+  if ((!data.labor || !data.labor.length) && (!data.materials || !data.materials.length)) {
+    throw new Error('At least one labor or materials line item is required');
+  }
+
+  // Defaults
+  data.business = data.business || {};
+  data.client = data.client || {};
+  data.invoice = data.invoice || {};
+  data.labor = data.labor || [];
+  data.materials = data.materials || [];
+  data.taxRate = data.taxRate ?? 0;
+  data.paymentTerms = data.paymentTerms || '';
+  data.paymentMethods = data.paymentMethods || '';
+  data.notes = data.notes || '';
+  data.jobDescription = data.jobDescription || '';
+
+  if (!data.invoice.date) data.invoice.date = isoDate(new Date());
+  if (!data.invoice.dueDate) {
+    const due = new Date(); due.setDate(due.getDate() + 30);
+    data.invoice.dueDate = isoDate(due);
+  }
+  if (!data.invoice.number) data.invoice.number = 'INV-001';
+
+  if (opts?.populateUI) populateForm(data);
+
+  const doc = buildPDF(data);
+  const blob = doc.output('blob');
+  const filename = (data.invoice.number || 'invoice') + '.pdf';
+  return { blob, filename, doc };
+};
+
+/**
+ * Generate and immediately download an invoice PDF.
+ * Same params as generateInvoice().
+ */
+window.downloadInvoice = function(data, opts) {
+  const result = window.generateInvoice(data, opts);
+  result.doc.save(result.filename);
+  return result;
+};
+
+/**
+ * Populate the on-screen form from a data object.
+ */
+function populateForm(data) {
+  if (data.business) {
+    if (data.business.name) document.getElementById('biz-name').value = data.business.name;
+    if (data.business.address) document.getElementById('biz-address').value = data.business.address;
+    if (data.business.phone) document.getElementById('biz-phone').value = data.business.phone;
+    if (data.business.email) document.getElementById('biz-email').value = data.business.email;
+    if (data.business.logo) { logoDataURL = data.business.logo; showLogoPreview(data.business.logo); }
+  }
+  if (data.client) {
+    if (data.client.name) document.getElementById('client-name').value = data.client.name;
+    if (data.client.address) document.getElementById('client-address').value = data.client.address;
+  }
+  if (data.invoice) {
+    if (data.invoice.number) document.getElementById('inv-number').value = data.invoice.number;
+    if (data.invoice.date) document.getElementById('inv-date').value = data.invoice.date;
+    if (data.invoice.dueDate) document.getElementById('inv-due').value = data.invoice.dueDate;
+  }
+  if (data.jobDescription) document.getElementById('job-desc').value = data.jobDescription;
+  if (data.taxRate !== undefined) document.getElementById('tax-rate').value = data.taxRate;
+  if (data.paymentTerms) {
+    const sel = document.getElementById('pay-terms');
+    const opts = [...sel.options].map(o => o.value);
+    if (opts.includes(data.paymentTerms)) {
+      sel.value = data.paymentTerms;
+    } else {
+      sel.value = 'custom';
+      document.getElementById('pay-terms-custom').value = data.paymentTerms;
+      document.getElementById('pay-terms-custom').style.display = 'block';
+    }
+  }
+  if (data.paymentMethods) document.getElementById('pay-methods').value = data.paymentMethods;
+  if (data.notes) document.getElementById('notes').value = data.notes;
+
+  // Rebuild line item rows
+  ['labor', 'materials'].forEach(type => {
+    const container = document.getElementById(type + '-rows');
+    container.innerHTML = '';
+    (data[type] || []).forEach(item => {
+      addLine(type);
+      const rows = container.querySelectorAll('.line-row');
+      const lastRow = rows[rows.length - 1];
+      const inputs = lastRow.querySelectorAll('input');
+      inputs[0].value = item.description || '';
+      inputs[1].value = item.quantity ?? 1;
+      inputs[2].value = item.rate ?? 0;
+    });
+  });
+  recalc();
+}
+
+// Ready signal for automation
+window.invoiceReady = new Promise(resolve => {
+  if (window.jspdf) resolve(true);
+  else {
+    const check = setInterval(() => {
+      if (window.jspdf) { clearInterval(check); resolve(true); }
+    }, 50);
+  }
+});
+
+// Boot
+init();
+</script>
+</body>
+</html>

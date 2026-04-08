@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple CRM — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 800px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .app-header p { font-size: 14px; color: #888; margin-top: 4px; }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .toolbar-search {
+    flex: 1; min-width: 180px; font-family: inherit; font-size: 14px; color: #1a1a1a;
+    background: #fff; border: 1px solid #e0e0db; border-radius: 8px; padding: 9px 12px;
+  }
+  .toolbar-search:focus { outline: none; border-color: #2C3E2D; }
+  .toolbar-btn {
+    padding: 9px 16px; font-size: 13px; font-weight: 600; border-radius: 8px;
+    cursor: pointer; font-family: inherit; transition: all 0.12s; white-space: nowrap;
+  }
+  .btn-primary { background: #2C3E2D; color: #fff; border: none; }
+  .btn-primary:hover { background: #3A5240; }
+  .btn-subtle { background: #fff; color: #888; border: 1px solid #e0e0db; font-weight: 500; }
+  .btn-subtle:hover { border-color: #2C3E2D; color: #2C3E2D; }
+
+  /* Section labels */
+  .section-label {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 8px; padding-left: 2px;
+  }
+  .section-label.alert { color: #c06030; }
+
+  /* Contact card */
+  .contact-card {
+    background: #fff; border-radius: 12px; border: 1px solid #e8e8e4;
+    padding: 14px 18px; margin-bottom: 8px; cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .contact-card:hover { border-color: #c0c0bb; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .contact-card.highlight {
+    border-color: #e0a870; background: #fffbf5;
+    box-shadow: 0 0 0 2px #f5e0c4;
+  }
+  .contact-card.overdue {
+    border-color: #d08080; background: #fff8f6;
+    box-shadow: 0 0 0 2px #f0d0d0;
+  }
+  .cc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .cc-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .cc-biz { font-size: 13px; color: #888; margin-top: 1px; }
+  .cc-right { text-align: right; flex-shrink: 0; }
+  .cc-followup { font-size: 12px; font-weight: 500; color: #c06030; }
+  .cc-followup.overdue { color: #c04040; }
+  .cc-followup.today { color: #c06030; }
+  .cc-followup.upcoming { color: #888; }
+  .cc-contact-info { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .cc-notes-preview { font-size: 12px; color: #bbb; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .cc-last { font-size: 11px; color: #ccc; margin-top: 3px; }
+
+  /* Badge */
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .badge-today { background: #fef0e0; color: #c06030; }
+  .badge-overdue { background: #fde8e8; color: #c04040; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 3rem 1rem; color: #ccc; }
+  .empty p { font-size: 15px; margin-bottom: 6px; }
+  .empty small { font-size: 12px; }
+
+  /* Modal overlay */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    z-index: 100; justify-content: center; align-items: flex-start; padding: 4rem 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; border: 1px solid #e8e8e4;
+    width: 100%; max-width: 560px; max-height: calc(100vh - 6rem);
+    overflow-y: auto; padding: 1.5rem; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  .modal-title {
+    font-size: 18px; font-weight: 700; margin-bottom: 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #ccc; line-height: 1; padding: 4px; }
+  .modal-close:hover { color: #e05050; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 13px; color: #666; font-weight: 500; }
+  input[type="text"], input[type="email"], input[type="tel"], input[type="date"], textarea {
+    font-family: inherit; font-size: 14px; color: #1a1a1a;
+    background: #fafaf8; border: 1px solid #e0e0db;
+    border-radius: 8px; padding: 9px 11px; width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+  textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; }
+  .modal-actions .btn-primary { flex: 1; padding: 12px; font-size: 15px; }
+  .btn-danger { background: none; border: 1px solid #e0e0db; color: #c04040; padding: 12px 18px; border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
+  .btn-danger:hover { border-color: #c04040; background: #fff5f5; }
+
+  /* Data bar */
+  .data-bar { display: flex; gap: 8px; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+  .data-bar button { font-size: 12px; color: #bbb; background: none; border: none; cursor: pointer; font-family: inherit; }
+  .data-bar button:hover { color: #2C3E2D; text-decoration: underline; }
+  .api-note { text-align: center; font-size: 11px; color: #ddd; margin-top: 8px; }
+
+  /* Hidden file input */
+  #import-input { display: none; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .row { grid-template-columns: 1fr; }
+    .toolbar { flex-direction: column; }
+    .toolbar-search { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1>Simple CRM</h1>
+    <p>Your contacts and follow-ups — all in one place</p>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" class="toolbar-search" id="search-box" placeholder="Search contacts..." oninput="renderContacts()">
+    <button class="toolbar-btn btn-primary" onclick="openNew()">+ New contact</button>
+  </div>
+
+  <!-- Follow-ups today -->
+  <div id="followup-section"></div>
+
+  <!-- All contacts -->
+  <div id="contacts-section"></div>
+
+  <!-- Empty state -->
+  <div id="empty-state" class="empty" style="display:none">
+    <p>No contacts yet</p>
+    <small>Click "+ New contact" to add your first one</small>
+  </div>
+
+  <!-- Data bar -->
+  <div class="data-bar">
+    <button onclick="exportJSON()">Export JSON</button>
+    <span style="color:#e0e0db">|</span>
+    <button onclick="document.getElementById('import-input').click()">Import JSON</button>
+    <input type="file" id="import-input" accept=".json,application/json" onchange="importJSONFile(event)">
+  </div>
+  <p class="api-note">Callable via <code>window.crm</code> for automation</p>
+
+  <div style="height:2rem"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOverlay(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">
+      <span id="modal-title-text">New Contact</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="row">
+      <div class="field"><label>Contact name</label><input type="text" id="f-name" placeholder="e.g. Jane Smith"></div>
+      <div class="field"><label>Business name</label><input type="text" id="f-biz" placeholder="e.g. Smith & Co"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
+      <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="jane@example.com"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Last contacted</label><input type="date" id="f-last"></div>
+      <div class="field"><label>Next follow-up</label><input type="date" id="f-followup"></div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="f-notes" placeholder="Anything you want to remember about this contact..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="toolbar-btn btn-primary" id="modal-save-btn" onclick="saveContact()">Save contact</button>
+      <button class="btn-danger" id="modal-delete-btn" onclick="deleteContact()" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const STORAGE_KEY = 'scrm_contacts';
+let contacts = [];
+let editingId = null;
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+function init() {
+  loadContacts();
+  renderContacts();
+}
+
+function loadContacts() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { contacts = JSON.parse(saved); } catch(e) { contacts = []; }
+  }
+}
+
+function saveAll() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+}
+
+// ══════════════════════════════════════
+//  DATE HELPERS
+// ══════════════════════════════════════
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function isToday(dateStr) {
+  return dateStr === todayISO();
+}
+
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < todayISO();
+}
+
+function isUpcoming(dateStr) {
+  if (!dateStr) return false;
+  return dateStr > todayISO();
+}
+
+function friendlyDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  const today = new Date(todayISO() + 'T12:00:00');
+  const diff = Math.round((d - today) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  if (diff > 1 && diff <= 6) return d.toLocaleDateString('en-US', { weekday: 'long' });
+  if (diff < -1 && diff >= -6) return Math.abs(diff) + ' days ago';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function renderContacts() {
+  const query = document.getElementById('search-box').value.trim().toLowerCase();
+  let filtered = contacts;
+  if (query) {
+    filtered = contacts.filter(c =>
+      (c.name || '').toLowerCase().includes(query) ||
+      (c.business || '').toLowerCase().includes(query) ||
+      (c.email || '').toLowerCase().includes(query) ||
+      (c.phone || '').includes(query) ||
+      (c.notes || '').toLowerCase().includes(query)
+    );
+  }
+
+  // Split into follow-up-today/overdue vs rest
+  const followups = filtered.filter(c => c.followUp && (isToday(c.followUp) || isOverdue(c.followUp)));
+  const rest = filtered.filter(c => !followups.includes(c));
+
+  // Sort follow-ups: overdue first (oldest first), then today
+  followups.sort((a, b) => (a.followUp || '').localeCompare(b.followUp || ''));
+
+  // Sort rest: contacts with upcoming follow-ups first (soonest first), then by name
+  rest.sort((a, b) => {
+    const aUp = a.followUp && isUpcoming(a.followUp) ? a.followUp : 'z';
+    const bUp = b.followUp && isUpcoming(b.followUp) ? b.followUp : 'z';
+    if (aUp !== bUp) return aUp.localeCompare(bUp);
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  // Render follow-ups section
+  const fuSection = document.getElementById('followup-section');
+  if (followups.length) {
+    fuSection.innerHTML =
+      `<div class="section-label alert">Follow up today (${followups.length})</div>` +
+      followups.map(c => cardHTML(c, true)).join('');
+  } else {
+    fuSection.innerHTML = '';
+  }
+
+  // Render all contacts
+  const allSection = document.getElementById('contacts-section');
+  if (rest.length) {
+    const label = followups.length ? 'All contacts' : (filtered.length ? 'Contacts' : '');
+    allSection.innerHTML =
+      (label ? `<div class="section-label" style="margin-top:${followups.length ? '16px' : '0'}">${label} (${rest.length})</div>` : '') +
+      rest.map(c => cardHTML(c, false)).join('');
+  } else if (!followups.length) {
+    allSection.innerHTML = '';
+  } else {
+    allSection.innerHTML = '';
+  }
+
+  // Empty state
+  document.getElementById('empty-state').style.display = (!filtered.length) ? 'block' : 'none';
+}
+
+function cardHTML(c, isFollowUp) {
+  const overdue = c.followUp && isOverdue(c.followUp);
+  const today = c.followUp && isToday(c.followUp);
+  let cls = 'contact-card';
+  if (isFollowUp && overdue) cls += ' overdue';
+  else if (isFollowUp && today) cls += ' highlight';
+
+  let followUpHTML = '';
+  if (c.followUp) {
+    if (overdue) {
+      followUpHTML = `<span class="badge badge-overdue">Overdue</span><div class="cc-followup overdue">${friendlyDate(c.followUp)}</div>`;
+    } else if (today) {
+      followUpHTML = `<span class="badge badge-today">Today</span>`;
+    } else {
+      followUpHTML = `<div class="cc-followup upcoming">Follow up ${friendlyDate(c.followUp)}</div>`;
+    }
+  }
+
+  const contactBits = [c.phone, c.email].filter(Boolean).join('  ·  ');
+
+  return `
+    <div class="${cls}" onclick="openEdit('${esc4attr(c.id)}')">
+      <div class="cc-top">
+        <div>
+          <div class="cc-name">${esc(c.name || 'Unnamed')}</div>
+          ${c.business ? `<div class="cc-biz">${esc(c.business)}</div>` : ''}
+        </div>
+        <div class="cc-right">${followUpHTML}</div>
+      </div>
+      ${contactBits ? `<div class="cc-contact-info">${esc(contactBits)}</div>` : ''}
+      ${c.notes ? `<div class="cc-notes-preview">${esc(c.notes)}</div>` : ''}
+      ${c.lastContacted ? `<div class="cc-last">Last contacted ${friendlyDate(c.lastContacted)}</div>` : ''}
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════
+//  ESCAPE HELPERS
+// ══════════════════════════════════════
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function esc4attr(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════
+function openNew() {
+  editingId = null;
+  document.getElementById('modal-title-text').textContent = 'New Contact';
+  document.getElementById('modal-save-btn').textContent = 'Save contact';
+  document.getElementById('modal-delete-btn').style.display = 'none';
+  clearForm();
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function openEdit(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('modal-title-text').textContent = 'Edit Contact';
+  document.getElementById('modal-save-btn').textContent = 'Update contact';
+  document.getElementById('modal-delete-btn').style.display = 'block';
+  document.getElementById('f-name').value = c.name || '';
+  document.getElementById('f-biz').value = c.business || '';
+  document.getElementById('f-phone').value = c.phone || '';
+  document.getElementById('f-email').value = c.email || '';
+  document.getElementById('f-last').value = c.lastContacted || '';
+  document.getElementById('f-followup').value = c.followUp || '';
+  document.getElementById('f-notes').value = c.notes || '';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+}
+
+function closeModalOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function clearForm() {
+  ['f-name','f-biz','f-phone','f-email','f-last','f-followup','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+function readForm() {
+  return {
+    name: document.getElementById('f-name').value.trim(),
+    business: document.getElementById('f-biz').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    lastContacted: document.getElementById('f-last').value || null,
+    followUp: document.getElementById('f-followup').value || null,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+}
+
+function saveContact() {
+  const data = readForm();
+  if (!data.name) { alert('Please enter a contact name.'); return; }
+
+  if (editingId) {
+    const idx = contacts.findIndex(c => c.id === editingId);
+    if (idx > -1) {
+      contacts[idx] = { ...contacts[idx], ...data, updatedAt: new Date().toISOString() };
+    }
+  } else {
+    contacts.push({
+      id: genId(),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  saveAll();
+  renderContacts();
+  closeModal();
+}
+
+function deleteContact() {
+  if (!editingId) return;
+  const c = contacts.find(x => x.id === editingId);
+  if (!confirm(`Delete ${c?.name || 'this contact'}?`)) return;
+  contacts = contacts.filter(x => x.id !== editingId);
+  saveAll();
+  renderContacts();
+  closeModal();
+}
+
+function genId() {
+  return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+// ══════════════════════════════════════
+//  IMPORT / EXPORT
+// ══════════════════════════════════════
+function exportJSON() {
+  const json = JSON.stringify(contacts, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'crm-contacts-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSONFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Expected an array');
+      const count = importContacts(data);
+      alert(`Imported ${count} contact${count !== 1 ? 's' : ''}.`);
+    } catch(err) {
+      alert('Could not read that file. Make sure it\'s a valid JSON file exported from this tool.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function importContacts(arr) {
+  let count = 0;
+  arr.forEach(item => {
+    if (!item.name) return;
+    // Check for duplicate by id
+    if (item.id && contacts.find(c => c.id === item.id)) {
+      // Update existing
+      const idx = contacts.findIndex(c => c.id === item.id);
+      contacts[idx] = { ...contacts[idx], ...normalizeContact(item), updatedAt: new Date().toISOString() };
+    } else {
+      contacts.push({
+        id: item.id || genId(),
+        ...normalizeContact(item),
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+    }
+    count++;
+  });
+  saveAll();
+  renderContacts();
+  return count;
+}
+
+function normalizeContact(raw) {
+  return {
+    name: raw.name || '',
+    business: raw.business || raw.businessName || '',
+    phone: raw.phone || '',
+    email: raw.email || '',
+    lastContacted: raw.lastContacted || null,
+    followUp: raw.followUp || raw.nextFollowUp || null,
+    notes: raw.notes || ''
+  };
+}
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+
+/**
+ * window.crm — programmatic API for automation / AI agents.
+ *
+ * All methods work synchronously (contacts live in memory + localStorage).
+ *
+ * Contact schema:
+ *   {
+ *     name: "Jane Smith",              // required
+ *     business: "Smith & Co",          // optional
+ *     phone: "(555) 123-4567",         // optional
+ *     email: "jane@example.com",       // optional
+ *     lastContacted: "2026-04-01",     // optional, YYYY-MM-DD
+ *     followUp: "2026-04-10",          // optional, YYYY-MM-DD
+ *     notes: "Interested in Q2 order"  // optional
+ *   }
+ */
+window.crm = {
+
+  /**
+   * Add a new contact. Returns the created contact object (with id).
+   */
+  addContact(data) {
+    if (!data || !data.name) throw new Error('name is required');
+    const contact = {
+      id: genId(),
+      ...normalizeContact(data),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    contacts.push(contact);
+    saveAll();
+    renderContacts();
+    return structuredClone(contact);
+  },
+
+  /**
+   * Update an existing contact by id. Pass only the fields to change.
+   * Returns the updated contact.
+   */
+  updateContact(id, data) {
+    const idx = contacts.findIndex(c => c.id === id);
+    if (idx === -1) throw new Error('Contact not found: ' + id);
+    const allowed = ['name','business','phone','email','lastContacted','followUp','notes'];
+    allowed.forEach(k => { if (data[k] !== undefined) contacts[idx][k] = data[k]; });
+    // Also accept aliases
+    if (data.businessName !== undefined) contacts[idx].business = data.businessName;
+    if (data.nextFollowUp !== undefined) contacts[idx].followUp = data.nextFollowUp;
+    contacts[idx].updatedAt = new Date().toISOString();
+    saveAll();
+    renderContacts();
+    return structuredClone(contacts[idx]);
+  },
+
+  /**
+   * Delete a contact by id. Returns true.
+   */
+  deleteContact(id) {
+    const idx = contacts.findIndex(c => c.id === id);
+    if (idx === -1) throw new Error('Contact not found: ' + id);
+    contacts.splice(idx, 1);
+    saveAll();
+    renderContacts();
+    return true;
+  },
+
+  /**
+   * Get all contacts. Returns a copy of the array.
+   */
+  getContacts() {
+    return structuredClone(contacts);
+  },
+
+  /**
+   * Get contacts whose follow-up date is today or overdue.
+   */
+  getFollowUps() {
+    const today = todayISO();
+    return structuredClone(contacts.filter(c => c.followUp && c.followUp <= today));
+  },
+
+  /**
+   * Get contacts whose follow-up date is in the future (upcoming).
+   */
+  getUpcoming() {
+    const today = todayISO();
+    return structuredClone(contacts.filter(c => c.followUp && c.followUp > today));
+  },
+
+  /**
+   * Search contacts by query string. Searches name, business, email, phone, notes.
+   */
+  search(query) {
+    const q = (query || '').toLowerCase();
+    if (!q) return structuredClone(contacts);
+    return structuredClone(contacts.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.business || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q) ||
+      (c.notes || '').toLowerCase().includes(q)
+    ));
+  },
+
+  /**
+   * Find a single contact by id.
+   */
+  getContact(id) {
+    const c = contacts.find(x => x.id === id);
+    if (!c) return null;
+    return structuredClone(c);
+  },
+
+  /**
+   * Bulk import contacts. Merges by id if matching, otherwise creates new.
+   * Returns the number of contacts imported.
+   */
+  importContacts(arr) {
+    if (!Array.isArray(arr)) throw new Error('Expected an array');
+    return importContacts(arr);
+  },
+
+  /**
+   * Export all contacts as a JSON string.
+   */
+  exportJSON() {
+    return JSON.stringify(contacts, null, 2);
+  },
+
+  /**
+   * Export all contacts as a downloadable Blob.
+   */
+  exportBlob() {
+    const json = JSON.stringify(contacts, null, 2);
+    return new Blob([json], { type: 'application/json' });
+  },
+
+  /**
+   * Mark a contact as contacted today and (optionally) set the next follow-up.
+   * Shorthand for a common agent action.
+   */
+  markContacted(id, nextFollowUp) {
+    const idx = contacts.findIndex(c => c.id === id);
+    if (idx === -1) throw new Error('Contact not found: ' + id);
+    contacts[idx].lastContacted = todayISO();
+    if (nextFollowUp !== undefined) contacts[idx].followUp = nextFollowUp;
+    contacts[idx].updatedAt = new Date().toISOString();
+    saveAll();
+    renderContacts();
+    return structuredClone(contacts[idx]);
+  }
+};
+
+// Ready signal for automation
+window.crmReady = Promise.resolve(true);
+
+// Keyboard: Escape closes modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Boot
+init();
+</script>
+</body>
+</html>

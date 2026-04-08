@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Promise — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1A1A1A;
+    min-height: 100vh; font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+
+  .back-link {
+    display: block; font-size: 13px; color: #6B6B6B; text-decoration: none;
+    padding: 20px 0 0; transition: color 0.15s;
+  }
+  .back-link:hover { color: #2C3E2D; }
+
+  .page-header {
+    padding: 48px 0 40px; border-bottom: 1px solid #E8E0D0; margin-bottom: 48px;
+  }
+  .page-header .label {
+    font-family: 'DM Mono', monospace; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #6B6B6B; margin-bottom: 12px;
+  }
+  .page-header h1 {
+    font-family: 'Lora', serif; font-size: 40px; font-weight: 700; color: #2C3E2D;
+    line-height: 1.2; margin-bottom: 12px;
+  }
+  .page-header p {
+    font-size: 18px; color: #6B6B6B; max-width: 520px;
+  }
+
+  h2 {
+    font-family: 'Lora', serif; font-size: 24px; font-weight: 700; color: #2C3E2D;
+    margin-top: 48px; margin-bottom: 16px;
+  }
+
+  p { margin-bottom: 16px; color: #1A1A1A; }
+
+  .promise-list {
+    list-style: none; margin-bottom: 24px;
+  }
+  .promise-list li {
+    padding: 8px 0; padding-left: 24px; position: relative; font-size: 16px;
+    border-bottom: 1px solid #E8E0D0;
+  }
+  .promise-list li:last-child { border-bottom: none; }
+  .promise-list.never li::before {
+    content: "\2717"; position: absolute; left: 0; color: #B85C2C; font-weight: 600;
+  }
+  .promise-list.always li::before {
+    content: "\2713"; position: absolute; left: 0; color: #4A7C59; font-weight: 600;
+  }
+
+  .highlight-block {
+    background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 12px;
+    padding: 24px; margin: 24px 0;
+  }
+  .highlight-block p { margin-bottom: 6px; color: #2C3E2D; font-weight: 500; }
+  .highlight-block p:last-child { margin-bottom: 0; }
+
+  .closing {
+    font-style: italic; color: #6B6B6B; margin-top: 48px; padding-top: 32px;
+    border-top: 1px solid #E8E0D0;
+  }
+
+  .page-footer {
+    text-align: center; padding: 48px 0 32px;
+  }
+  .page-footer a {
+    font-family: 'DM Mono', monospace; font-size: 12px; color: #6B6B6B;
+    text-decoration: none; transition: color 0.15s;
+  }
+  .page-footer a:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .page-header h1 { font-size: 30px; }
+    .page-header { padding: 32px 0 28px; margin-bottom: 32px; }
+    h2 { font-size: 20px; margin-top: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
+
+  <div class="page-header">
+    <p class="label">Privacy Promise</p>
+    <h1>Your data is yours. Period.</h1>
+    <p>This is not a legal document. This is a human promise from us to you about how Terrapin works.</p>
+  </div>
+
+  <h2>The Promise</h2>
+  <p>Terrapin will always run local models. Always stay on your hardware. Always keep your data yours.</p>
+
+  <h2>We will never:</h2>
+  <ul class="promise-list never">
+    <li>Connect to cloud AI models with your business data</li>
+    <li>Store your information on our servers</li>
+    <li>Sell your data to anyone</li>
+    <li>Allow third party agents to access your tools or profile</li>
+    <li>Phone home with your usage or behavior</li>
+    <li>Change this. Ever.</li>
+  </ul>
+
+  <h2>We will always:</h2>
+  <ul class="promise-list always">
+    <li>Run AI locally on your machine</li>
+    <li>Keep your business profile on your hardware</li>
+    <li>Use open source local models &mdash; Gemma, Llama, Mistral, whatever runs best locally</li>
+    <li>Give you full access to every file Terrapin creates</li>
+    <li>Let you delete everything with one command</li>
+    <li>Be honest about what we are and what we aren't</li>
+  </ul>
+
+  <h2>Why This Matters</h2>
+  <p>Every AI company tells you they respect your privacy. Then they train on your data. Then they get acquired. Then the terms of service change.</p>
+  <p>We're not building a cloud product that handles your data carefully. We're building a product where your data never leaves your machine in the first place. There's nothing to leak. Nothing to breach. Nothing to sell.</p>
+
+  <div class="highlight-block">
+    <p>Your invoice data is on your computer.</p>
+    <p>Your client list is on your computer.</p>
+    <p>Your business profile is on your computer.</p>
+    <p>Your AI brain is on your computer.</p>
+    <p style="margin-top:12px; color:#6B6B6B; font-weight:400; font-style:italic;">We never see any of it.</p>
+  </div>
+
+  <h2>The Only Thing We Take</h2>
+  <p>Your $5 a month. That's it. That's the deal.</p>
+  <p>You pay us to maintain the tool library, build new tools, and keep the lights on at terrapin.tools. We make money from subscriptions &mdash; not from your data. That alignment matters. When we make money from subscriptions we have to keep earning your trust every month. When companies make money from data they have an incentive to collect more of it.</p>
+  <p>We chose the harder business model on purpose.</p>
+
+  <h2>On Cloud Agents</h2>
+  <p>Terrapin will never integrate with cloud AI agents or allow cloud models to access your local tools or data. No OpenAI. No Anthropic API calls with your business data. No Google Gemini in the cloud. No exceptions.</p>
+  <p>If you want to use Terrapin with an AI agent it runs locally. Gemma. Llama. Mistral. Whatever open model runs on your hardware. The agent lives on your machine the same way the tools do.</p>
+  <p>This limits some capabilities. We accept that tradeoff completely.</p>
+
+  <h2>The Technical Reality</h2>
+  <p>When Terrapin is fully agentic:</p>
+  <div class="highlight-block">
+    <p>Gemma runs on localhost via Ollama</p>
+    <p>The agent server runs on localhost</p>
+    <p>The mail server sends through your own email account</p>
+    <p>tools.json lives on your machine</p>
+    <p>business.md lives on your machine</p>
+    <p>Every tool output stays on your machine</p>
+  </div>
+  <p>The only internet activity: downloading software during initial setup, sending emails through your own email account, and paying your $5/month subscription.</p>
+  <p>That's it. Everything else is local. Everything else is yours.</p>
+
+  <h2>This Is The Shell</h2>
+  <p>The turtle carries everything on its back. That's not just a brand metaphor. That's the architecture. Your business data lives on your machine the way a turtle's home lives on its back. It goes where you go. It belongs to you. Nobody can take it.</p>
+
+  <p class="closing">Tantalizing terrapin terraforming agentic planetary contributions &mdash; locally, privately, always.</p>
+
+  <div class="page-footer">
+    <a href="/">terrapin.tools &mdash; simple tools for people who work</a>
+  </div>
+
+</div>
+</body>
+</html>

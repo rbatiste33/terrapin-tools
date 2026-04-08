@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terrapin Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1A1A1A;
+    --bg-light: #2C3E2D;
+    --bg-input: #2C3E2D;
+    --gold: #C9A84C;
+    --gold-dim: rgba(201, 168, 76, 0.5);
+    --gold-faint: rgba(201, 168, 76, 0.12);
+    --text: rgba(255, 255, 255, 0.85);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --green: #4A7C59;
+    --rust: #B85C2C;
+  }
+
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.6;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app { display: flex; flex-direction: column; height: 100%; }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    display: flex; align-items: center; padding: 14px 20px;
+    background: #2C3E2D;
+    border-bottom: 1px solid #C9A84C;
+    flex-shrink: 0;
+  }
+  .top-bar img {
+    width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 12px;
+  }
+  .top-bar-title {
+    font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700;
+    color: var(--gold); flex: 1;
+  }
+  .status {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted);
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #6B6B6B;
+    flex-shrink: 0;
+  }
+  .status-dot.connected { background: var(--green); }
+  .status-dot.error { background: var(--rust); }
+
+  /* ── CHAT AREA ── */
+  .chat-area {
+    flex: 1; overflow-y: auto; padding: 24px 16px;
+    scroll-behavior: smooth;
+  }
+  .chat-thread { max-width: 700px; margin: 0 auto; }
+
+  .message { display: flex; gap: 10px; margin-bottom: 16px; max-width: 85%; }
+  .message.user { margin-left: auto; flex-direction: row-reverse; }
+  .message.agent { margin-right: auto; }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover; margin-top: 4px;
+  }
+  .message.user .msg-avatar { display: none; }
+
+  .msg-bubble {
+    padding: 12px 16px; border-radius: 14px; font-size: 15px; line-height: 1.55;
+  }
+  .message.agent .msg-bubble {
+    background: var(--bg-light); color: #F5F0E8; border-bottom-left-radius: 4px;
+  }
+  .message.user .msg-bubble {
+    background: var(--gold); color: #1A1A1A; border-bottom-right-radius: 4px;
+  }
+
+  .msg-bubble code {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ── PROFILE LOADED ── */
+  .profile-notice {
+    text-align: center; padding: 10px; font-size: 13px; color: var(--green);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── INPUT BAR ── */
+  .input-bar {
+    display: flex; gap: 10px; padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0; max-width: 740px; width: 100%; margin: 0 auto;
+  }
+  .input-bar input[type="text"] {
+    flex: 1; background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 12px 16px; font-family: 'DM Sans', sans-serif;
+    font-size: 15px; color: var(--text); outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-bar input[type="text"]::placeholder { color: #F5F0E8; opacity: 0.4; }
+  .input-bar input[type="text"]:focus { border-color: var(--gold-dim); }
+
+  .send-btn {
+    background: var(--gold); color: #1A1A1A; border: none; border-radius: 10px;
+    padding: 12px 20px; font-family: 'DM Sans', sans-serif; font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0;
+  }
+  .send-btn:hover { opacity: 0.85; }
+
+  /* ── BOTTOM SECTION ── */
+  .bottom-section {
+    flex-shrink: 0; padding: 0 20px 16px;
+    max-width: 740px; width: 100%; margin: 0 auto;
+  }
+
+  .bottom-row {
+    display: flex; gap: 12px; align-items: center; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 10px;
+  }
+
+  .profile-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted);
+    font-family: 'DM Mono', monospace; font-size: 12px; padding: 7px 14px;
+    border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .profile-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+  #profile-file { display: none; }
+
+  /* Setup guide */
+  .setup-toggle {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 12px; transition: color 0.15s;
+  }
+  .setup-toggle:hover { color: var(--gold); }
+
+  .setup-guide {
+    display: none; background: var(--bg-light); border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06);
+  }
+  .setup-guide.open { display: block; }
+  .setup-guide h4 {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold-dim);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+  }
+  .setup-step {
+    display: flex; gap: 10px; margin-bottom: 10px; font-size: 14px; color: var(--text);
+  }
+  .setup-step:last-child { margin-bottom: 0; }
+  .step-num {
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gold);
+    background: var(--gold-faint); width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .setup-step code {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    background: rgba(0,0,0,0.25); padding: 2px 8px; border-radius: 4px;
+    color: var(--gold);
+  }
+
+  /* Footer */
+  .agent-footer {
+    text-align: center; padding: 8px 0 4px;
+  }
+  .agent-footer a {
+    font-size: 12px; color: var(--text-muted); text-decoration: none;
+    font-family: 'DM Mono', monospace; transition: color 0.15s;
+  }
+  .agent-footer a:hover { color: var(--gold); }
+
+  /* Scrollbar */
+  .chat-area::-webkit-scrollbar { width: 6px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  .chat-area::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  @media (max-width: 520px) {
+    .top-bar-title { font-size: 16px; }
+    .message { max-width: 92%; }
+    .input-bar { padding: 12px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <img src="Handyman turtle ready for work.png" alt="Terrapin">
+    <span class="top-bar-title">Terrapin Agent</span>
+    <div class="status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Setting up...</span>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area" id="chat-area">
+    <div class="chat-thread" id="chat-thread"></div>
+  </div>
+
+  <!-- PROFILE NOTICE -->
+  <div class="profile-notice" id="profile-notice" style="display:none;"></div>
+
+  <!-- INPUT -->
+  <div class="input-bar">
+    <input type="text" id="msg-input" placeholder="Tell Terrapin what you need..." autocomplete="off">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-section">
+    <div class="bottom-row">
+      <button class="profile-btn" onclick="document.getElementById('profile-file').click()">Load Business Profile</button>
+      <input type="file" id="profile-file" accept=".md,.json,text/markdown,application/json" onchange="loadProfile(event)">
+      <button class="setup-toggle" id="setup-toggle" onclick="toggleSetup()">Setup Guide &#9662;</button>
+    </div>
+
+    <div class="setup-guide" id="setup-guide">
+      <h4>Get the agent running</h4>
+      <div class="setup-step">
+        <span class="step-num">1</span>
+        <span>Download Ollama at <a href="https://ollama.com" target="_blank" style="color:var(--gold);text-decoration:none;">ollama.com</a></span>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">2</span>
+        <span>Open Terminal and run: <code>ollama pull gemma4</code></span>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">3</span>
+        <span>Come back here and refresh</span>
+      </div>
+    </div>
+
+    <div class="agent-footer">
+      <a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const OLLAMA_URL = 'http://localhost:11434';
+let ollamaReady = false;
+let businessProfile = null;
+let conversationHistory = [];
+
+// ══════════════════════════════════════
+//  CHAT RENDERING
+// ══════════════════════════════════════
+function addMessage(role, text) {
+  const thread = document.getElementById('chat-thread');
+  const msg = document.createElement('div');
+  msg.className = 'message ' + role;
+
+  let avatarHTML = '';
+  if (role === 'agent') {
+    avatarHTML = '<img src="Handyman turtle ready for work.png" alt="Terrapin" class="msg-avatar">';
+  }
+
+  msg.innerHTML = avatarHTML + '<div class="msg-bubble">' + escapeHTML(text) + '</div>';
+  thread.appendChild(msg);
+
+  const area = document.getElementById('chat-area');
+  area.scrollTop = area.scrollHeight;
+
+  conversationHistory.push({ role, text });
+}
+
+function escapeHTML(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+// ══════════════════════════════════════
+//  SEND MESSAGE
+// ══════════════════════════════════════
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage('user', text);
+  input.value = '';
+
+  if (!ollamaReady) {
+    setTimeout(function() {
+      addMessage('agent', "I'm still loading. Make sure Ollama is running and Gemma is downloaded. Check the setup guide at terrapin.tools/agent-setup");
+    }, 400);
+    return;
+  }
+
+  // Future: actual Ollama API call goes here
+  callOllama(text);
+}
+
+async function callOllama(userText) {
+  const systemPrompt = buildSystemPrompt();
+
+  try {
+    const res = await fetch(OLLAMA_URL + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemma4',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationHistory.filter(m => m.role === 'user' || m.role === 'agent').slice(-10).map(m => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.text
+          }))
+        ],
+        stream: false
+      })
+    });
+
+    if (!res.ok) throw new Error('Ollama returned ' + res.status);
+    const data = await res.json();
+    addMessage('agent', data.message?.content || 'No response received.');
+  } catch(e) {
+    addMessage('agent', "Something went wrong talking to Ollama. Make sure it's running on localhost:11434. Error: " + e.message);
+  }
+}
+
+function buildSystemPrompt() {
+  let prompt = `You are the Terrapin agent — a warm, direct, helpful assistant for small business owners. You help them use Terrapin Tools (terrapin.tools) which are simple, locally-run tools for contractors, restaurants, freelancers, and other small businesses.
+
+You speak like a trusted neighbor who happens to know technology. Never corporate, never condescending. You're the person at the hardware store who actually knows which screw you need.
+
+Available tools the user can open:
+- Business Profile (tools/business-profile.html) — set up business identity
+- Catering Quote Builder (tools/catering-quote-builder.html) — build catering quotes
+- Contractor Invoice Generator (tools/contractor-invoice-generator.html) — create invoices
+- Simple CRM (tools/simple-crm.html) — track contacts and follow-ups
+- Tip Calculator & Staff Splitter (tools/tip-calculator.html) — calculate and split tips
+- Street Vendor Order Log (tools/street-vendor-order-log.html) — tap to log orders
+- QR Code Generator (tools/qr-code-generator.html) — create QR codes
+- Job Site Daily Log (tools/job-site-daily-log.html) — log daily job site activity
+
+Each tool accepts URL parameters for pre-filling. Help the user by suggesting which tool to use and what to type.`;
+
+  if (businessProfile) {
+    prompt += '\n\nThe user\'s business profile:\n' + businessProfile;
+  }
+
+  return prompt;
+}
+
+// ══════════════════════════════════════
+//  OLLAMA STATUS CHECK
+// ══════════════════════════════════════
+async function checkOllama() {
+  try {
+    const res = await fetch(OLLAMA_URL + '/api/tags', { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const hasGemma = (data.models || []).some(m => m.name && m.name.includes('gemma'));
+    if (hasGemma) {
+      ollamaReady = true;
+      document.getElementById('status-dot').classList.add('connected');
+      document.getElementById('status-text').textContent = 'Connected';
+    } else {
+      document.getElementById('status-dot').classList.add('error');
+      document.getElementById('status-text').textContent = 'Gemma not found';
+    }
+  } catch(e) {
+    document.getElementById('status-text').textContent = 'Ollama not detected';
+  }
+}
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE LOADER
+// ══════════════════════════════════════
+function loadProfile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+
+    if (file.name.endsWith('.json')) {
+      try {
+        const data = JSON.parse(content);
+        localStorage.setItem('terrapin_business_profile', content);
+        businessProfile = JSON.stringify(data, null, 2);
+      } catch(err) {
+        addMessage('agent', "That JSON file didn't parse right. Make sure it's a valid business-profile.json from the Business Profile tool.");
+        return;
+      }
+    } else {
+      localStorage.setItem('terrapin_business_md', content);
+      businessProfile = content;
+    }
+
+    const notice = document.getElementById('profile-notice');
+    notice.textContent = 'Business profile loaded. I know who you are now. \u2713';
+    notice.style.display = '';
+    setTimeout(function() { notice.style.display = 'none'; }, 5000);
+
+    addMessage('agent', "Business profile loaded. I know who you are now. \u2713 I can see your business details and will use them when helping you with tools.");
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// Check localStorage for existing profile
+function loadExistingProfile() {
+  const json = localStorage.getItem('terrapin_business_profile');
+  const md = localStorage.getItem('terrapin_business_md');
+  if (json) {
+    try {
+      businessProfile = JSON.stringify(JSON.parse(json), null, 2);
+      const notice = document.getElementById('profile-notice');
+      notice.textContent = 'Business profile loaded from saved data. \u2713';
+      notice.style.display = '';
+      setTimeout(function() { notice.style.display = 'none'; }, 4000);
+    } catch(e) {}
+  } else if (md) {
+    businessProfile = md;
+  }
+}
+
+// ══════════════════════════════════════
+//  SETUP GUIDE TOGGLE
+// ══════════════════════════════════════
+function toggleSetup() {
+  const guide = document.getElementById('setup-guide');
+  const toggle = document.getElementById('setup-toggle');
+  guide.classList.toggle('open');
+  toggle.innerHTML = guide.classList.contains('open') ? 'Setup Guide &#9652;' : 'Setup Guide &#9662;';
+}
+
+// ══════════════════════════════════════
+//  ENTER KEY
+// ══════════════════════════════════════
+document.getElementById('msg-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// ══════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════
+loadExistingProfile();
+checkOllama();
+
+addMessage('agent', "Hey. I'm your Terrapin agent. Once you've set up Ollama and Gemma I'll be able to help you run your tools with plain English. For now I'm getting ready. Drop your business profile in to get started \u2014 it helps me know who you are.");
+</script>
+</body>
+</html>

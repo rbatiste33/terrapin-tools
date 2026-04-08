@@ -1,0 +1,10 @@
+~/.terrapin/
+mail-config.json
+*.env
+node_modules/
+.DS_Store
+agent-server.js
+mail-server.js
+mail-setup.js
+TERRAPIN.md
+install.sh
