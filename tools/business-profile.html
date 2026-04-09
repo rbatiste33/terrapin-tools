@@ -416,6 +416,16 @@ function saveProfile() {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
+  // Persist to agent server ~/.terrapin/
+  try {
+    fetch('http://localhost:7777/data/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function(r) { console.log('Profile saved to ~/.terrapin/', r.ok); })
+      .catch(function() { console.log('Agent server not running — saved to localStorage only'); });
+  } catch(e) {}
+
   // Show loading overlay
   const overlay = document.getElementById('loading-overlay');
   overlay.classList.add('active');
@@ -503,47 +513,69 @@ function editProfile() {
 //  LOAD EXISTING PROFILE
 // ══════════════════════════════════════
 function loadExisting() {
+  // Try agent server first, fall back to localStorage
+  fetch('http://localhost:7777/data/profile', { signal: AbortSignal.timeout(2000) })
+    .then(function(res) { return res.ok ? res.json() : null; })
+    .then(function(data) {
+      if (data && data.businessName) {
+        console.log('Profile loaded from ~/.terrapin/');
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        applyProfile(data);
+      } else {
+        loadFromLocalStorage();
+      }
+    })
+    .catch(function() {
+      console.log('Agent server not available — loading from localStorage');
+      loadFromLocalStorage();
+    });
+}
+
+function loadFromLocalStorage() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
   try {
-    const d = JSON.parse(raw);
-    document.getElementById('f-bizname').value = d.businessName || '';
-    document.getElementById('f-owner').value = d.ownerName || '';
-    document.getElementById('f-type').value = d.businessType || '';
-    document.getElementById('f-address').value = d.address || '';
-    document.getElementById('f-phone').value = d.phone || '';
-    document.getElementById('f-email').value = d.email || '';
-    document.getElementById('f-website').value = d.website || '';
-    document.getElementById('f-tax').value = d.taxRate || '';
-    document.getElementById('f-rate').value = d.defaultRate || '';
-    document.getElementById('f-tagline').value = d.tagline || '';
-
-    // Payment terms
-    const termsSelect = document.getElementById('f-terms');
-    const knownTerms = ['Due on receipt', 'Net 15', 'Net 30', 'Custom'];
-    if (knownTerms.includes(d.paymentTerms)) {
-      termsSelect.value = d.paymentTerms;
-    } else if (d.paymentTerms) {
-      termsSelect.value = 'Custom';
-      document.getElementById('f-custom-terms').value = d.paymentTerms;
-      document.getElementById('custom-terms-field').style.display = '';
-    }
-
-    // Logo
-    if (d.logo) {
-      logoBase64 = d.logo;
-      document.getElementById('logo-preview').innerHTML = `<img src="${logoBase64}" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(); event.stopPropagation();">Remove logo</button>`;
-      document.getElementById('logo-placeholder').style.display = 'none';
-    }
-
-    // Staff
-    staffData = (d.staff || []).map(s => ({ ...s }));
-    renderStaffRows();
-
-    // Clients
-    clientData = (d.clients || []).map(c => ({ ...c }));
-    renderClientRows();
+    applyProfile(JSON.parse(raw));
   } catch(e) {}
+}
+
+function applyProfile(d) {
+  document.getElementById('f-bizname').value = d.businessName || '';
+  document.getElementById('f-owner').value = d.ownerName || '';
+  document.getElementById('f-type').value = d.businessType || '';
+  document.getElementById('f-address').value = d.address || '';
+  document.getElementById('f-phone').value = d.phone || '';
+  document.getElementById('f-email').value = d.email || '';
+  document.getElementById('f-website').value = d.website || '';
+  document.getElementById('f-tax').value = d.taxRate || '';
+  document.getElementById('f-rate').value = d.defaultRate || '';
+  document.getElementById('f-tagline').value = d.tagline || '';
+
+  // Payment terms
+  const termsSelect = document.getElementById('f-terms');
+  const knownTerms = ['Due on receipt', 'Net 15', 'Net 30', 'Custom'];
+  if (knownTerms.includes(d.paymentTerms)) {
+    termsSelect.value = d.paymentTerms;
+  } else if (d.paymentTerms) {
+    termsSelect.value = 'Custom';
+    document.getElementById('f-custom-terms').value = d.paymentTerms;
+    document.getElementById('custom-terms-field').style.display = '';
+  }
+
+  // Logo
+  if (d.logo) {
+    logoBase64 = d.logo;
+    document.getElementById('logo-preview').innerHTML = '<img src="' + logoBase64 + '" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(); event.stopPropagation();">Remove logo</button>';
+    document.getElementById('logo-placeholder').style.display = 'none';
+  }
+
+  // Staff
+  staffData = (d.staff || []).map(function(s) { return {name: s.name, role: s.role}; });
+  renderStaffRows();
+
+  // Clients
+  clientData = (d.clients || []).map(function(c) { return {name: c.name, email: c.email || '', phone: c.phone || ''}; });
+  renderClientRows();
 }
 
 // ══════════════════════════════════════

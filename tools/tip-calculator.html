@@ -312,13 +312,28 @@ function calculate() {
       const perPerson = r.count > 0 ? roleTotal / r.count : 0;
       return { role: r.name, count: r.count, pct: r.pct, perPerson: Math.round(perPerson * 100) / 100, total: Math.round(roleTotal * 100) / 100 };
     });
-    resultDiv.textContent = JSON.stringify({
+    const resultData = {
       status: 'success',
       tool: 'Tip Calculator & Staff Splitter',
       output: { bill, tip, total, tipPercent, roles: roleResults },
       timestamp: new Date().toISOString()
-    });
+    };
+    resultDiv.textContent = JSON.stringify(resultData);
     document.body.appendChild(resultDiv);
+
+    // Notify parent (agent.html) via postMessage
+    if (window.parent !== window) {
+      window.parent.postMessage({
+        type: 'terrapin-tool-result',
+        tool: 'tip-calculator',
+        status: 'success',
+        bill: bill,
+        tip: tip,
+        total: total,
+        tipPercent: tipPercent,
+        roles: roleResults
+      }, '*');
+    }
   }
 }
 
@@ -448,7 +463,13 @@ window.tipCalcReady = Promise.resolve(true);
     if (c) roles[rp.idx].querySelector('.role-count-wrap input').value = c;
     if (p) roles[rp.idx].querySelector('.role-pct-wrap input').value = p;
   });
-  if (params.toString()) calculate();
+  if (params.get('bill') || params.get('autorun')) {
+    // Small delay to ensure DOM is fully ready
+    setTimeout(function() {
+      calculate();
+      console.log('Tip calculator auto-run: bill=' + document.getElementById('bill-amount').value + ' tipPercent=' + tipPercent);
+    }, 100);
+  }
 })();
 
 // ══════════════════════════════════════

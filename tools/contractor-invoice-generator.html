@@ -1,10 +1,28 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Contractor Invoice Generator
+Description: Create professional PDF invoices with labor and materials line items
+Parameters:
+  - client_name (string, optional): Client's full name
+  - client_address (string, optional): Client's address
+  - biz_name (string, optional): Your business name
+  - biz_address (string, optional): Your business address
+  - biz_phone (string, optional): Your phone number
+  - biz_email (string, optional): Your email
+  - invoice_number (string, optional): Invoice number
+  - job_desc (string, optional): Job description
+  - tax_rate (number, optional): Tax rate percentage
+  - pay_terms (string, optional): Payment terms
+  - notes (string, optional): Additional notes
+Output: Professional PDF invoice with line items, tax, and totals
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Contractor Invoice Generator — Terrapin Tools</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -906,6 +924,140 @@ window.invoiceReady = new Promise(resolve => {
 
 // Boot
 init();
+
+// ══════════════════════════════════════
+//  AGENT DATA PARAM — THE FAST LANE
+//  ?data=base64json fills everything + generates PDF
+//  Without ?data, tool works normally for humans
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const dataParam = params.get('data');
+
+  if (dataParam) {
+    // Agent path — decode structured JSON, fill form, generate PDF
+    try {
+      // Decode base64 or base64url — handle both formats
+      let decoded;
+      try {
+        // Try base64url first (from agent server)
+        const std = dataParam.replace(/-/g, '+').replace(/_/g, '/').replace(/ /g, '+');
+        decoded = atob(std);
+      } catch(e) {
+        decoded = atob(dataParam);
+      }
+      console.log('Agent data decoded, length:', decoded.length);
+      const data = JSON.parse(decoded);
+      console.log('Parsed agent data:', JSON.stringify(data, null, 2));
+
+      // Merge business profile from localStorage if not provided
+      const profile = JSON.parse(localStorage.getItem('terrapin_business_profile') || 'null');
+      if (profile && data.business) {
+        if (!data.business.name && profile.businessName) data.business.name = profile.businessName;
+        if (!data.business.address && profile.address) data.business.address = profile.address;
+        if (!data.business.phone && profile.phone) data.business.phone = profile.phone;
+        if (!data.business.email && profile.email) data.business.email = profile.email;
+      } else if (profile && !data.business) {
+        data.business = { name: profile.businessName, address: profile.address, phone: profile.phone, email: profile.email };
+      }
+      if (profile && !data.taxRate && profile.taxRate) data.taxRate = parseFloat(profile.taxRate);
+      if (profile && !data.paymentTerms && profile.paymentTerms) data.paymentTerms = profile.paymentTerms;
+
+      // Fill the visible form so human can review
+      console.log('Calling populateForm with labor:', data.labor, 'materials:', data.materials);
+      populateForm(data);
+
+      // Generate the PDF
+      window.invoiceReady.then(function() {
+        try {
+          const result = window.generateInvoice(data, { populateUI: false });
+          const pdfBase64 = result.doc.output('datauristring').split(',')[1];
+          const pdfDataUrl = result.doc.output('datauristring');
+
+          // Store result for agent to read
+          window.invoiceResult = {
+            status: 'success',
+            pdf_base64: pdfBase64,
+            pdf_dataurl: pdfDataUrl,
+            filename: result.filename,
+            data: data
+          };
+
+          // Write agent result div
+          const resultDiv = document.createElement('div');
+          resultDiv.id = 'terrapin-result';
+          resultDiv.style.display = 'none';
+          resultDiv.textContent = JSON.stringify({
+            status: 'success',
+            tool: 'Contractor Invoice Generator',
+            output: 'Invoice generated for ' + (data.client?.name || 'client'),
+            filename: result.filename,
+            timestamp: new Date().toISOString()
+          });
+          document.body.appendChild(resultDiv);
+
+          // Notify parent window (agent.html) via postMessage
+          if (window.parent !== window) {
+            window.parent.postMessage({
+              type: 'terrapin-tool-result',
+              tool: 'contractor-invoice-generator',
+              status: 'success',
+              pdf_base64: pdfBase64,
+              pdf_dataurl: pdfDataUrl,
+              filename: result.filename
+            }, '*');
+          }
+        } catch(e) {
+          console.error('Invoice PDF generation failed:', e);
+          window.invoiceResult = { status: 'error', error: e.message };
+        }
+      });
+    } catch(e) {
+      console.error('Failed to parse agent data param:', e);
+    }
+    return;
+  }
+
+  // ── Human path — simple flat URL params for basic fields ──
+  const flatMap = {
+    'client_name': 'client-name',
+    'client_address': 'client-address',
+    'job_desc': 'job-desc',
+    'invoice_number': 'inv-number',
+    'tax_rate': 'tax-rate',
+    'notes': 'notes'
+  };
+  for (const [param, id] of Object.entries(flatMap)) {
+    const val = params.get(param);
+    if (val) { const el = document.getElementById(id); if (el) el.value = val; }
+  }
+  if (params.get('tax_rate')) recalc();
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL (human path)
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    window._terrapinProfile = profile;
+    const fields = { 'biz-name': profile.businessName, 'biz-address': profile.address, 'biz-phone': profile.phone, 'biz-email': profile.email, 'tax-rate': profile.taxRate };
+    for (const [id, val] of Object.entries(fields)) {
+      if (!val) continue;
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = val;
+    }
+    if (profile.paymentTerms) {
+      const sel = document.getElementById('pay-terms');
+      if (sel && sel.value === 'Net 30') {
+        const opt = Array.from(sel.options).find(o => o.value === profile.paymentTerms);
+        if (opt) sel.value = opt.value;
+      }
+    }
+    recalc();
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>

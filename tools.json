@@ -1,0 +1,125 @@
+{
+  "tools": [
+    {
+      "name": "Business Profile",
+      "id": "business-profile",
+      "type": "data",
+      "description": "Set up business identity — every other Terrapin tool reads this profile",
+      "file": "tools/business-profile.html",
+      "category": "all",
+      "required_params": ["business_name", "owner_name"],
+      "optional_params": ["business_type", "address", "phone", "email", "website", "tax_rate", "payment_terms", "default_rate", "tagline"],
+      "output": "business.md file and localStorage profile (terrapin_business_profile)",
+      "can_email": false
+    },
+    {
+      "name": "Catering Quote Builder",
+      "id": "catering-quote-builder",
+      "type": "document",
+      "description": "Build professional catering quotes with menu items, guest counts, and pricing",
+      "file": "tools/catering-quote-builder.html",
+      "category": "catering",
+      "required_params": [],
+      "optional_params": ["client_name", "event_date", "guest_count"],
+      "output": "Formatted catering quote with line items and total, copy-to-clipboard email output",
+      "can_email": true
+    },
+    {
+      "name": "Contractor Invoice Generator",
+      "id": "contractor-invoice-generator",
+      "type": "document",
+      "description": "Create professional PDF invoices with labor and materials line items",
+      "file": "tools/contractor-invoice-generator.html",
+      "category": "contractors",
+      "required_params": [],
+      "optional_params": ["data"],
+      "data_format": {
+        "description": "Pass as base64-encoded JSON via ?data= param",
+        "schema": {
+          "client": {"name": "string", "address": "string"},
+          "jobDescription": "string",
+          "labor": [{"description": "string", "quantity": "number (hours)", "rate": "number ($/hr)"}],
+          "materials": [{"description": "string", "quantity": "number", "rate": "number ($)"}],
+          "notes": "string"
+        },
+        "note": "business info and tax rate auto-fill from business profile in localStorage"
+      },
+      "output": "Professional PDF invoice with line items, tax, and totals",
+      "can_email": true
+    },
+    {
+      "name": "Simple CRM",
+      "id": "simple-crm",
+      "type": "data",
+      "description": "Track contacts, follow-ups, and notes for small service businesses",
+      "file": "tools/simple-crm.html",
+      "category": "freelancers",
+      "required_params": [],
+      "optional_params": ["name", "business", "phone", "email", "action"],
+      "output": "Contact list with follow-up tracking, JSON export",
+      "can_email": false
+    },
+    {
+      "name": "Tip Calculator & Staff Splitter",
+      "id": "tip-calculator",
+      "type": "utility",
+      "agent_ready": false,
+      "description": "Calculate tips and split across staff roles",
+      "file": "tools/tip-calculator.html",
+      "category": "restaurants",
+      "required_params": ["bill"],
+      "optional_params": ["tip_percent", "servers", "servers_pct", "bussers", "bussers_pct", "bartenders", "bartenders_pct", "hosts", "hosts_pct"],
+      "output": "Tip breakdown per role with per-person amounts",
+      "can_email": false
+    },
+    {
+      "name": "Street Vendor Order Log",
+      "id": "street-vendor-order-log",
+      "type": "data",
+      "description": "Tap-to-log order tracker for food trucks, taco stands, and cash businesses",
+      "file": "tools/street-vendor-order-log.html",
+      "category": "restaurants",
+      "required_params": [],
+      "optional_params": ["action", "item", "qty", "date"],
+      "output": "Daily sales summary with item counts, revenue, and best seller",
+      "can_email": false
+    },
+    {
+      "name": "QR Code Generator",
+      "id": "qr-code-generator",
+      "type": "utility",
+      "description": "Create QR codes for URLs, WiFi, Zelle, phone, email, or text",
+      "file": "tools/qr-code-generator.html",
+      "category": "all",
+      "required_params": ["data"],
+      "optional_params": ["type", "wifi_ssid", "wifi_pass", "wifi_enc", "zelle_to", "zelle_amount", "zelle_memo", "email_subject", "fg_color", "bg_color", "size", "biz_name"],
+      "output": "QR code preview with PNG and SVG download",
+      "can_email": false
+    },
+    {
+      "name": "Job Site Daily Log",
+      "id": "job-site-daily-log",
+      "type": "data",
+      "description": "Daily log for contractors — crew, work, materials, issues, PDF output",
+      "file": "tools/job-site-daily-log.html",
+      "category": "contractors",
+      "required_params": [],
+      "optional_params": ["date", "job_name", "job_address", "weather", "work", "issues", "notes", "action"],
+      "output": "Dated PDF log entry saved to localStorage",
+      "can_email": false
+    },
+    {
+      "name": "Simple Calendar",
+      "id": "simple-calendar",
+      "type": "data",
+      "description": "Track appointments, jobs, events and deadlines",
+      "file": "tools/simple-calendar.html",
+      "category": "all",
+      "required_params": ["action"],
+      "optional_params": ["title", "date", "time", "type", "notes", "autorun"],
+      "output": "Calendar event saved",
+      "can_email": false,
+      "agent_ready": true
+    }
+  ]
+}

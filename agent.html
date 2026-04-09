@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -46,6 +47,7 @@
     font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700;
     color: var(--gold); flex: 1;
   }
+  .status-group { display: flex; gap: 16px; align-items: center; }
   .status {
     display: flex; align-items: center; gap: 6px;
     font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted);
@@ -89,6 +91,107 @@
     background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;
   }
 
+  /* ── TYPING INDICATOR ── */
+  .typing-indicator { display: flex; gap: 4px; padding: 8px 0 4px; align-items: center; }
+  .typing-indicator span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--gold-dim);
+    animation: typingBounce 1.2s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* ── PROGRESS STEP ── */
+  .progress-step {
+    font-size: 13px; color: var(--text-muted); padding: 4px 0;
+    font-family: 'DM Mono', monospace;
+  }
+  .progress-step.done { color: var(--green); }
+
+  /* ── ACTION CARDS ── */
+  .action-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 16px; margin-top: 8px;
+  }
+  .action-card .card-label {
+    font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--gold-dim); margin-bottom: 8px;
+  }
+  .action-card .card-title {
+    font-size: 15px; font-weight: 600; color: #F5F0E8; margin-bottom: 6px;
+  }
+  .action-card .card-detail {
+    font-size: 13px; color: var(--text-muted); margin-bottom: 4px;
+  }
+  .action-card .card-status {
+    font-family: 'DM Mono', monospace; font-size: 11px; margin-top: 8px;
+  }
+  .action-card .card-status.ready { color: var(--gold); }
+  .action-card .card-status.sent { color: var(--green); }
+  .action-card .card-status.error { color: var(--rust); }
+
+  .card-btn {
+    display: inline-block; padding: 8px 16px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; margin-right: 8px; margin-top: 10px; border: none;
+    transition: opacity 0.15s;
+  }
+  .card-btn:hover { opacity: 0.85; }
+  .card-btn.primary { background: var(--gold); color: #1A1A1A; }
+  .card-btn.secondary { background: none; border: 1px solid rgba(255,255,255,0.15); color: var(--text-muted); }
+  .card-btn.danger { background: none; border: 1px solid var(--rust); color: var(--rust); }
+  .card-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .attachment-pill {
+    display: inline-block; padding: 6px 12px; border-radius: 8px;
+    background: var(--gold-faint); border: 1px solid rgba(201,168,76,0.3);
+    font-family: 'DM Mono', monospace; font-size: 12px; color: var(--gold);
+    text-decoration: none; cursor: pointer; margin: 10px 0 4px;
+    transition: background 0.15s;
+  }
+  .attachment-pill:hover { background: rgba(201,168,76,0.2); }
+
+  /* ── EMAIL DRAFT CARD ── */
+  .email-draft { border-color: var(--gold-dim); }
+  .email-draft .draft-field { font-size: 13px; color: var(--text-muted); padding: 3px 0; }
+  .email-draft .draft-field strong { color: #F5F0E8; }
+  .email-draft .draft-body {
+    background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px 12px;
+    font-size: 13px; color: var(--text); margin: 8px 0; white-space: pre-wrap;
+    max-height: 120px; overflow-y: auto; line-height: 1.5;
+  }
+
+  /* ── EDIT MODAL ── */
+  .edit-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 200; justify-content: center; align-items: center; padding: 2rem;
+  }
+  .edit-modal-overlay.open { display: flex; }
+  .edit-modal {
+    background: var(--bg); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 24px; width: 100%; max-width: 520px;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .edit-modal h3 {
+    font-family: 'Playfair Display', serif; font-size: 18px; color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .edit-modal label {
+    font-size: 12px; color: var(--text-muted); font-family: 'DM Mono', monospace;
+    display: block; margin-bottom: 4px; margin-top: 12px;
+  }
+  .edit-modal input, .edit-modal textarea {
+    width: 100%; background: var(--bg-input); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; color: var(--text); outline: none;
+  }
+  .edit-modal textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+  .edit-modal input:focus, .edit-modal textarea:focus { border-color: var(--gold-dim); }
+  .edit-modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+
   /* ── PROFILE LOADED ── */
   .profile-notice {
     text-align: center; padding: 10px; font-size: 13px; color: var(--green);
@@ -116,6 +219,17 @@
     font-weight: 600; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0;
   }
   .send-btn:hover { opacity: 0.85; }
+
+  /* ── FILE NOTICE ── */
+  .file-notice {
+    display: none; text-align: center; padding: 10px 16px;
+    background: rgba(184, 92, 44, 0.15); border-bottom: 1px solid rgba(184, 92, 44, 0.3);
+    font-family: 'DM Mono', monospace; font-size: 12px; color: #B85C2C;
+    flex-shrink: 0;
+  }
+  .file-notice a { color: var(--gold); text-decoration: none; }
+  .file-notice a:hover { text-decoration: underline; }
+  .file-notice.visible { display: block; }
 
   /* ── BOTTOM SECTION ── */
   .bottom-section {
@@ -199,10 +313,21 @@
   <div class="top-bar">
     <img src="Handyman turtle ready for work.png" alt="Terrapin">
     <span class="top-bar-title">Terrapin Agent</span>
-    <div class="status">
-      <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">Setting up...</span>
+    <div class="status-group">
+      <div class="status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Setting up...</span>
+      </div>
+      <div class="status">
+        <span class="status-dot" id="mail-dot"></span>
+        <span id="mail-text">Mail offline</span>
+      </div>
     </div>
+  </div>
+
+  <!-- FILE:// NOTICE -->
+  <div class="file-notice" id="file-notice">
+    &#9888;&#65039; For full functionality open via Terminal: <code>npm run serve</code> — then visit <a href="http://localhost:8080/agent.html">http://localhost:8080/agent.html</a>
   </div>
 
   <!-- CHAT -->
@@ -229,17 +354,48 @@
 
     <div class="setup-guide" id="setup-guide">
       <h4>Get the agent running</h4>
+      <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:13px;color:var(--text);margin-bottom:6px;">Fastest setup &mdash; paste this in Terminal:</div>
+        <span style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
+          <code style="flex:1;font-size:12px;">curl -fsSL https://terrapin.tools/install.sh | bash</code>
+          <button onclick="copySetup(this,'curl -fsSL https://terrapin.tools/install.sh | bash')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
+        </span>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Or follow the steps below manually.</div>
+      </div>
       <div class="setup-step">
         <span class="step-num">1</span>
-        <span>Download Ollama at <a href="https://ollama.com" target="_blank" style="color:var(--gold);text-decoration:none;">ollama.com</a></span>
+        <span>Download Ollama &mdash; <a href="https://ollama.com/download" target="_blank" style="color:var(--gold);text-decoration:none;">ollama.com/download</a>. Installs like any app.</span>
       </div>
       <div class="setup-step">
         <span class="step-num">2</span>
-        <span>Open Terminal and run: <code>ollama pull gemma4</code></span>
+        <span>Run this in Terminal:
+          <span style="display:flex;align-items:center;gap:6px;margin-top:4px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
+            <code style="flex:1;">ollama pull gemma4</code>
+            <button onclick="copySetup(this,'ollama pull gemma4')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
+          </span>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">Downloads your AI brain (~5GB). Takes a few minutes.</span>
+        </span>
       </div>
       <div class="setup-step">
         <span class="step-num">3</span>
-        <span>Come back here and refresh</span>
+        <span>Start Terrapin servers &mdash; one command in each Terminal tab:
+          <span style="display:flex;align-items:center;gap:6px;margin-top:4px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
+            <code style="flex:1;">npm run agent</code>
+            <button onclick="copySetup(this,'npm run agent')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;margin-top:4px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
+            <code style="flex:1;">npm run serve</code>
+            <button onclick="copySetup(this,'npm run serve')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
+          </span>
+        </span>
+      </div>
+      <div class="setup-step">
+        <span class="step-num">4</span>
+        <span>Refresh this page &mdash; both status dots should turn green.</span>
+      </div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:var(--text-muted);">
+        Everything runs on your computer. Nothing goes to the cloud.
+        <a href="agent-setup.html" style="color:var(--gold);text-decoration:none;display:block;margin-top:6px;">Full setup guide &rarr;</a>
       </div>
     </div>
 
@@ -250,14 +406,40 @@
 
 </div>
 
+<!-- EDIT MODAL -->
+<div class="edit-modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal">
+    <h3>Edit Before Sending</h3>
+    <label>To</label>
+    <input type="text" id="edit-to">
+    <label>Subject</label>
+    <input type="text" id="edit-subject">
+    <label>Body</label>
+    <textarea id="edit-body"></textarea>
+    <div class="edit-modal-actions">
+      <button class="card-btn primary" onclick="sendEditedEmail()">Send Now</button>
+      <button class="card-btn secondary" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-const OLLAMA_URL = 'http://localhost:11434';
+const AGENT_URL = 'http://localhost:7777';
+const MAIL_URL = 'http://localhost:3001';
+const IS_FILE = window.location.protocol === 'file:';
+let agentReady = false;
 let ollamaReady = false;
+let mailReady = false;
+let mailAccount = '';
 let businessProfile = null;
+let businessProfileObj = null;
 let conversationHistory = [];
+let pendingEmail = null;
+const draftStore = {}; // draftId → {to, subject, body, attachment_base64, attachment_name, attachment_dataurl}
+const toolCallStore = {}; // callId → {toolId, toolName, params}
 
 // ══════════════════════════════════════
 //  CHAT RENDERING
@@ -274,11 +456,54 @@ function addMessage(role, text) {
 
   msg.innerHTML = avatarHTML + '<div class="msg-bubble">' + escapeHTML(text) + '</div>';
   thread.appendChild(msg);
+  scrollChat();
+  conversationHistory.push({ role, text });
+}
 
+function addCard(html) {
+  const thread = document.getElementById('chat-thread');
+  const msg = document.createElement('div');
+  msg.className = 'message agent';
+  msg.innerHTML = '<img src="Handyman turtle ready for work.png" alt="Terrapin" class="msg-avatar"><div class="msg-bubble">' + html + '</div>';
+  thread.appendChild(msg);
+  scrollChat();
+  return msg;
+}
+
+function addProgress(text) {
+  const thread = document.getElementById('chat-thread');
+  const step = document.createElement('div');
+  step.className = 'progress-step';
+  step.textContent = text;
+  // Attach to the last agent message bubble if possible
+  const msgs = thread.querySelectorAll('.message.agent .msg-bubble');
+  if (msgs.length) {
+    msgs[msgs.length - 1].appendChild(step);
+  } else {
+    thread.appendChild(step);
+  }
+  scrollChat();
+  return step;
+}
+
+function showTyping() {
+  const thread = document.getElementById('chat-thread');
+  const msg = document.createElement('div');
+  msg.className = 'message agent';
+  msg.id = 'typing-msg';
+  msg.innerHTML = '<img src="Handyman turtle ready for work.png" alt="Terrapin" class="msg-avatar"><div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  thread.appendChild(msg);
+  scrollChat();
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing-msg');
+  if (el) el.remove();
+}
+
+function scrollChat() {
   const area = document.getElementById('chat-area');
   area.scrollTop = area.scrollHeight;
-
-  conversationHistory.push({ role, text });
 }
 
 function escapeHTML(s) {
@@ -287,9 +512,9 @@ function escapeHTML(s) {
 }
 
 // ══════════════════════════════════════
-//  SEND MESSAGE
+//  SEND MESSAGE → AGENT SERVER
 // ══════════════════════════════════════
-function sendMessage() {
+async function sendMessage() {
   const input = document.getElementById('msg-input');
   const text = input.value.trim();
   if (!text) return;
@@ -297,90 +522,772 @@ function sendMessage() {
   addMessage('user', text);
   input.value = '';
 
-  if (!ollamaReady) {
+  if (!agentReady) {
     setTimeout(function() {
-      addMessage('agent', "I'm still loading. Make sure Ollama is running and Gemma is downloaded. Check the setup guide at terrapin.tools/agent-setup");
-    }, 400);
+      addMessage('agent', "Agent server isn't running. Start it with: `npm run agent` in your terminal. That connects me to Gemma on your machine.");
+    }, 300);
     return;
   }
 
-  // Future: actual Ollama API call goes here
-  callOllama(text);
-}
-
-async function callOllama(userText) {
-  const systemPrompt = buildSystemPrompt();
+  showTyping();
 
   try {
-    const res = await fetch(OLLAMA_URL + '/api/chat', {
+    const res = await fetch(AGENT_URL + '/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemma4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationHistory.filter(m => m.role === 'user' || m.role === 'agent').slice(-10).map(m => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.text
-          }))
-        ],
-        stream: false
+        message: text,
+        business_profile: businessProfileObj,
+        crm_contacts: JSON.parse(localStorage.getItem('scrm_contacts') || '[]')
       })
     });
 
-    if (!res.ok) throw new Error('Ollama returned ' + res.status);
+    hideTyping();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      addMessage('agent', "Couldn't reach the agent. " + (err.error || 'Check that Ollama is running.'));
+      return;
+    }
+
     const data = await res.json();
-    addMessage('agent', data.message?.content || 'No response received.');
+    handleAgentResponse(data);
+
   } catch(e) {
-    addMessage('agent', "Something went wrong talking to Ollama. Make sure it's running on localhost:11434. Error: " + e.message);
+    hideTyping();
+    addMessage('agent', "Agent server not responding. Start it with: `npm run agent` in your terminal.");
   }
 }
 
-function buildSystemPrompt() {
-  let prompt = `You are the Terrapin agent — a warm, direct, helpful assistant for small business owners. You help them use Terrapin Tools (terrapin.tools) which are simple, locally-run tools for contractors, restaurants, freelancers, and other small businesses.
-
-You speak like a trusted neighbor who happens to know technology. Never corporate, never condescending. You're the person at the hardware store who actually knows which screw you need.
-
-Available tools the user can open:
-- Business Profile (tools/business-profile.html) — set up business identity
-- Catering Quote Builder (tools/catering-quote-builder.html) — build catering quotes
-- Contractor Invoice Generator (tools/contractor-invoice-generator.html) — create invoices
-- Simple CRM (tools/simple-crm.html) — track contacts and follow-ups
-- Tip Calculator & Staff Splitter (tools/tip-calculator.html) — calculate and split tips
-- Street Vendor Order Log (tools/street-vendor-order-log.html) — tap to log orders
-- QR Code Generator (tools/qr-code-generator.html) — create QR codes
-- Job Site Daily Log (tools/job-site-daily-log.html) — log daily job site activity
-
-Each tool accepts URL parameters for pre-filling. Help the user by suggesting which tool to use and what to type.`;
-
-  if (businessProfile) {
-    prompt += '\n\nThe user\'s business profile:\n' + businessProfile;
+// ══════════════════════════════════════
+//  HANDLE AGENT RESPONSE
+// ══════════════════════════════════════
+async function handleAgentResponse(data) {
+  if (!data.success) {
+    addMessage('agent', data.error || 'Something went wrong.');
+    return;
   }
 
-  return prompt;
+  switch (data.action) {
+    case 'call_tool':
+      await handleToolCall(data);
+      break;
+    case 'ask':
+      addMessage('agent', data.message);
+      break;
+    case 'respond':
+      addMessage('agent', data.message);
+      break;
+    default:
+      addMessage('agent', data.message || data.raw || 'Got a response but not sure what to do with it.');
+  }
 }
 
 // ══════════════════════════════════════
-//  OLLAMA STATUS CHECK
+//  TOOL CALL HANDLER — STEP BY STEP
 // ══════════════════════════════════════
-async function checkOllama() {
+async function handleToolCall(data) {
+  const toolName = data.tool_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const params = data.params || {};
+
+  // Build human-readable summary — handle nested data objects
+  let paramList = '';
+  if (params.data && typeof params.data === 'object') {
+    const d = params.data;
+    const parts = [];
+    if (d.client?.name) parts.push('Client: ' + d.client.name);
+    if (d.jobDescription) parts.push('Job: ' + d.jobDescription);
+    if (d.labor?.length) parts.push('Labor: ' + d.labor.map(l => l.description + ' (' + l.quantity + 'h × $' + l.rate + ')').join(', '));
+    if (d.materials?.length) parts.push('Materials: ' + d.materials.map(m => m.description + ' ($' + m.rate + ')').join(', '));
+    paramList = parts.join(' | ');
+  } else {
+    paramList = Object.entries(params).filter(([k,v]) => v && k !== 'client_email').map(([k,v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ');
+  }
+
+  // Step 1: Understanding
+  addMessage('agent', '\ud83d\udd0d Understanding your request...');
+  await delay(400);
+
+  // Step 2: Tool selection
+  const step2 = addProgress('\ud83d\udccb Using: ' + toolName);
+  await delay(400);
+
+  // Step 3: Profile fill
+  if (businessProfileObj) {
+    const step3 = addProgress('\u26a1 Filling in details from your business profile...');
+    await delay(300);
+  }
+
+  // Step 4: Generating
+  const step4 = addProgress('\ud83d\udcc4 Generating output...');
+  await delay(300);
+
+  // Determine tool type
+  const toolTypes = {
+    'contractor-invoice-generator': 'document',
+    'catering-quote-builder': 'document',
+    'simple-crm': 'data',
+    'job-site-daily-log': 'data',
+    'street-vendor-order-log': 'data',
+    'business-profile': 'data',
+    'tip-calculator': 'utility',
+    'qr-code-generator': 'utility',
+    'simple-calendar': 'data'
+  };
+  const toolType = toolTypes[data.tool_id] || 'utility';
+
+  const toolUrl = data.url || ('tools/' + data.tool_id + '.html');
+  const callId = 'call-' + Date.now();
+  toolCallStore[callId] = { toolId: data.tool_id, toolName, params, pdf_base64: null, pdf_dataurl: null, filename: null };
+
+  // ── DOCUMENT TOOLS — PDF preview + Open + Email ──
+  if (toolType === 'document') {
+    let emailTo = params.email || params.client_email || '';
+    let clientNameForLookup = params.client_name || params.to || params.name || '';
+    if (!clientNameForLookup && params.data && typeof params.data === 'object') {
+      clientNameForLookup = params.data.client?.name || '';
+    }
+    if (!emailTo && businessProfileObj && clientNameForLookup) {
+      const resolved = resolveClientFromProfile(clientNameForLookup);
+      if (resolved) { emailTo = resolved.email; params.client_email = resolved.email; }
+    }
+
+    // Launch iframe for real PDF capture
+    loadToolInIframe(toolUrl, callId);
+
+    let cardHTML = '<div class="action-card">';
+    cardHTML += '<div class="card-label">Document Ready</div>';
+    cardHTML += '<div class="card-title">' + escapeHTML(toolName) + '</div>';
+    if (paramList) cardHTML += '<div class="card-detail">' + escapeHTML(paramList) + '</div>';
+    cardHTML += '<div class="card-status ready">Ready to review</div>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+
+    if (mailReady) {
+      if (emailTo) {
+        cardHTML += '<button class="card-btn secondary" onclick="initEmailDraft(\'' + escapeAttr(emailTo) + '\', \'' + callId + '\')">Send to ' + escapeHTML(emailTo) + '</button>';
+      } else {
+        cardHTML += '<button class="card-btn secondary" onclick="askForEmail(\'' + callId + '\')">Send via Email</button>';
+      }
+    }
+    cardHTML += '</div>';
+    addCard(cardHTML);
+
+    if (emailTo && clientNameForLookup) {
+      addProgress('\u2709\ufe0f Found ' + clientNameForLookup + ' in your contacts: ' + emailTo);
+    }
+
+  // ── DATA TOOLS — Confirmation + Open ──
+  } else if (toolType === 'data') {
+    // Build a confirmation message based on the tool
+    const confirmMessages = {
+      'simple-crm': (params.name || params.client_name || 'Contact') + ' added to your CRM \u2713',
+      'job-site-daily-log': 'Daily log saved for ' + (params.job_name || params.date || 'today') + ' \u2713',
+      'street-vendor-order-log': 'Order logged \u2713',
+      'business-profile': 'Business profile updated \u2713',
+      'simple-calendar': (params.title || 'Event') + ' added to calendar for ' + (params.date || 'today') + ' \u2713'
+    };
+    const confirmMsg = confirmMessages[data.tool_id] || 'Data saved \u2713';
+
+    // For CRM add action, save directly via localStorage
+    if (data.tool_id === 'simple-crm' && (params.action === 'add' || params.name)) {
+      saveCRMContact(params);
+    }
+
+    // For Calendar add action, save directly via agent server + localStorage
+    if (data.tool_id === 'simple-calendar' && (params.action === 'add' || params.title)) {
+      saveCalendarEvent(params);
+    }
+
+    let cardHTML = '<div class="action-card">';
+    cardHTML += '<div class="card-label">Data Saved</div>';
+    cardHTML += '<div class="card-title" style="color:var(--green);">' + escapeHTML(confirmMsg) + '</div>';
+    if (paramList) cardHTML += '<div class="card-detail">' + escapeHTML(paramList) + '</div>';
+    cardHTML += '<div class="card-status sent">' + new Date().toLocaleTimeString() + '</div>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+    cardHTML += '</div>';
+    addCard(cardHTML);
+
+  // ── UTILITY TOOLS — Result summary + Open ──
+  } else {
+    // Launch iframe to get calculated result
+    loadToolInIframe(toolUrl, callId);
+
+    const resultCardId = 'util-result-' + callId;
+    let cardHTML = '<div class="action-card" id="' + resultCardId + '">';
+    cardHTML += '<div class="card-label">Calculating...</div>';
+    cardHTML += '<div class="card-title">' + escapeHTML(toolName) + '</div>';
+    cardHTML += '<div class="card-detail" id="util-detail-' + callId + '">' + escapeHTML(paramList) + '</div>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+    cardHTML += '</div>';
+    addCard(cardHTML);
+  }
+}
+
+// ══════════════════════════════════════
+//  IFRAME TOOL LOADER — CAPTURE REAL PDF
+// ══════════════════════════════════════
+function loadToolInIframe(toolUrl, callId) {
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+  iframe.src = toolUrl;
+  iframe.id = 'tool-iframe-' + callId;
+  document.body.appendChild(iframe);
+
+  // Clean up after 15 seconds regardless
+  setTimeout(function() {
+    const el = document.getElementById('tool-iframe-' + callId);
+    if (el) el.remove();
+  }, 15000);
+}
+
+// Listen for results from tool iframes
+window.addEventListener('message', function(event) {
+  if (!event.data || event.data.type !== 'terrapin-tool-result') return;
+  console.log('Received tool result:', event.data.tool, event.data.status);
+
+  // Find the matching callId by tool name
+  for (const [callId, call] of Object.entries(toolCallStore)) {
+    if (call.toolId === event.data.tool) {
+
+      // PDF results (document tools)
+      if (event.data.pdf_base64 && !call.pdf_base64) {
+        call.pdf_base64 = event.data.pdf_base64;
+        call.pdf_dataurl = event.data.pdf_dataurl;
+        call.filename = event.data.filename;
+        console.log('Captured PDF for', callId, ':', event.data.filename);
+      }
+
+      // Tip calculator results (utility tools)
+      if (event.data.tool === 'tip-calculator' && event.data.roles) {
+        const d = event.data;
+        const detailEl = document.getElementById('util-detail-' + callId);
+        const cardEl = document.getElementById('util-result-' + callId);
+        if (detailEl && cardEl) {
+          // Update label
+          const label = cardEl.querySelector('.card-label');
+          if (label) label.textContent = 'Result';
+
+          // Build breakdown
+          let html = '<div style="margin-bottom:4px;">Bill: ' + fmt(d.bill) + ' + Tip (' + d.tipPercent + '%): ' + fmt(d.tip) + ' = <strong>' + fmt(d.total) + '</strong></div>';
+          d.roles.forEach(function(r) {
+            html += '<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.06);">';
+            html += '<strong>' + escapeHTML(r.role) + '</strong>: ' + fmt(r.perPerson) + '/person';
+            html += ' <span style="opacity:0.5;">(' + r.count + ' staff × ' + r.pct + '% = ' + fmt(r.total) + ')</span>';
+            html += '</div>';
+          });
+          detailEl.innerHTML = html;
+          console.log('Tip result card updated');
+        }
+      }
+
+      break;
+    }
+  }
+
+  // Clean up iframe
+  const iframes = document.querySelectorAll('iframe[id^="tool-iframe-"]');
+  iframes.forEach(f => f.remove());
+});
+
+// ══════════════════════════════════════
+//  PDF GENERATION FOR EMAIL ATTACHMENTS
+// ══════════════════════════════════════
+function generateToolPDF(toolName, params) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const m = 20;
+  const cw = W - m * 2;
+  let y = 20;
+  const biz = businessProfileObj || {};
+  const DARK = '#1a1a1a';
+  const GRAY = '#666666';
+  const ACCENT = '#2C3E2D';
+  function fmt(n) { return '$' + Number(n).toFixed(2); }
+
+  // ── Header — business info ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(44, 62, 45);
+  doc.text(biz.businessName || '', m, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(107, 107, 107);
+  if (biz.address) { doc.text(biz.address, m, y); y += 4; }
+  if (biz.phone || biz.email) { doc.text([biz.phone, biz.email].filter(Boolean).join('  |  '), m, y); y += 4; }
+  y += 6;
+
+  // Extract the data object (could be in params.data or params itself)
+  const data = (params.data && typeof params.data === 'object') ? params.data : params;
+  const clientName = data.client?.name || params.client_name || '';
+  const jobDesc = data.jobDescription || params.job_desc || '';
+  const labor = data.labor || [];
+  const materials = data.materials || [];
+  const taxRate = parseFloat(data.taxRate || biz.taxRate || 0);
+  const payTerms = data.paymentTerms || biz.paymentTerms || '';
+  const notes = data.notes || params.notes || '';
+
+  // ── Title ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(44, 62, 45);
+  doc.text('INVOICE', m, y);
+  y += 8;
+  doc.setFontSize(10);
+  doc.setTextColor(107, 107, 107);
+  doc.text('Date: ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), m, y);
+  y += 10;
+
+  // ── Bill To ──
+  if (clientName) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 107, 107);
+    doc.text('BILL TO', m, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(26, 26, 26);
+    doc.text(clientName, m, y);
+    y += 5;
+    if (data.client?.address) { doc.setFontSize(9); doc.setTextColor(107, 107, 107); doc.text(data.client.address, m, y); y += 5; }
+    y += 4;
+  }
+
+  // ── Job Description ──
+  if (jobDesc) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 107, 107);
+    doc.text('JOB DESCRIPTION', m, y); y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    doc.text(jobDesc, m, y); y += 8;
+  }
+
+  // ── Line items table ──
+  doc.setDrawColor(200, 200, 200);
+  let laborTotal = 0, matsTotal = 0;
+
+  if (labor.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(44, 62, 45);
+    doc.text('LABOR', m, y); y += 6;
+
+    // Header row
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 107, 107);
+    doc.text('Description', m, y);
+    doc.text('Qty', m + cw * 0.55, y);
+    doc.text('Rate', m + cw * 0.7, y);
+    doc.text('Amount', m + cw - 4, y, { align: 'right' });
+    y += 5;
+    doc.line(m, y - 1, m + cw, y - 1);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    labor.forEach(item => {
+      const amt = (item.quantity || 0) * (item.rate || 0);
+      laborTotal += amt;
+      doc.text(item.description || 'Labor', m, y + 4);
+      doc.text(String(item.quantity || 0), m + cw * 0.55, y + 4);
+      doc.text(fmt(item.rate || 0), m + cw * 0.7, y + 4);
+      doc.text(fmt(amt), m + cw - 4, y + 4, { align: 'right' });
+      y += 7;
+    });
+    y += 4;
+  }
+
+  if (materials.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(44, 62, 45);
+    doc.text('MATERIALS', m, y); y += 6;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 107, 107);
+    doc.text('Description', m, y);
+    doc.text('Qty', m + cw * 0.55, y);
+    doc.text('Rate', m + cw * 0.7, y);
+    doc.text('Amount', m + cw - 4, y, { align: 'right' });
+    y += 5;
+    doc.line(m, y - 1, m + cw, y - 1);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 26, 26);
+    materials.forEach(item => {
+      const amt = (item.quantity || 0) * (item.rate || 0);
+      matsTotal += amt;
+      doc.text(item.description || 'Materials', m, y + 4);
+      doc.text(String(item.quantity || 0), m + cw * 0.55, y + 4);
+      doc.text(fmt(item.rate || 0), m + cw * 0.7, y + 4);
+      doc.text(fmt(amt), m + cw - 4, y + 4, { align: 'right' });
+      y += 7;
+    });
+    y += 4;
+  }
+
+  // ── Totals ──
+  const subtotal = laborTotal + matsTotal;
+  const taxAmt = subtotal * (taxRate / 100);
+  const grandTotal = subtotal + taxAmt;
+
+  y += 4;
+  doc.line(m + cw * 0.5, y, m + cw, y); y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 107, 107);
+  if (labor.length) { doc.text('Labor:', m + cw * 0.5, y); doc.text(fmt(laborTotal), m + cw - 4, y, { align: 'right' }); y += 5; }
+  if (materials.length) { doc.text('Materials:', m + cw * 0.5, y); doc.text(fmt(matsTotal), m + cw - 4, y, { align: 'right' }); y += 5; }
+  doc.text('Subtotal:', m + cw * 0.5, y); doc.text(fmt(subtotal), m + cw - 4, y, { align: 'right' }); y += 5;
+  if (taxRate > 0) { doc.text('Tax (' + taxRate + '%):', m + cw * 0.5, y); doc.text(fmt(taxAmt), m + cw - 4, y, { align: 'right' }); y += 5; }
+  y += 2;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(44, 62, 45);
+  doc.text('Total:', m + cw * 0.5, y); doc.text(fmt(grandTotal), m + cw - 4, y, { align: 'right' });
+  y += 12;
+
+  // ── Payment terms ──
+  if (payTerms) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 107, 107);
+    doc.text('Payment Terms: ' + payTerms, m, y); y += 5;
+  }
+  if (notes) {
+    doc.text('Notes: ' + notes, m, y); y += 5;
+  }
+
+  // ── Footer ──
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Generated by Terrapin Tools — terrapin.tools', W / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+
+  return doc;
+}
+
+function askForEmail(callId) {
+  const askId = 'ask-email-' + Date.now();
+  let html = '<div class="action-card" id="' + askId + '">';
+  html += '<div class="card-label">Email Address Needed</div>';
+  html += '<div class="card-detail" style="margin-bottom:10px;">I couldn\'t find this client in your contacts. What email should I send to?</div>';
+  html += '<input type="email" id="email-input-' + askId + '" placeholder="client@example.com" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;font-family:DM Sans,sans-serif;font-size:14px;color:var(--text);outline:none;margin-bottom:8px;">';
+  html += '<button class="card-btn primary" onclick="submitEmailAddress(\'' + askId + '\', \'' + callId + '\')">Continue</button>';
+  html += '</div>';
+  addCard(html);
+}
+
+function submitEmailAddress(askId, callId) {
+  const input = document.getElementById('email-input-' + askId);
+  const email = input ? input.value.trim() : '';
+  if (!email || !email.includes('@')) {
+    input.style.borderColor = 'var(--rust)';
+    return;
+  }
+  // Remove the ask card
+  const card = document.getElementById(askId);
+  if (card) {
+    const statusEl = document.createElement('div');
+    statusEl.className = 'card-status sent';
+    statusEl.textContent = 'Sending to ' + email;
+    card.innerHTML = '';
+    card.appendChild(statusEl);
+  }
+  initEmailDraft(email, callId);
+}
+
+function previewAttachment(draftId) {
+  const draft = draftStore[draftId];
+  if (!draft || !draft.attachment_base64) return;
+  // Convert base64 to blob URL — window.open blocks data: URIs
+  const bytes = atob(draft.attachment_base64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  const blob = new Blob([arr], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
+// ══════════════════════════════════════
+//  EMAIL DRAFT — HUMAN IN THE LOOP
+// ══════════════════════════════════════
+function initEmailDraft(to, callId) {
+  const call = toolCallStore[callId] || {};
+  const toolName = call.toolName || 'Document';
+  const params = call.params || {};
+  const bizName = businessProfileObj?.businessName || 'Terrapin Tools';
+  const ownerName = businessProfileObj?.ownerName || bizName;
+
+  // Human-friendly document name — not the tool ID
+  const docNames = {
+    'contractor-invoice-generator': 'invoice',
+    'catering-quote-builder': 'catering quote',
+    'job-site-daily-log': 'daily log',
+    'simple-crm': 'contact info',
+    'tip-calculator': 'tip breakdown',
+    'street-vendor-order-log': 'daily sales summary',
+    'qr-code-generator': 'QR code',
+    'business-profile': 'business profile'
+  };
+  const docName = docNames[call.toolId] || 'document';
+  const clientName = params.client_name || (params.data?.client?.name) || '';
+  const subject = (clientName ? docName.charAt(0).toUpperCase() + docName.slice(1) + ' for ' + clientName : docName.charAt(0).toUpperCase() + docName.slice(1)) + ' — ' + bizName;
+  const body = 'Hi' + (clientName ? ' ' + clientName.split(' ')[0] : '') + ',\n\nPlease find the attached ' + docName + '.\n\nBest regards,\n' + ownerName;
+
+  // Use the real PDF captured from the tool iframe if available
+  let pdfBase64 = call.pdf_base64 || null;
+  let pdfDataUrl = call.pdf_dataurl || null;
+  const cname = params.client_name || (params.data && params.data.client?.name) || params.job_name || 'output';
+  let fileName = call.filename || ((call.toolId || 'document') + '-' + cname.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.pdf');
+
+  // Fallback: generate a summary PDF if iframe didn't capture one
+  if (!pdfBase64) {
+    try {
+      if (window.jspdf) {
+        const pdf = generateToolPDF(toolName, params);
+        pdfDataUrl = pdf.output('datauristring');
+        pdfBase64 = pdfDataUrl.split(',')[1];
+      }
+    } catch(e) {
+      console.error('Fallback PDF generation failed:', e);
+    }
+  }
+
+  const draftId = 'draft-' + Date.now();
+  draftStore[draftId] = { to, subject, body, attachment_base64: pdfBase64, attachment_name: fileName, attachment_dataurl: pdfDataUrl };
+
+  let html = '<div class="action-card email-draft" id="' + draftId + '">';
+  html += '<div class="card-label">Email Draft — Review Before Sending</div>';
+  html += '<div class="draft-field"><strong>To:</strong> ' + escapeHTML(to) + '</div>';
+  html += '<div class="draft-field"><strong>Subject:</strong> ' + escapeHTML(subject) + '</div>';
+  html += '<div class="draft-body">' + escapeHTML(body) + '</div>';
+  if (pdfDataUrl) {
+    html += '<a class="attachment-pill" onclick="previewAttachment(\'' + draftId + '\')">\ud83d\udcce ' + escapeHTML(fileName) + '</a>';
+  } else {
+    html += '<div class="card-detail" style="color:var(--gold-dim);font-size:12px;margin-top:8px;">No attachment — email will be sent as text only</div>';
+  }
+  html += '<div class="card-status ready">Ready to send</div>';
+  html += '<button class="card-btn primary" onclick="confirmSendDraft(\'' + draftId + '\')">Send Now</button>';
+  html += '<button class="card-btn secondary" onclick="editDraft(\'' + draftId + '\')">Edit Before Sending</button>';
+  html += '<button class="card-btn danger" onclick="cancelDraft(\'' + draftId + '\')">Cancel</button>';
+  html += '</div>';
+
+  addCard(html);
+}
+
+async function confirmSendDraft(draftId) {
+  const draft = draftStore[draftId];
+  const card = document.getElementById(draftId);
+  console.log('confirmSendDraft:', draftId, 'draft:', draft, 'card:', card);
+  if (!draft) { addMessage('agent', 'Error: draft data not found. Try sending again.'); return; }
+  if (!card) { addMessage('agent', 'Error: draft card not found in page. Try sending again.'); return; }
+  if (!draft.to) { addMessage('agent', 'Error: no recipient email. Use "Edit Before Sending" to add one.'); return; }
+
+  card.querySelectorAll('.card-btn').forEach(b => b.disabled = true);
+  const statusEl = card.querySelector('.card-status');
+  statusEl.textContent = 'Sending...';
+  statusEl.className = 'card-status';
+
+  const payload = { to: draft.to, subject: draft.subject, body: draft.body };
+  console.log('Draft contents:', { to: draft.to, subject: draft.subject, hasBase64: !!draft.attachment_base64, base64Length: draft.attachment_base64?.length, fileName: draft.attachment_name });
+  if (draft.attachment_base64 && draft.attachment_name) {
+    payload.attachment_base64 = draft.attachment_base64;
+    payload.attachment_name = draft.attachment_name;
+    console.log('Attaching PDF:', draft.attachment_name, '(' + Math.round(draft.attachment_base64.length / 1024) + ' KB base64)');
+  } else {
+    console.warn('No attachment — base64:', !!draft.attachment_base64, 'name:', draft.attachment_name);
+    // Try generating PDF right now as last resort
+    if (!draft.attachment_base64 && window.jspdf) {
+      try {
+        const call = Object.values(toolCallStore).find(c => c.toolId);
+        if (call) {
+          console.log('Generating PDF as last resort for email...');
+          const pdf = generateToolPDF(call.toolName || 'Invoice', call.params || {});
+          const b64 = pdf.output('datauristring').split(',')[1];
+          payload.attachment_base64 = b64;
+          payload.attachment_name = draft.attachment_name || 'invoice.pdf';
+          draft.attachment_base64 = b64;
+          console.log('Last resort PDF generated:', payload.attachment_name, '(' + Math.round(b64.length / 1024) + ' KB)');
+        }
+      } catch(e) { console.error('Last resort PDF failed:', e); }
+    }
+  }
+
   try {
-    const res = await fetch(OLLAMA_URL + '/api/tags', { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error();
+    const res = await fetch(MAIL_URL + '/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
     const data = await res.json();
-    const hasGemma = (data.models || []).some(m => m.name && m.name.includes('gemma'));
-    if (hasGemma) {
-      ollamaReady = true;
-      document.getElementById('status-dot').classList.add('connected');
-      document.getElementById('status-text').textContent = 'Connected';
+    if (data.success) {
+      statusEl.textContent = 'Sent \u2713 \u2014 ' + new Date().toLocaleTimeString();
+      statusEl.className = 'card-status sent';
+      card.querySelectorAll('.card-btn').forEach(b => b.style.display = 'none');
     } else {
-      document.getElementById('status-dot').classList.add('error');
-      document.getElementById('status-text').textContent = 'Gemma not found';
+      statusEl.textContent = 'Failed: ' + data.error;
+      statusEl.className = 'card-status error';
+      card.querySelectorAll('.card-btn').forEach(b => b.disabled = false);
     }
   } catch(e) {
-    document.getElementById('status-text').textContent = 'Ollama not detected';
+    statusEl.textContent = 'Could not reach mail server';
+    statusEl.className = 'card-status error';
+    card.querySelectorAll('.card-btn').forEach(b => b.disabled = false);
+    addMessage('agent', 'Mail server not responding. Start it with: `npm run mail` in your terminal.');
   }
 }
+
+function editDraft(draftId) {
+  const draft = draftStore[draftId];
+  if (!draft) return;
+  editDraftId = draftId;
+  document.getElementById('edit-to').value = draft.to;
+  document.getElementById('edit-subject').value = draft.subject;
+  document.getElementById('edit-body').value = draft.body;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function cancelDraft(draftId) {
+  const card = document.getElementById(draftId);
+  if (card) {
+    const statusEl = card.querySelector('.card-status');
+    statusEl.textContent = 'Cancelled';
+    statusEl.className = 'card-status';
+    card.querySelectorAll('.card-btn').forEach(b => b.style.display = 'none');
+  }
+}
+
+// ══════════════════════════════════════
+//  EDIT MODAL
+// ══════════════════════════════════════
+let editDraftId = null;
+
+// openEditModal replaced by editDraft() which reads from draftStore
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editDraftId = null;
+}
+
+async function sendEditedEmail() {
+  const to = document.getElementById('edit-to').value.trim();
+  const subject = document.getElementById('edit-subject').value.trim();
+  const body = document.getElementById('edit-body').value.trim();
+  const draftId = editDraftId;
+  closeEditModal();
+  if (draftId && draftStore[draftId]) {
+    draftStore[draftId].to = to;
+    draftStore[draftId].subject = subject;
+    draftStore[draftId].body = body;
+    await confirmSendDraft(draftId);
+  } else {
+    await sendEmailDirect(to, subject, body);
+  }
+}
+
+async function sendEmailDirect(to, subject, body) {
+  if (!mailReady) {
+    addMessage('agent', 'Mail server isn\'t running. Start it with: `npm run mail` in your terminal.');
+    mailtoFallback(to, subject, body);
+    return;
+  }
+  try {
+    const res = await fetch(MAIL_URL + '/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, subject, body })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addCard('<div class="action-card"><div class="card-label">Email Sent</div><div class="card-title">Sent to ' + escapeHTML(to) + '</div><div class="card-status sent">Sent \u2713 — ' + new Date().toLocaleTimeString() + '</div></div>');
+    } else {
+      addMessage('agent', 'Email failed: ' + data.error);
+    }
+  } catch(e) {
+    addMessage('agent', 'Could not reach mail server.');
+    mailtoFallback(to, subject, body);
+  }
+}
+
+function mailtoFallback(to, subject, body) {
+  const mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  window.open(mailto);
+}
+
+// ══════════════════════════════════════
+//  DATA SAVE CONFIRMATION
+// ══════════════════════════════════════
+function showSaveConfirmation(what, detail) {
+  addCard('<div class="action-card"><div class="card-label">Data Saved</div><div class="card-title">' + escapeHTML(what) + ' \u2713</div><div class="card-detail">' + escapeHTML(detail) + '</div><div class="card-status sent">' + new Date().toLocaleTimeString() + '</div></div>');
+}
+
+// ══════════════════════════════════════
+//  STATUS CHECKS — ALL VIA AGENT /health
+// ══════════════════════════════════════
+async function checkStatus() {
+  // Check agent server (which checks Ollama internally)
+  try {
+    const res = await fetch(AGENT_URL + '/health', { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    agentReady = true;
+    ollamaReady = data.ollama && data.gemma;
+
+    if (ollamaReady) {
+      document.getElementById('status-dot').classList.add('connected');
+      document.getElementById('status-text').textContent = 'Agent ready';
+    } else if (data.ollama) {
+      document.getElementById('status-dot').classList.add('error');
+      document.getElementById('status-text').textContent = 'Gemma not found';
+    } else {
+      document.getElementById('status-dot').classList.add('error');
+      document.getElementById('status-text').textContent = 'Ollama offline';
+    }
+
+    // Mail status from agent health
+    if (data.mail) {
+      mailReady = true;
+      document.getElementById('mail-dot').classList.add('connected');
+      document.getElementById('mail-text').textContent = 'Mail ready';
+    }
+  } catch(e) {
+    agentReady = false;
+    document.getElementById('status-text').textContent = 'Agent offline';
+  }
+
+  // Also check mail directly if agent didn't report it
+  if (!mailReady) {
+    try {
+      const res = await fetch(MAIL_URL + '/health', { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'ok') {
+          mailReady = true;
+          mailAccount = data.account || '';
+          document.getElementById('mail-dot').classList.add('connected');
+          document.getElementById('mail-text').textContent = 'Mail ready';
+        }
+      }
+    } catch(e) {}
+  }
+}
+
+// Expose mail for tool use
+window.terrapinMail = {
+  send: sendEmailDirect,
+  isReady: function() { return mailReady; },
+  getAccount: function() { return mailAccount; }
+};
 
 // ══════════════════════════════════════
 //  BUSINESS PROFILE LOADER
@@ -397,7 +1304,16 @@ function loadProfile(event) {
       try {
         const data = JSON.parse(content);
         localStorage.setItem('terrapin_business_profile', content);
+        // Persist to agent server
+        try {
+          fetch(AGENT_URL + '/data/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: content
+          }).then(r => console.log('Profile saved to ~/.terrapin/', r.ok));
+        } catch(e) {}
         businessProfile = JSON.stringify(data, null, 2);
+        businessProfileObj = data;
       } catch(err) {
         addMessage('agent', "That JSON file didn't parse right. Make sure it's a valid business-profile.json from the Business Profile tool.");
         return;
@@ -418,21 +1334,155 @@ function loadProfile(event) {
   event.target.value = '';
 }
 
-// Check localStorage for existing profile
-function loadExistingProfile() {
+// Check agent server then localStorage for existing profile
+async function loadExistingProfile() {
+  // Try agent server first
+  try {
+    const res = await fetch(AGENT_URL + '/data/profile', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.businessName) {
+        businessProfile = JSON.stringify(data, null, 2);
+        businessProfileObj = data;
+        localStorage.setItem('terrapin_business_profile', JSON.stringify(data));
+        const notice = document.getElementById('profile-notice');
+        notice.textContent = 'Business profile loaded from ~/.terrapin/ \u2713';
+        notice.style.display = '';
+        setTimeout(function() { notice.style.display = 'none'; }, 4000);
+        console.log('Profile loaded from agent server');
+        return;
+      }
+    }
+  } catch(e) { console.log('Agent server not available for profile, using localStorage'); }
+
+  // Fall back to localStorage
   const json = localStorage.getItem('terrapin_business_profile');
   const md = localStorage.getItem('terrapin_business_md');
   if (json) {
     try {
       businessProfile = JSON.stringify(JSON.parse(json), null, 2);
+      businessProfileObj = JSON.parse(json);
       const notice = document.getElementById('profile-notice');
-      notice.textContent = 'Business profile loaded from saved data. \u2713';
+      notice.textContent = 'Business profile loaded from cache. \u2713';
       notice.style.display = '';
       setTimeout(function() { notice.style.display = 'none'; }, 4000);
     } catch(e) {}
   } else if (md) {
     businessProfile = md;
   }
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  DIRECT CRM SAVE — no iframe needed
+// ══════════════════════════════════════
+function saveCRMContact(params) {
+  const STORAGE_KEY = 'scrm_contacts';
+  let contacts = [];
+  try { contacts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { contacts = []; }
+
+  const contact = {
+    id: 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+    name: params.name || params.client_name || '',
+    business: params.business || '',
+    phone: params.phone || '',
+    email: params.email || params.client_email || '',
+    lastContacted: null,
+    followUp: params.follow_up || null,
+    notes: params.notes || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  // Don't add duplicates by name
+  const existing = contacts.find(c => c.name.toLowerCase() === contact.name.toLowerCase());
+  if (existing) {
+    // Update existing contact
+    Object.assign(existing, { business: contact.business || existing.business, phone: contact.phone || existing.phone, email: contact.email || existing.email, notes: contact.notes || existing.notes, updatedAt: contact.updatedAt });
+  } else {
+    contacts.push(contact);
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  // Persist to agent server
+  try {
+    fetch(AGENT_URL + '/data/crm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contacts)
+    }).then(r => console.log('CRM saved to ~/.terrapin/', r.ok));
+  } catch(e) {}
+  console.log('CRM contact saved:', contact.name);
+
+  // Notify via postMessage in case CRM tool is open
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'simple-crm', status: 'success', contact: contact.name }, '*');
+  }
+}
+
+// ══════════════════════════════════════
+//  DIRECT CALENDAR SAVE — no iframe needed
+// ══════════════════════════════════════
+function saveCalendarEvent(params) {
+  const LS_KEY = 'terrapin-calendar';
+  let events = [];
+  try { events = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) { events = []; }
+
+  const ev = {
+    id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+    title: params.title || 'Untitled',
+    date: params.date || new Date().toISOString().split('T')[0],
+    time: params.time || '',
+    type: params.type || 'appointment',
+    client: params.client || '',
+    notes: params.notes || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  events.push(ev);
+  localStorage.setItem(LS_KEY, JSON.stringify(events));
+  console.log('Calendar event saved:', ev.title, 'on', ev.date);
+
+  // Persist to agent server
+  try {
+    fetch(AGENT_URL + '/data/calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(events)
+    }).then(r => console.log('Calendar saved to ~/.terrapin/', r.ok));
+  } catch(e) {}
+}
+
+function escapeAttr(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function fmt(n) { return '$' + Number(n).toFixed(2); }
+
+function resolveClientFromProfile(nameQuery) {
+  // Search business profile clients + CRM contacts
+  const profileClients = businessProfileObj?.clients || businessProfileObj?.regular_clients || [];
+  let crmContacts = [];
+  try { crmContacts = JSON.parse(localStorage.getItem('scrm_contacts') || '[]'); } catch(e) {}
+  const allClients = [...profileClients, ...crmContacts];
+  if (!allClients.length) return null;
+
+  const q = nameQuery.toLowerCase().trim();
+  // Exact
+  let match = allClients.find(c => (c.name || '').toLowerCase() === q);
+  // Partial — query in name
+  if (!match) match = allClients.find(c => (c.name || '').toLowerCase().includes(q));
+  // Word match
+  if (!match) {
+    const qw = q.split(/\s+/);
+    match = allClients.find(c => {
+      const cw = (c.name || '').toLowerCase().split(/\s+/);
+      return qw.some(a => cw.some(b => b.includes(a) || a.includes(b)));
+    });
+  }
+  if (match && match.email) return { name: match.name, email: match.email };
+  return null;
 }
 
 // ══════════════════════════════════════
@@ -443,6 +1493,14 @@ function toggleSetup() {
   const toggle = document.getElementById('setup-toggle');
   guide.classList.toggle('open');
   toggle.innerHTML = guide.classList.contains('open') ? 'Setup Guide &#9652;' : 'Setup Guide &#9662;';
+}
+
+function copySetup(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied \u2713';
+    setTimeout(function() { btn.textContent = orig; }, 2000);
+  });
 }
 
 // ══════════════════════════════════════
@@ -458,8 +1516,28 @@ document.getElementById('msg-input').addEventListener('keydown', function(e) {
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-loadExistingProfile();
-checkOllama();
+// Show file:// notice if opened directly
+if (IS_FILE) {
+  document.getElementById('file-notice').classList.add('visible');
+}
+
+(async function() {
+  await loadExistingProfile();
+
+  // Load CRM contacts from agent server
+  try {
+    const res = await fetch(AGENT_URL + '/data/crm', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const contacts = await res.json();
+      if (contacts.length) {
+        localStorage.setItem('scrm_contacts', JSON.stringify(contacts));
+        console.log('CRM loaded from agent server:', contacts.length, 'contacts');
+      }
+    }
+  } catch(e) { console.log('Agent server not available for CRM, using localStorage'); }
+
+  checkStatus();
+})();
 
 addMessage('agent', "Hey. I'm your Terrapin agent. Once you've set up Ollama and Gemma I'll be able to help you run your tools with plain English. For now I'm getting ready. Drop your business profile in to get started \u2014 it helps me know who you are.");
 </script>

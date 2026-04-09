@@ -1,0 +1,660 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Simple Calendar
+Type: data
+Description: Add and view appointments, jobs, events and deadlines
+Parameters:
+  - action (string, required): add or view
+  - title (string, required for add): event title
+  - date (string, required for add): YYYY-MM-DD format
+  - time (string, optional): event time
+  - type (string, optional): appointment|job|deadline|delivery|other
+  - notes (string, optional): additional notes
+  - autorun (boolean, optional): true to auto-execute without human interaction
+Output: Calendar event saved confirmation or upcoming events list
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Calendar — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 1.5rem 1rem 2rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 900px; margin: 0 auto; }
+
+  .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
+  .back-to-terrapin:hover { color: #2C3E2D; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: #2C3E2D; }
+  .app-header p { font-size: 14px; color: #6B6B6B; margin-top: 2px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+
+  /* Calendar card */
+  .cal-card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 20px; }
+
+  /* Nav */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .cal-nav h2 { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; color: #2C3E2D; }
+  .cal-nav button { background: none; border: 1px solid #E8E0D0; border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; color: #2C3E2D; transition: all 0.15s; }
+  .cal-nav button:hover { background: #2C3E2D; color: #fff; }
+
+  /* Grid */
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 4px; }
+  .cal-weekdays span { font-family: 'DM Mono', monospace; font-size: 11px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 6px 2px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;
+    color: #1a1a1a; transition: background 0.1s; position: relative; min-height: 44px;
+  }
+  .cal-day:hover { background: #FDFAF4; }
+  .cal-day.other-month { color: #ccc; }
+  .cal-day.today { background: #C9A84C; color: #fff; border-radius: 8px; font-weight: 700; }
+  .cal-day.today:hover { background: #b8963f; }
+  .cal-day.has-events::after {
+    content: ''; position: absolute; bottom: 4px; display: flex; gap: 2px;
+  }
+  .day-num { font-size: 14px; line-height: 1; }
+  .day-dots { display: flex; gap: 2px; margin-top: 3px; flex-wrap: wrap; justify-content: center; }
+  .day-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-appointment { background: #2C3E2D; }
+  .dot-job { background: #C9A84C; }
+  .dot-deadline { background: #B85C2C; }
+  .dot-delivery { background: #4A7C59; }
+  .dot-other { background: #6B6B6B; }
+
+  /* Sidebar */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+  .sidebar-card { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 16px; }
+  .sidebar-title { font-family: 'DM Mono', monospace; font-size: 11px; color: #6B6B6B; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+  .upcoming-item { padding: 8px 0; border-bottom: 1px solid #E8E0D0; cursor: pointer; transition: background 0.1s; }
+  .upcoming-item:last-child { border-bottom: none; }
+  .upcoming-item:hover { background: #FDFAF4; margin: 0 -8px; padding: 8px 8px; border-radius: 6px; }
+  .ui-date { font-family: 'DM Mono', monospace; font-size: 11px; color: #6B6B6B; }
+  .ui-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .ui-time { font-size: 12px; color: #6B6B6B; }
+  .ui-type {
+    display: inline-block; font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 6px;
+    border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;
+  }
+  .type-appointment { background: #E8F0E8; color: #2C3E2D; }
+  .type-job { background: #FDF5E0; color: #8B6914; }
+  .type-deadline { background: #FDE8E0; color: #B85C2C; }
+  .type-delivery { background: #E0F0E8; color: #4A7C59; }
+  .type-other { background: #F0EBE0; color: #6B6B6B; }
+
+  .empty-upcoming { font-size: 13px; color: #6B6B6B; text-align: center; padding: 12px 0; }
+
+  .add-btn {
+    width: 100%; padding: 12px; background: #2C3E2D; color: #fff; border: none; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .add-btn:hover { background: #3A5240; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100;
+    justify-content: center; align-items: flex-start; padding: 3rem 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 14px; border: 1px solid #E8E0D0; width: 100%; max-width: 440px;
+    padding: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  .modal-title { font-family: 'Lora', serif; font-size: 18px; font-weight: 700; color: #2C3E2D; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #ccc; }
+  .modal-close:hover { color: #B85C2C; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 13px; color: #6B6B6B; font-weight: 500; display: block; margin-bottom: 5px; }
+  input[type="text"], input[type="date"], input[type="time"], select, textarea {
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: #1a1a1a;
+    background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 8px;
+    padding: 10px 12px; width: 100%; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #2C3E2D; background: #fff; }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.5; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-save { flex: 1; padding: 12px; background: #2C3E2D; color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .btn-save:hover { background: #3A5240; }
+  .btn-delete { padding: 12px 16px; background: none; border: 1px solid #E8E0D0; color: #B85C2C; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
+  .btn-delete:hover { border-color: #B85C2C; background: #FFF8F5; }
+
+  /* View modal */
+  .view-detail { font-size: 14px; padding: 6px 0; }
+  .view-detail strong { color: #2C3E2D; }
+
+  .footer { text-align: center; padding: 24px 0 8px; }
+  .footer a { font-family: 'DM Mono', monospace; font-size: 12px; color: #6B6B6B; text-decoration: none; }
+  .footer a:hover { color: #2C3E2D; }
+
+  .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 12px; }
+
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    .cal-day { min-height: 38px; padding: 4px 1px; }
+    .day-num { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+
+  <div class="app-header">
+    <h1 id="cal-header">Simple Calendar</h1>
+    <p>Track appointments, jobs, events and deadlines</p>
+  </div>
+
+  <div class="layout">
+    <!-- Calendar -->
+    <div class="cal-card">
+      <div class="cal-nav">
+        <button onclick="prevMonth()">&#8249;</button>
+        <h2 id="month-label"></h2>
+        <button onclick="nextMonth()">&#8250;</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-title">Next 7 Days</div>
+        <div id="upcoming-list"></div>
+      </div>
+      <button class="add-btn" onclick="openAddModal()">+ Add Event</button>
+    </div>
+  </div>
+
+  <p class="api-note">Callable via <code>window.calendar</code> for automation</p>
+  <div class="footer"><a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a></div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-title-text">New Event</span>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="field"><label>Title</label><input type="text" id="f-title" placeholder="e.g. Smith kitchen inspection"></div>
+    <div class="row">
+      <div class="field"><label>Date</label><input type="date" id="f-date"></div>
+      <div class="field"><label>Time (optional)</label><input type="time" id="f-time"></div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Type</label>
+        <select id="f-type">
+          <option value="appointment">Appointment</option>
+          <option value="job">Job</option>
+          <option value="deadline">Deadline</option>
+          <option value="delivery">Delivery</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Client (optional)</label>
+        <select id="f-client"><option value="">None</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Any details..." rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-save" id="btn-save" onclick="saveEvent()">Save Event</button>
+      <button class="btn-delete" id="btn-delete" onclick="deleteEvent()" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const AGENT_URL = 'http://localhost:7777';
+const LS_KEY = 'terrapin-calendar';
+let events = [];
+let crmContacts = [];
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let editingId = null;
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// ══════════════════════════════════════
+//  PERSISTENCE — agent server first, localStorage fallback
+// ══════════════════════════════════════
+async function loadEvents() {
+  // localStorage first (instant)
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) events = JSON.parse(raw);
+  } catch(e) { events = []; }
+  console.log('Calendar loaded from localStorage:', events.length, 'events');
+
+  // Then try agent server
+  try {
+    const res = await fetch(AGENT_URL + '/data/calendar', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const serverEvents = await res.json();
+      if (Array.isArray(serverEvents) && serverEvents.length) {
+        // Merge — server wins for same id
+        serverEvents.forEach(se => {
+          const idx = events.findIndex(e => e.id === se.id);
+          if (idx > -1) events[idx] = se;
+          else events.push(se);
+        });
+        localStorage.setItem(LS_KEY, JSON.stringify(events));
+        console.log('Calendar merged from ~/.terrapin/:', events.length, 'events');
+      }
+    }
+  } catch(e) { console.log('Agent server not available for calendar — using localStorage'); }
+
+  render();
+}
+
+function saveAll() {
+  localStorage.setItem(LS_KEY, JSON.stringify(events));
+  console.log('Calendar saved to localStorage:', events.length, 'events');
+
+  try {
+    fetch(AGENT_URL + '/data/calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(events)
+    }).then(r => console.log('Calendar saved to ~/.terrapin/', r.ok))
+      .catch(() => console.log('Agent server not available — saved to localStorage only'));
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+//  CRM CONTACTS
+// ══════════════════════════════════════
+async function loadCRM() {
+  try {
+    const ls = localStorage.getItem('scrm_contacts');
+    if (ls) crmContacts = JSON.parse(ls);
+  } catch(e) {}
+
+  try {
+    const res = await fetch(AGENT_URL + '/data/crm', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) crmContacts = data;
+    }
+  } catch(e) {}
+
+  populateClientDropdown();
+}
+
+function populateClientDropdown() {
+  const sel = document.getElementById('f-client');
+  sel.innerHTML = '<option value="">None</option>';
+  crmContacts.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name + (c.business ? ' (' + c.business + ')' : '');
+    sel.appendChild(opt);
+  });
+}
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE
+// ══════════════════════════════════════
+async function loadProfile() {
+  try {
+    const res = await fetch(AGENT_URL + '/data/profile', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const p = await res.json();
+      if (p.businessName) {
+        document.getElementById('cal-header').textContent = p.businessName + ' Calendar';
+        return;
+      }
+    }
+  } catch(e) {}
+  try {
+    const ls = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (ls && ls.businessName) document.getElementById('cal-header').textContent = ls.businessName + ' Calendar';
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+//  CALENDAR RENDERING
+// ══════════════════════════════════════
+function render() {
+  renderCalendar();
+  renderUpcoming();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('cal-grid');
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('month-label').textContent = monthNames[currentMonth] + ' ' + currentYear;
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrev = new Date(currentYear, currentMonth, 0).getDate();
+  const today = todayISO();
+
+  let html = '';
+
+  // Previous month fill
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const day = daysInPrev - i;
+    html += '<div class="cal-day other-month"><span class="day-num">' + day + '</span></div>';
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = currentYear + '-' + String(currentMonth + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const isToday = dateStr === today;
+    const dayEvents = events.filter(e => e.date === dateStr);
+    const dots = dayEvents.map(e => '<span class="day-dot dot-' + (e.type || 'other') + '"></span>').join('');
+
+    html += '<div class="cal-day' + (isToday ? ' today' : '') + '" onclick="clickDay(\'' + dateStr + '\')">';
+    html += '<span class="day-num">' + d + '</span>';
+    if (dots) html += '<div class="day-dots">' + dots + '</div>';
+    html += '</div>';
+  }
+
+  // Next month fill
+  const totalCells = firstDay + daysInMonth;
+  const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let i = 1; i <= remaining; i++) {
+    html += '<div class="cal-day other-month"><span class="day-num">' + i + '</span></div>';
+  }
+
+  grid.innerHTML = html;
+}
+
+function renderUpcoming() {
+  const list = document.getElementById('upcoming-list');
+  const today = todayISO();
+  const weekEnd = new Date();
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  const endStr = weekEnd.getFullYear() + '-' + String(weekEnd.getMonth()+1).padStart(2,'0') + '-' + String(weekEnd.getDate()).padStart(2,'0');
+
+  const upcoming = events.filter(e => e.date >= today && e.date <= endStr).sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.time || '').localeCompare(b.time || '');
+  });
+
+  if (!upcoming.length) {
+    list.innerHTML = '<div class="empty-upcoming">Nothing scheduled this week</div>';
+    return;
+  }
+
+  list.innerHTML = upcoming.map(e => {
+    const d = new Date(e.date + 'T12:00:00');
+    const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return '<div class="upcoming-item" onclick="viewEvent(\'' + e.id + '\')">' +
+      '<div class="ui-date">' + dateLabel + (e.time ? ' at ' + e.time : '') + '</div>' +
+      '<div class="ui-title">' + esc(e.title) + '</div>' +
+      '<span class="ui-type type-' + (e.type || 'other') + '">' + (e.type || 'event') + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function prevMonth() {
+  currentMonth--;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+function nextMonth() {
+  currentMonth++;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar();
+}
+
+// ══════════════════════════════════════
+//  MODAL — ADD / EDIT / VIEW
+// ══════════════════════════════════════
+function clickDay(dateStr) {
+  const dayEvents = events.filter(e => e.date === dateStr);
+  if (dayEvents.length === 1) {
+    viewEvent(dayEvents[0].id);
+  } else if (dayEvents.length > 1) {
+    viewEvent(dayEvents[0].id); // show first, user can navigate
+  } else {
+    openAddModal(dateStr);
+  }
+}
+
+function openAddModal(dateStr) {
+  editingId = null;
+  document.getElementById('modal-title-text').textContent = 'New Event';
+  document.getElementById('btn-save').textContent = 'Save Event';
+  document.getElementById('btn-delete').style.display = 'none';
+  clearForm();
+  if (dateStr) document.getElementById('f-date').value = dateStr;
+  else document.getElementById('f-date').value = todayISO();
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-title').focus();
+}
+
+function viewEvent(id) {
+  const e = events.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('modal-title-text').textContent = 'Edit Event';
+  document.getElementById('btn-save').textContent = 'Update';
+  document.getElementById('btn-delete').style.display = '';
+  document.getElementById('f-title').value = e.title || '';
+  document.getElementById('f-date').value = e.date || '';
+  document.getElementById('f-time').value = e.time || '';
+  document.getElementById('f-type').value = e.type || 'other';
+  document.getElementById('f-client').value = e.client || '';
+  document.getElementById('f-notes').value = e.notes || '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+}
+
+function clearForm() {
+  ['f-title','f-date','f-time','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-type').value = 'appointment';
+  document.getElementById('f-client').value = '';
+}
+
+// ══════════════════════════════════════
+//  SAVE / DELETE
+// ══════════════════════════════════════
+function saveEvent() {
+  const title = document.getElementById('f-title').value.trim();
+  const date = document.getElementById('f-date').value;
+  if (!title) { alert('Please enter a title.'); return false; }
+  if (!date) { alert('Please select a date.'); return false; }
+
+  const data = {
+    title,
+    date,
+    time: document.getElementById('f-time').value || '',
+    type: document.getElementById('f-type').value || 'other',
+    client: document.getElementById('f-client').value || '',
+    notes: document.getElementById('f-notes').value.trim()
+  };
+
+  if (editingId) {
+    const idx = events.findIndex(e => e.id === editingId);
+    if (idx > -1) events[idx] = { ...events[idx], ...data, updatedAt: new Date().toISOString() };
+  } else {
+    events.push({
+      id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  saveAll();
+  render();
+  closeModal();
+  console.log('Event saved:', data.title, 'on', data.date);
+
+  // Agent result
+  const resultDiv = document.getElementById('terrapin-result') || document.createElement('div');
+  resultDiv.id = 'terrapin-result';
+  resultDiv.style.display = 'none';
+  resultDiv.textContent = JSON.stringify({ status: 'success', tool: 'simple-calendar', output: 'Event saved: ' + data.title + ' on ' + data.date, timestamp: new Date().toISOString() });
+  document.body.appendChild(resultDiv);
+
+  // PostMessage to parent
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      type: 'terrapin-tool-result',
+      tool: 'simple-calendar',
+      status: 'success',
+      output: 'Event saved: ' + data.title + ' on ' + data.date
+    }, '*');
+  }
+
+  return true;
+}
+
+function deleteEvent() {
+  if (!editingId) return;
+  const e = events.find(x => x.id === editingId);
+  if (!confirm('Delete "' + (e?.title || 'this event') + '"?')) return;
+  events = events.filter(x => x.id !== editingId);
+  saveAll();
+  render();
+  closeModal();
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+window.calendar = {
+  addEvent(data) {
+    if (!data || !data.title || !data.date) throw new Error('title and date required');
+    const ev = {
+      id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      title: data.title, date: data.date, time: data.time || '',
+      type: data.type || 'other', client: data.client || '',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    events.push(ev);
+    saveAll();
+    render();
+    return structuredClone(ev);
+  },
+  getEvents() { return structuredClone(events); },
+  getEventsForDate(date) { return structuredClone(events.filter(e => e.date === date)); },
+  getUpcoming(days) {
+    const today = todayISO();
+    const end = new Date(); end.setDate(end.getDate() + (days || 7));
+    const endStr = end.getFullYear() + '-' + String(end.getMonth()+1).padStart(2,'0') + '-' + String(end.getDate()).padStart(2,'0');
+    return structuredClone(events.filter(e => e.date >= today && e.date <= endStr).sort((a,b) => a.date.localeCompare(b.date)));
+  },
+  deleteEvent(id) {
+    events = events.filter(e => e.id !== id);
+    saveAll(); render(); return true;
+  }
+};
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL — called from BOOT after data loads
+// ══════════════════════════════════════
+function handleURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+  const autorun = params.get('autorun') === 'true';
+
+  console.log('Calendar params received:', { action, autorun, title: params.get('title'), date: params.get('date') });
+
+  if (action === 'add') {
+    const title = params.get('title');
+    const date = params.get('date') || todayISO();
+    const time = params.get('time') || '';
+    const type = params.get('type') || 'appointment';
+    const notes = params.get('notes') || '';
+
+    if (autorun && title) {
+      console.log('Pre-filling form:', { title, date, time, type });
+      console.log('Auto-saving event:', title, 'on', date);
+
+      events.push({
+        id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+        title, date, time, type, client: '', notes,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      });
+      saveAll();
+      render();
+      console.log('Event saved — events array now has', events.length, 'events');
+
+      // Result div
+      const resultDiv = document.createElement('div');
+      resultDiv.id = 'terrapin-result';
+      resultDiv.style.display = 'none';
+      resultDiv.textContent = JSON.stringify({ status: 'success', tool: 'simple-calendar', output: 'Event saved: ' + title + ' on ' + date, timestamp: new Date().toISOString() });
+      document.body.appendChild(resultDiv);
+
+      // PostMessage — small delay to ensure parent listener is ready
+      setTimeout(function() {
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'simple-calendar', status: 'success', output: 'Event saved: ' + title + ' on ' + date }, '*');
+          console.log('Calendar postMessage sent to parent');
+        }
+      }, 100);
+    } else if (title) {
+      console.log('Pre-filling form (manual save):', { title, date, time, type });
+      setTimeout(function() {
+        openAddModal(date);
+        document.getElementById('f-title').value = title;
+        document.getElementById('f-time').value = time;
+        document.getElementById('f-type').value = type;
+        document.getElementById('f-notes').value = notes;
+      }, 200);
+    }
+  } else if (action === 'view') {
+    console.log('Calendar opened in view mode');
+  }
+}
+
+// ══════════════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════════════
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ══════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════
+(async function() {
+  console.log('Calendar boot: loading data...');
+  await loadEvents();
+  await loadCRM();
+  loadProfile();
+  console.log('Calendar boot: data loaded, events:', events.length);
+  handleURLParams();
+})();
+</script>
+</body>
+</html>

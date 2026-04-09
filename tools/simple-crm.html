@@ -1,3 +1,15 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Simple CRM
+Description: Track contacts, follow-ups, and notes for small service businesses
+Parameters:
+  - name (string, optional): Contact name to add or search
+  - business (string, optional): Business name
+  - phone (string, optional): Phone number
+  - email (string, optional): Email address
+  - action (string, optional): add|search — what to do
+Output: Contact list with follow-up tracking, JSON export
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -215,6 +227,7 @@ let editingId = null;
 function init() {
   loadContacts();
   renderContacts();
+  loadContactsFromServer(); // async — will re-render when server data arrives
 }
 
 function loadContacts() {
@@ -224,8 +237,45 @@ function loadContacts() {
   }
 }
 
+async function loadContactsFromServer() {
+  try {
+    const res = await fetch('http://localhost:7777/data/crm', { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) return;
+    const serverContacts = await res.json();
+    if (!Array.isArray(serverContacts) || !serverContacts.length) return;
+
+    // Merge server contacts with local — server wins for duplicates by id, deduplicate by name
+    const merged = [...contacts];
+    serverContacts.forEach(function(sc) {
+      const byId = merged.findIndex(function(c) { return c.id === sc.id; });
+      if (byId > -1) {
+        merged[byId] = sc; // server version wins
+      } else {
+        const byName = merged.findIndex(function(c) { return c.name && sc.name && c.name.toLowerCase() === sc.name.toLowerCase(); });
+        if (byName === -1) {
+          merged.push(sc); // new contact from server
+        }
+      }
+    });
+    contacts = merged;
+    saveAll();
+    renderContacts();
+    console.log('CRM loaded from ~/.terrapin/:', contacts.length, 'contacts');
+  } catch(e) {
+    console.log('Agent server not available for CRM — using localStorage');
+  }
+}
+
 function saveAll() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  // Persist to agent server ~/.terrapin/
+  try {
+    fetch('http://localhost:7777/data/crm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contacts)
+    }).catch(function() {});
+  } catch(e) {}
 }
 
 // ══════════════════════════════════════
@@ -692,6 +742,73 @@ document.addEventListener('keydown', e => {
 
 // Boot
 init();
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+  const name = params.get('name');
+  const business = params.get('business');
+  const phone = params.get('phone');
+  const email = params.get('email');
+
+  const autorun = params.get('autorun');
+
+  if (action === 'add' && name) {
+    // Save the contact directly via the programmatic API
+    if (typeof window.crm !== 'undefined' && window.crm.addContact) {
+      try {
+        const result = window.crm.addContact({ name, business: business || '', phone: phone || '', email: email || '' });
+        console.log('Contact saved via agent:', result);
+
+        // Write agent result
+        const resultDiv = document.createElement('div');
+        resultDiv.id = 'terrapin-result';
+        resultDiv.style.display = 'none';
+        resultDiv.textContent = JSON.stringify({ status: 'success', tool: 'Simple CRM', output: name + ' added to CRM', timestamp: new Date().toISOString() });
+        document.body.appendChild(resultDiv);
+
+        // Notify parent (agent.html)
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'simple-crm', status: 'success', contact: name }, '*');
+        }
+      } catch(e) {
+        console.error('Failed to save contact:', e);
+      }
+    }
+
+    // Also open the modal so user can see/edit if they opened the tool directly
+    if (!autorun && typeof openNew === 'function') {
+      openNew();
+      setTimeout(function() {
+        if (name) { const el = document.getElementById('f-name'); if (el) el.value = name; }
+        if (business) { const el = document.getElementById('f-biz'); if (el) el.value = business; }
+        if (phone) { const el = document.getElementById('f-phone'); if (el) el.value = phone; }
+        if (email) { const el = document.getElementById('f-email'); if (el) el.value = email; }
+      }, 100);
+    }
+  } else if (name || action === 'search') {
+    // Put name in search box
+    const searchBox = document.getElementById('search-box');
+    if (searchBox && name) {
+      searchBox.value = name;
+      if (typeof renderContacts === 'function') renderContacts();
+    }
+  }
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    window._terrapinProfile = profile;
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>

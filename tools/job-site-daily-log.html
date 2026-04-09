@@ -20,7 +20,7 @@ Output: Dated PDF log entry saved to localStorage
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Job Site Daily Log — Terrapin Tools</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
@@ -257,8 +257,42 @@ function load() {
   try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { entries = []; }
 }
 
+async function loadFromServer() {
+  try {
+    const res = await fetch('http://localhost:7777/data/logs', { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) return;
+    const serverLogs = await res.json();
+    if (!Array.isArray(serverLogs) || !serverLogs.length) return;
+
+    // Merge — server wins for same id
+    serverLogs.forEach(function(sl) {
+      const existing = entries.findIndex(function(e) { return e.id === sl.id; });
+      if (existing > -1) {
+        entries[existing] = sl;
+      } else {
+        entries.push(sl);
+      }
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    renderList();
+    console.log('Logs loaded from ~/.terrapin/:', entries.length, 'entries');
+  } catch(e) {
+    console.log('Agent server not available for logs — using localStorage');
+  }
+}
+
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  // Persist each entry to agent server ~/.terrapin/daily-logs/
+  try {
+    entries.forEach(function(entry) {
+      fetch('http://localhost:7777/data/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      }).catch(function() {});
+    });
+  } catch(e) {}
 }
 
 // ══════════════════════════════════════
@@ -786,6 +820,7 @@ window.jobLogReady = Promise.resolve(true);
     }
   } else {
     renderList();
+    loadFromServer();
   }
 })();
 

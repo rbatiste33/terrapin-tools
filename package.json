@@ -1,0 +1,16 @@
+{
+  "name": "terrapin-tools",
+  "version": "1.0.0",
+  "description": "Simple tools for people who work — terrapin.tools",
+  "private": true,
+  "scripts": {
+    "setup-mail": "node mail-setup.js",
+    "mail": "node mail-server.js",
+    "agent": "node agent-server.js",
+    "serve": "npx serve . -p 8080"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "nodemailer": "^8.0.5"
+  }
+}

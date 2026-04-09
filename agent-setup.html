@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Setup — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1A1A1A; min-height: 100vh; font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+
+  .back-link { display: block; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 20px 0 0; transition: color 0.15s; }
+  .back-link:hover { color: #2C3E2D; }
+
+  .page-header { padding: 48px 0 32px; text-align: center; }
+  .page-header h1 { font-family: 'Playfair Display', serif; font-size: 38px; font-weight: 700; color: #2C3E2D; margin-bottom: 10px; }
+  .page-header p { font-size: 18px; color: #6B6B6B; max-width: 460px; margin: 0 auto; }
+
+  .step { background: #fff; border-radius: 12px; border: 1px solid #E8E0D0; padding: 28px; margin-bottom: 16px; }
+  .step-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #C9A84C; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .step h2 { font-family: 'Lora', serif; font-size: 22px; font-weight: 700; color: #2C3E2D; margin-bottom: 10px; }
+  .step p { font-size: 15px; color: #6B6B6B; margin-bottom: 12px; }
+  .step p:last-child { margin-bottom: 0; }
+
+  .cmd-block {
+    display: flex; align-items: center; gap: 8px; background: #2C3E2D; border-radius: 8px;
+    padding: 14px 16px; margin: 12px 0; font-family: 'DM Mono', monospace; font-size: 14px; color: #C9A84C;
+  }
+  .cmd-block code { flex: 1; }
+  .copy-btn {
+    background: rgba(201,168,76,0.15); border: none; color: #C9A84C; border-radius: 6px;
+    padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .copy-btn:hover { background: rgba(201,168,76,0.25); }
+
+  .big-btn {
+    display: inline-block; background: #2C3E2D; color: #fff; padding: 14px 28px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; text-decoration: none;
+    transition: background 0.15s; margin-top: 4px;
+  }
+  .big-btn:hover { background: #3A5240; }
+
+  .reassurance {
+    text-align: center; padding: 40px 0 16px; max-width: 480px; margin: 0 auto;
+  }
+  .reassurance p { font-size: 16px; color: #2C3E2D; font-weight: 500; margin-bottom: 8px; }
+  .reassurance .small { font-size: 13px; color: #6B6B6B; font-weight: 400; }
+
+  .page-footer { text-align: center; padding: 32px 0 24px; }
+  .page-footer a { font-family: 'DM Mono', monospace; font-size: 12px; color: #6B6B6B; text-decoration: none; }
+  .page-footer a:hover { color: #2C3E2D; }
+
+  @media (max-width: 520px) {
+    .page-header h1 { font-size: 28px; }
+    .page-header p { font-size: 16px; }
+    .step { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
+
+  <div class="page-header">
+    <h1>Unlock the Terrapin Agent</h1>
+    <p>Talk to your tools in plain English. Everything runs on your computer.</p>
+  </div>
+
+  <!-- ONE COMMAND SETUP -->
+  <div class="step" style="border-color:#C9A84C;">
+    <div class="step-label">One command setup</div>
+    <h2>Paste this into Terminal</h2>
+    <div class="cmd-block">
+      <code>curl -fsSL https://terrapin.tools/install.sh | bash</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'curl -fsSL https://terrapin.tools/install.sh | bash')">Copy</button>
+    </div>
+    <p style="font-size:13px;color:#6B6B6B;">Or follow the manual steps below if you prefer.</p>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-label">Step 1</div>
+    <h2>Download Ollama</h2>
+    <p>Ollama runs AI on your computer. Download it at ollama.com &mdash; installs like any app.</p>
+    <a href="https://ollama.com/download" target="_blank" class="big-btn">Download Ollama &rarr;</a>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-label">Step 2</div>
+    <h2>Open Terminal and run one command</h2>
+    <p>Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.</p>
+    <div class="cmd-block">
+      <code>ollama pull gemma4</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'ollama pull gemma4')">Copy</button>
+    </div>
+    <p>This downloads your AI brain &mdash; about 5GB, like downloading a movie. Takes a few minutes.</p>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-label">Step 3</div>
+    <h2>Start Terrapin</h2>
+    <p>Open Terminal and run these two commands &mdash; one in each tab:</p>
+    <div class="cmd-block">
+      <code>npm run agent</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'npm run agent')">Copy</button>
+    </div>
+    <div class="cmd-block">
+      <code>npm run serve</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'npm run serve')">Copy</button>
+    </div>
+    <p>Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.</p>
+  </div>
+
+  <div class="reassurance">
+    <p>Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.</p>
+    <p class="small">Requires a Mac with 8GB RAM or more. Windows support coming soon.</p>
+  </div>
+
+  <div class="page-footer">
+    <a href="/">terrapin.tools &mdash; simple tools for people who work</a>
+  </div>
+
+</div>
+
+<script>
+function copyCmd(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied \u2713';
+    setTimeout(function() { btn.textContent = orig; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

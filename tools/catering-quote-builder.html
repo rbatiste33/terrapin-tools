@@ -1,3 +1,14 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Catering Quote Builder
+Description: Build professional catering quotes with menu items, guest counts, and pricing
+Parameters:
+  - client_name (string, optional): Client name
+  - event_date (string, optional): Event date YYYY-MM-DD
+  - guest_count (number, optional): Number of guests
+  - event_type (string, optional): Type of event
+Output: Formatted catering quote with line items and total
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1044,6 +1055,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Boot
 init();
+
+// ══════════════════════════════════════
+//  URL PARAMETER PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  // These tools have varied field IDs — try common patterns
+  const vals = {
+    client_name: params.get('client_name'),
+    event_date: params.get('event_date'),
+    guest_count: params.get('guest_count')
+  };
+  // Try to find and fill matching inputs by placeholder or label text
+  if (vals.client_name) {
+    const el = document.querySelector('input[placeholder*="client"], input[placeholder*="Client"], input[placeholder*="name"], input[placeholder*="Name"]');
+    if (el) el.value = vals.client_name;
+  }
+  if (vals.guest_count) {
+    const el = document.querySelector('input[placeholder*="guest"], input[placeholder*="Guest"], input[type="number"]');
+    if (el) el.value = vals.guest_count;
+  }
+  if (vals.event_date) {
+    const el = document.querySelector('input[type="date"]');
+    if (el) el.value = vals.event_date;
+  }
+})();
+
+// ══════════════════════════════════════
+//  BUSINESS PROFILE PRE-FILL
+// ══════════════════════════════════════
+(function() {
+  try {
+    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (!profile) return;
+    window._terrapinProfile = profile;
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
