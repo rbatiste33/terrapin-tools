@@ -839,10 +839,11 @@
       <div class="signup-inner">
         <h2>New tools drop every week.</h2>
         <p class="subline">Built for the coffee shop, the dry cleaner, the contractor.</p>
-        <form class="signup-form" onsubmit="return false;">
+        <form class="signup-form" onsubmit="var e=this.querySelector('input').value.trim();if(e){window.open('https://ryanbatiste.substack.com/subscribe?email='+encodeURIComponent(e),'_blank');var m=document.getElementById('signup-confirm');m.style.display='block';setTimeout(function(){m.style.display='none'},5000)}return false;">
           <input type="email" placeholder="your@email.com" aria-label="Email address" required>
           <button type="submit" class="btn-primary">Notify Me</button>
         </form>
+        <p id="signup-confirm" style="display:none;font-family:'DM Mono',monospace;font-size:13px;color:#4A7C59;margin-top:12px;">Opening Substack — finish signing up there ✓</p>
       </div>
     </div>
   </section>
