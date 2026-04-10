@@ -20,6 +20,8 @@ Output: Calendar event saved confirmation or upcoming events list
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Simple Calendar — Terrapin Tools</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 1.5rem 1rem 2rem; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
@@ -97,6 +99,25 @@ Output: Calendar event saved confirmation or upcoming events list
     font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s;
   }
   .add-btn:hover { background: #3A5240; }
+
+  .io-bar { display: flex; gap: 6px; }
+  .io-btn { font-size: 11px; color: #6B6B6B; background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .io-btn:hover { border-color: #2C3E2D; color: #2C3E2D; }
+  .import-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; justify-content: center; align-items: flex-start; padding: 3rem 1rem; }
+  .import-overlay.open { display: flex; }
+  .import-modal { background: #fff; border-radius: 14px; border: 1px solid #E8E0D0; width: 100%; max-width: 520px; max-height: calc(100vh - 6rem); overflow-y: auto; padding: 1.5rem; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .import-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid #E8E0D0; padding-bottom: 10px; }
+  .import-tab { padding: 6px 14px; border-radius: 8px; border: 1px solid #E8E0D0; font-size: 13px; cursor: pointer; background: #FDFAF4; color: #6B6B6B; font-family: 'DM Sans', sans-serif; }
+  .import-tab.active { background: #2C3E2D; color: #fff; border-color: #2C3E2D; }
+  .import-pane { display: none; }
+  .import-pane.active { display: block; }
+  .import-hint { font-size: 13px; color: #6B6B6B; margin-bottom: 12px; line-height: 1.5; }
+  .import-drop { border: 2px dashed #E8E0D0; border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; position: relative; margin-bottom: 12px; }
+  .import-drop:hover { border-color: #2C3E2D; }
+  .import-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .import-drop p { font-size: 13px; color: #6B6B6B; }
+  .import-preview { background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; max-height: 250px; overflow-y: auto; }
+  .import-result { text-align: center; padding: 12px; font-size: 14px; color: #4A7C59; font-weight: 500; }
 
   /* Modal */
   .modal-overlay {
@@ -176,6 +197,10 @@ Output: Calendar event saved confirmation or upcoming events list
         <div class="sidebar-title">Next 7 Days</div>
         <div id="upcoming-list"></div>
       </div>
+      <div class="io-bar">
+        <button class="io-btn" onclick="openCalImportModal()">Import</button>
+        <button class="io-btn" onclick="exportCalCSV()">Export CSV</button>
+      </div>
       <button class="add-btn" onclick="openAddModal()">+ Add Event</button>
     </div>
   </div>
@@ -183,6 +208,39 @@ Output: Calendar event saved confirmation or upcoming events list
   <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <!-- API: window.calendar -->
   <div class="footer"><a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a></div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="import-overlay" id="cal-import-overlay" onclick="if(event.target===this)closeCalImportModal()">
+  <div class="import-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-family:'Lora',serif;font-size:18px;font-weight:700;color:#2C3E2D;">Import Events</span>
+      <button onclick="closeCalImportModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#ccc;">&times;</button>
+    </div>
+    <div class="import-tabs">
+      <button class="import-tab active" onclick="switchCalTab('ical')">iCal (.ics)</button>
+      <button class="import-tab" onclick="switchCalTab('calcsv')">CSV</button>
+    </div>
+    <div class="import-pane active" id="import-ical">
+      <p class="import-hint">Google Calendar: Settings &rarr; Import/Export &rarr; Export. Apple Calendar: File &rarr; Export. Outlook: File &rarr; Save As .ics. Upload the file you get.</p>
+      <div class="import-drop">
+        <p>Drop a .ics file here or click to browse</p>
+        <input type="file" accept=".ics,.ical,text/calendar" onchange="handleICSUpload(event)">
+      </div>
+      <div id="ics-preview"></div>
+      <div id="ics-result"></div>
+    </div>
+    <div class="import-pane" id="import-calcsv">
+      <p class="import-hint">Prefer a spreadsheet? Download our template, fill it in, and upload it here.</p>
+      <button class="io-btn" onclick="downloadCalCSVTemplate()" style="margin-bottom:12px;">Download Template</button>
+      <div class="import-drop">
+        <p>Drop a .csv file here or click to browse</p>
+        <input type="file" accept=".csv,text/csv" onchange="handleCalCSVUpload(event)">
+      </div>
+      <div id="calcsv-preview"></div>
+      <div id="calcsv-result"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ADD/EDIT MODAL -->
@@ -593,6 +651,160 @@ function deleteEvent() {
   saveAll();
   render();
   closeModal();
+}
+
+// ══════════════════════════════════════
+//  IMPORT / EXPORT
+// ══════════════════════════════════════
+let icalParsedEvents = [];
+let calCSVParsedEvents = [];
+
+function openCalImportModal() {
+  document.getElementById('cal-import-overlay').classList.add('open');
+  switchCalTab('ical');
+}
+function closeCalImportModal() {
+  document.getElementById('cal-import-overlay').classList.remove('open');
+  ['ics-preview','ics-result','calcsv-preview','calcsv-result'].forEach(function(id) { document.getElementById(id).innerHTML = ''; });
+  icalParsedEvents = [];
+  calCSVParsedEvents = [];
+}
+function switchCalTab(tab) {
+  document.querySelectorAll('.import-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.import-pane').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('.import-tab[onclick*="' + tab + '"]').classList.add('active');
+  document.getElementById('import-' + tab).classList.add('active');
+}
+
+function handleICSUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var jcalData = ICAL.parse(e.target.result);
+      var comp = new ICAL.Component(jcalData);
+      var vevents = comp.getAllSubcomponents('vevent');
+      icalParsedEvents = vevents.map(function(ve) {
+        var ev = new ICAL.Event(ve);
+        var startDate = ev.startDate;
+        var dateStr = startDate.year + '-' + String(startDate.month).padStart(2,'0') + '-' + String(startDate.day).padStart(2,'0');
+        var timeStr = '';
+        if (startDate.hour || startDate.minute) {
+          timeStr = String(startDate.hour).padStart(2,'0') + ':' + String(startDate.minute).padStart(2,'0');
+        }
+        return { title: ev.summary || 'Untitled', date: dateStr, time: timeStr, type: 'appointment', notes: ev.description || '' };
+      });
+
+      var html = '<div class="import-preview"><p style="font-weight:600;margin-bottom:8px;">Found ' + icalParsedEvents.length + ' events</p>';
+      icalParsedEvents.slice(0, 15).forEach(function(ev) {
+        html += '<div style="padding:4px 0;border-bottom:1px solid #E8E0D0;font-size:12px;"><strong>' + esc(ev.title) + '</strong> — ' + ev.date + (ev.time ? ' at ' + ev.time : '') + '</div>';
+      });
+      if (icalParsedEvents.length > 15) html += '<div style="color:#6B6B6B;font-size:12px;padding:4px 0;">... and ' + (icalParsedEvents.length - 15) + ' more</div>';
+      html += '</div>';
+      html += '<button class="btn-save" onclick="confirmICSImport()" style="width:100%;margin-top:8px;">Import ' + icalParsedEvents.length + ' events</button>';
+      document.getElementById('ics-preview').innerHTML = html;
+    } catch(err) {
+      document.getElementById('ics-preview').innerHTML = '<p style="color:#B85C2C;font-size:13px;">Could not read this file. Make sure it\'s a valid .ics calendar file.</p>';
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function confirmICSImport() {
+  var imported = 0;
+  icalParsedEvents.forEach(function(ev) {
+    events.push({
+      id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      title: ev.title, date: ev.date, time: ev.time, type: ev.type,
+      client: '', notes: ev.notes,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    });
+    imported++;
+  });
+  saveAll();
+  render();
+  document.getElementById('ics-preview').innerHTML = '';
+  document.getElementById('ics-result').innerHTML = '<div class="import-result">' + imported + ' events imported.</div>';
+  icalParsedEvents = [];
+}
+
+function downloadCalCSVTemplate() {
+  var csv = 'Title,Date,Time,Type,Notes\nClient meeting,2026-04-15,14:00,appointment,Discuss project scope\n';
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'terrapin-calendar-template.csv';
+  a.click();
+}
+
+function handleCalCSVUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      if (!results.data || !results.data.length) {
+        document.getElementById('calcsv-preview').innerHTML = '<p style="color:#B85C2C;">No data found.</p>';
+        return;
+      }
+      calCSVParsedEvents = results.data.map(function(row) {
+        var mapped = {};
+        Object.keys(row).forEach(function(key) {
+          var k = key.trim().toLowerCase();
+          if (k === 'title' || k === 'event' || k === 'name' || k === 'subject') mapped.title = row[key];
+          else if (k === 'date' || k === 'start date') mapped.date = row[key];
+          else if (k === 'time' || k === 'start time') mapped.time = row[key];
+          else if (k === 'type' || k === 'category') mapped.type = row[key];
+          else if (k === 'notes' || k === 'description') mapped.notes = row[key];
+        });
+        return mapped;
+      }).filter(function(r) { return r.title && r.date; });
+
+      var html = '<div class="import-preview">';
+      calCSVParsedEvents.slice(0, 10).forEach(function(ev) {
+        html += '<div style="padding:4px 0;border-bottom:1px solid #E8E0D0;font-size:12px;"><strong>' + (ev.title || '') + '</strong> — ' + (ev.date || '') + (ev.time ? ' at ' + ev.time : '') + '</div>';
+      });
+      html += '</div>';
+      html += '<button class="btn-save" onclick="confirmCalCSVImport()" style="width:100%;margin-top:8px;">Import ' + calCSVParsedEvents.length + ' events</button>';
+      document.getElementById('calcsv-preview').innerHTML = html;
+    }
+  });
+  event.target.value = '';
+}
+
+function confirmCalCSVImport() {
+  var imported = 0;
+  calCSVParsedEvents.forEach(function(ev) {
+    events.push({
+      id: 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      title: ev.title, date: ev.date, time: ev.time || '', type: ev.type || 'other',
+      client: '', notes: ev.notes || '',
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    });
+    imported++;
+  });
+  saveAll();
+  render();
+  document.getElementById('calcsv-preview').innerHTML = '';
+  document.getElementById('calcsv-result').innerHTML = '<div class="import-result">' + imported + ' events imported.</div>';
+  calCSVParsedEvents = [];
+}
+
+function exportCalCSV() {
+  var rows = [['Title', 'Date', 'Time', 'Type', 'Client', 'Notes']];
+  events.forEach(function(ev) {
+    rows.push([ev.title || '', ev.date || '', ev.time || '', ev.type || '', ev.client || '', ev.notes || '']);
+  });
+  var csv = rows.map(function(r) { return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var d = new Date().toISOString().split('T')[0];
+  a.download = 'terrapin-calendar-' + d + '.csv';
+  a.click();
 }
 
 // ══════════════════════════════════════
