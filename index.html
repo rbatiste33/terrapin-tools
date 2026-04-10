@@ -9,6 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Terrapin Tools — Simple tools for people who work</title>
   <meta name="description" content="A library of simple, locally-run tools for small business owners. No login. No subscription. No nonsense.">
+  <link rel="preload" as="image" href="./Handyman turtle ready for work.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
@@ -141,11 +142,14 @@
     }
 
     .hero-mascot {
+      display: block;
       width: 480px;
       height: 480px;
+      aspect-ratio: 1 / 1;
       object-fit: contain;
       margin-bottom: -80px;
-      aspect-ratio: 1 / 1;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .hero h1 {
@@ -561,8 +565,10 @@
       }
 
       .hero-mascot {
-        width: 160px;
-        height: 160px;
+        width: 200px;
+        height: 200px;
+        min-width: 200px;
+        min-height: 200px;
         margin-bottom: 12px;
       }
 
