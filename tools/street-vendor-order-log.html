@@ -235,6 +235,7 @@ Output: Daily sales summary with item counts, revenue, and best seller
     <button class="btn-danger no-print" onclick="confirmNewDay()" style="width:100%; margin-top:8px;">Start New Day</button>
   </div>
 
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <p class="api-note no-print">Callable via <code>window.vendorLog</code> for automation</p>
 </div>
 
@@ -248,6 +249,43 @@ const DAYS_KEY = 'svol_days';
 let menu = [];       // [{ id, name, price }]
 let todayOrders = {};  // { itemId: count }
 let todayDate = getTodayISO();
+
+// ══════════════════════════════════════
+//  INDEXEDDB PERSISTENCE
+// ══════════════════════════════════════
+const IDB_NAME = 'terrapin-vendor';
+const IDB_STORE = 'data';
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbGet(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readonly');
+      var req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  });
+}
+
+function idbSet(key, value) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
 
 function getTodayISO() {
   const d = new Date();
@@ -264,10 +302,13 @@ function friendlyDate(iso) {
 // ══════════════════════════════════════
 function loadMenu() {
   try { menu = JSON.parse(localStorage.getItem(MENU_KEY)) || []; } catch(e) { menu = []; }
+  // Migrate to IndexedDB
+  if (menu.length) { idbSet('menu', menu).catch(function() {}); }
 }
 
 function saveMenu() {
   localStorage.setItem(MENU_KEY, JSON.stringify(menu));
+  idbSet('menu', menu).catch(function() {});
 }
 
 function loadDays() {
@@ -276,12 +317,15 @@ function loadDays() {
 
 function saveDays(days) {
   localStorage.setItem(DAYS_KEY, JSON.stringify(days));
+  idbSet('days', days).catch(function() {});
 }
 
 function loadToday() {
   const days = loadDays();
   todayDate = getTodayISO();
   todayOrders = days[todayDate] || {};
+  // Migrate to IndexedDB
+  idbSet('days', loadDays()).catch(function() {});
 }
 
 function saveToday() {
@@ -750,6 +794,28 @@ document.getElementById('new-item-price').addEventListener('keydown', e => {
   // Load first
   loadMenu();
   loadToday();
+
+  // Load from IndexedDB (async merge)
+  (async function() {
+    try {
+      var idbMenu = await idbGet('menu');
+      if (Array.isArray(idbMenu) && idbMenu.length && !menu.length) {
+        menu = idbMenu;
+        saveMenu();
+        if (document.getElementById('screen-service').classList.contains('active')) { renderGrid(); updateRevenue(); }
+        else renderMenu();
+      }
+    } catch(e) {}
+    try {
+      var idbDays = await idbGet('days');
+      if (idbDays && typeof idbDays === 'object' && Object.keys(idbDays).length) {
+        var currentDays = loadDays();
+        Object.assign(currentDays, idbDays);
+        saveDays(currentDays);
+        todayOrders = currentDays[todayDate] || {};
+      }
+    } catch(e) {}
+  })();
 
   if (action === 'setup') {
     renderMenu();

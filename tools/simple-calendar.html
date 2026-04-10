@@ -180,6 +180,7 @@ Output: Calendar event saved confirmation or upcoming events list
     </div>
   </div>
 
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <p class="api-note">Callable via <code>window.calendar</code> for automation</p>
   <div class="footer"><a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a></div>
 </div>
@@ -232,6 +233,43 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let editingId = null;
 
+// ══════════════════════════════════════
+//  INDEXEDDB PERSISTENCE
+// ══════════════════════════════════════
+const IDB_NAME = 'terrapin-calendar';
+const IDB_STORE = 'data';
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbGet(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readonly');
+      var req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  });
+}
+
+function idbSet(key, value) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
+
 function todayISO() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -247,6 +285,21 @@ async function loadEvents() {
     if (raw) events = JSON.parse(raw);
   } catch(e) { events = []; }
   console.log('Calendar loaded from localStorage:', events.length, 'events');
+
+  // Try IndexedDB
+  try {
+    var idbEvents = await idbGet('main');
+    if (Array.isArray(idbEvents) && idbEvents.length) {
+      idbEvents.forEach(function(ie) {
+        var exists = events.find(function(e) { return e.id === ie.id; });
+        if (!exists) events.push(ie);
+      });
+      console.log('Calendar merged from IndexedDB:', events.length, 'events');
+    }
+  } catch(e) {}
+
+  // Migrate localStorage to IndexedDB
+  if (events.length) { idbSet('main', events).catch(function() {}); }
 
   // Then try agent server
   try {
@@ -271,6 +324,7 @@ async function loadEvents() {
 
 function saveAll() {
   localStorage.setItem(LS_KEY, JSON.stringify(events));
+  idbSet('main', events).catch(function() {});
   console.log('Calendar saved to localStorage:', events.length, 'events');
 
   try {

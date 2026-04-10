@@ -287,6 +287,8 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
     <p class="success-note">Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.</p>
   </div>
 
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:16px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+
 </div>
 
 <script>
@@ -294,6 +296,44 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 //  STATE
 // ══════════════════════════════════════
 const STORAGE_KEY = 'terrapin_business_profile';
+
+// ══════════════════════════════════════
+//  INDEXEDDB PERSISTENCE
+// ══════════════════════════════════════
+const IDB_NAME = 'terrapin-profile';
+const IDB_STORE = 'data';
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbGet(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  });
+}
+
+function idbSet(key, value) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
+
 let logoBase64 = '';
 let staffData = [];
 let clientData = [];
@@ -415,6 +455,7 @@ function saveProfile() {
   if (!data.ownerName) { alert('Please enter your name.'); document.getElementById('f-owner').focus(); return; }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  idbSet('main', data).catch(function() {});
 
   // Persist to agent server ~/.terrapin/
   try {
@@ -532,6 +573,18 @@ function loadExisting() {
 }
 
 function loadFromLocalStorage() {
+  idbGet('main').then(function(data) {
+    if (data && data.businessName) {
+      applyProfile(data);
+    } else {
+      loadFromLocalStorageFallback();
+    }
+  }).catch(function() {
+    loadFromLocalStorageFallback();
+  });
+}
+
+function loadFromLocalStorageFallback() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return;
   try {
@@ -633,6 +686,7 @@ window.bizProfile = {
       savedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    idbSet('main', profile).catch(function() {});
     return structuredClone(profile);
   },
 
@@ -651,6 +705,7 @@ window.bizProfile = {
     p[field] = value;
     p.savedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    idbSet('main', p).catch(function() {});
     return structuredClone(p);
   },
 
@@ -660,6 +715,7 @@ window.bizProfile = {
     p.staff.push({ name, role: role || '' });
     p.savedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    idbSet('main', p).catch(function() {});
     return p.staff;
   },
 
@@ -669,6 +725,7 @@ window.bizProfile = {
     p.clients.push({ name, email: email || '', phone: phone || '' });
     p.savedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    idbSet('main', p).catch(function() {});
     return p.clients;
   },
 
@@ -729,6 +786,14 @@ window.bizProfileReady = Promise.resolve(true);
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
+// Migrate localStorage to IndexedDB on first run
+(function() {
+  var raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { idbSet('main', JSON.parse(raw)).catch(function() {}); } catch(e) {}
+  }
+})();
+
 loadExisting();
 renderStaffRows();
 renderClientRows();

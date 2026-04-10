@@ -171,6 +171,8 @@ Output: Contact list with follow-up tracking, JSON export
     <small>Click "+ New contact" to add your first one</small>
   </div>
 
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+
   <!-- Data bar -->
   <div class="data-bar">
     <button onclick="exportJSON()">Export JSON</button>
@@ -218,6 +220,44 @@ Output: Contact list with follow-up tracking, JSON export
 //  STATE
 // ══════════════════════════════════════
 const STORAGE_KEY = 'scrm_contacts';
+
+// ══════════════════════════════════════
+//  INDEXEDDB PERSISTENCE
+// ══════════════════════════════════════
+const IDB_NAME = 'terrapin-crm';
+const IDB_STORE = 'data';
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbGet(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readonly');
+      var req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  });
+}
+
+function idbSet(key, value) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
+
 let contacts = [];
 let editingId = null;
 
@@ -226,6 +266,9 @@ let editingId = null;
 // ══════════════════════════════════════
 function init() {
   loadContacts();
+  // Migrate localStorage to IndexedDB
+  if (contacts.length) { idbSet('main', contacts).catch(function() {}); }
+  loadContactsFromIDB();
   renderContacts();
   loadContactsFromServer(); // async — will re-render when server data arrives
 }
@@ -235,6 +278,20 @@ function loadContacts() {
   if (saved) {
     try { contacts = JSON.parse(saved); } catch(e) { contacts = []; }
   }
+}
+
+async function loadContactsFromIDB() {
+  try {
+    var idbContacts = await idbGet('main');
+    if (Array.isArray(idbContacts) && idbContacts.length) {
+      idbContacts.forEach(function(ic) {
+        var exists = contacts.find(function(c) { return c.id === ic.id; });
+        if (!exists) contacts.push(ic);
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+      renderContacts();
+    }
+  } catch(e) {}
 }
 
 async function loadContactsFromServer() {
@@ -268,6 +325,7 @@ async function loadContactsFromServer() {
 
 function saveAll() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  idbSet('main', contacts).catch(function() {});
   // Persist to agent server ~/.terrapin/
   try {
     fetch('http://localhost:7777/data/crm', {

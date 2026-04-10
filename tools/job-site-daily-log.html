@@ -227,6 +227,7 @@ Output: Dated PDF log entry saved to localStorage
     </div>
   </div>
 
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <p class="api-note">Callable via <code>window.jobLog</code> for automation</p>
 </div>
 
@@ -238,6 +239,43 @@ const STORAGE_KEY = 'jsdl_entries';
 let entries = [];
 let editingId = null;
 let selectedWeather = '';
+
+// ══════════════════════════════════════
+//  INDEXEDDB PERSISTENCE
+// ══════════════════════════════════════
+const IDB_NAME = 'terrapin-joblog';
+const IDB_STORE = 'data';
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbGet(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readonly');
+      var req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror = function() { reject(req.error); };
+    });
+  });
+}
+
+function idbSet(key, value) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  });
+}
 
 function getTodayISO() {
   const d = new Date();
@@ -255,6 +293,23 @@ function friendlyDate(iso) {
 // ══════════════════════════════════════
 function load() {
   try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { entries = []; }
+}
+
+async function loadFromIDB() {
+  try {
+    var idbEntries = await idbGet('main');
+    if (Array.isArray(idbEntries) && idbEntries.length) {
+      idbEntries.forEach(function(ie) {
+        var exists = entries.find(function(e) { return e.id === ie.id; });
+        if (!exists) entries.push(ie);
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      renderList();
+      console.log('Logs merged from IndexedDB:', entries.length, 'entries');
+    }
+  } catch(e) {}
+  // Migrate localStorage to IndexedDB
+  if (entries.length) { idbSet('main', entries).catch(function() {}); }
 }
 
 async function loadFromServer() {
@@ -283,6 +338,7 @@ async function loadFromServer() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  idbSet('main', entries).catch(function() {});
   // Persist each entry to agent server ~/.terrapin/daily-logs/
   try {
     entries.forEach(function(entry) {
@@ -820,6 +876,7 @@ window.jobLogReady = Promise.resolve(true);
     }
   } else {
     renderList();
+    loadFromIDB();
     loadFromServer();
   }
 })();
