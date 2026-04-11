@@ -66,54 +66,58 @@
     .page-header p { font-size: 16px; }
     .step { padding: 20px; }
   }
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
 
   <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
 
   <div class="page-header">
-    <h1>Unlock the Terrapin Agent</h1>
-    <p>Talk to your tools in plain English. Everything runs on your computer.</p>
+    <h1 data-i18n="h1">Unlock the Terrapin Agent</h1>
+    <p data-i18n="sub">Talk to your tools in plain English. Everything runs on your computer.</p>
   </div>
 
   <!-- ONE COMMAND SETUP -->
   <div class="step" style="border-color:#C9A84C;">
-    <div class="step-label">One command setup</div>
-    <h2>Paste this into Terminal</h2>
+    <div class="step-label" data-i18n="auto_label">One command setup</div>
+    <h2 data-i18n="auto_h2">Paste this into Terminal</h2>
     <div class="cmd-block">
       <code>curl -fsSL https://terrapin.tools/install.sh | bash</code>
       <button class="copy-btn" onclick="copyCmd(this, 'curl -fsSL https://terrapin.tools/install.sh | bash')">Copy</button>
     </div>
-    <p style="font-size:13px;color:#6B6B6B;">Or follow the manual steps below if you prefer.</p>
+    <p style="font-size:13px;color:#6B6B6B;" data-i18n="auto_hint">Or follow the manual steps below if you prefer.</p>
   </div>
 
   <!-- STEP 1 -->
   <div class="step">
-    <div class="step-label">Step 1</div>
-    <h2>Download Ollama</h2>
-    <p>Ollama runs AI on your computer. Download it at ollama.com &mdash; installs like any app.</p>
-    <a href="https://ollama.com/download" target="_blank" class="big-btn">Download Ollama &rarr;</a>
+    <div class="step-label" data-i18n="s1_label">Step 1</div>
+    <h2 data-i18n="s1_h2">Download Ollama</h2>
+    <p data-i18n="s1_p">Ollama runs AI on your computer. Download it at ollama.com &mdash; installs like any app.</p>
+    <a href="https://ollama.com/download" target="_blank" class="big-btn" data-i18n="s1_btn">Download Ollama &rarr;</a>
   </div>
 
   <!-- STEP 2 -->
   <div class="step">
-    <div class="step-label">Step 2</div>
-    <h2>Open Terminal and run one command</h2>
-    <p>Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.</p>
+    <div class="step-label" data-i18n="s2_label">Step 2</div>
+    <h2 data-i18n="s2_h2">Open Terminal and run one command</h2>
+    <p data-i18n="s2_p1">Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.</p>
     <div class="cmd-block">
       <code>ollama pull gemma4</code>
       <button class="copy-btn" onclick="copyCmd(this, 'ollama pull gemma4')">Copy</button>
     </div>
-    <p>This downloads your AI brain &mdash; about 5GB, like downloading a movie. Takes a few minutes.</p>
+    <p data-i18n="s2_p2">This downloads your AI brain &mdash; about 5GB, like downloading a movie. Takes a few minutes.</p>
   </div>
 
   <!-- STEP 3 -->
   <div class="step">
-    <div class="step-label">Step 3</div>
-    <h2>Start Terrapin</h2>
-    <p>Open Terminal and run these two commands &mdash; one in each tab:</p>
+    <div class="step-label" data-i18n="s3_label">Step 3</div>
+    <h2 data-i18n="s3_h2">Start Terrapin</h2>
+    <p data-i18n="s3_p1">Open Terminal and run these two commands &mdash; one in each tab:</p>
     <div class="cmd-block">
       <code>npm run agent</code>
       <button class="copy-btn" onclick="copyCmd(this, 'npm run agent')">Copy</button>
@@ -122,12 +126,12 @@
       <code>npm run serve</code>
       <button class="copy-btn" onclick="copyCmd(this, 'npm run serve')">Copy</button>
     </div>
-    <p>Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.</p>
+    <p data-i18n="s3_p2">Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.</p>
   </div>
 
   <div class="reassurance">
-    <p>Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.</p>
-    <p class="small">Requires a Mac with 8GB RAM or more. Windows support coming soon.</p>
+    <p data-i18n="reassure">Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.</p>
+    <p class="small" data-i18n="req">Requires a Mac with 8GB RAM or more. Windows support coming soon.</p>
   </div>
 
   <div class="page-footer">
@@ -137,6 +141,53 @@
 </div>
 
 <script>
+const T = {
+  en: {
+    h1: 'Unlock the Terrapin Agent',
+    sub: 'Talk to your tools in plain English. Everything runs on your computer.',
+    s1_label: 'Step 1', s1_h2: 'Download Ollama', s1_p: 'Ollama runs AI on your computer. Download it at ollama.com \u2014 installs like any app.',
+    s1_btn: 'Download Ollama \u2192',
+    s2_label: 'Step 2', s2_h2: 'Open Terminal and run one command', s2_p1: 'Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.',
+    s2_p2: 'This downloads your AI brain \u2014 about 5GB, like downloading a movie. Takes a few minutes.',
+    s3_label: 'Step 3', s3_h2: 'Start Terrapin', s3_p1: 'Open Terminal and run these two commands \u2014 one in each tab:',
+    s3_p2: 'Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.',
+    reassure: 'Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.',
+    req: 'Requires a Mac with 8GB RAM or more. Windows support coming soon.',
+    auto_label: 'One command setup', auto_h2: 'Paste this into Terminal',
+    auto_hint: 'Or follow the manual steps below if you prefer.'
+  },
+  es: {
+    h1: 'Activa el Agente Terrapin',
+    sub: 'Habla con tus herramientas en espa\u00f1ol. Todo funciona en tu computadora.',
+    s1_label: 'Paso 1', s1_h2: 'Descarga Ollama', s1_p: 'Ollama ejecuta IA en tu computadora. Desc\u00e1rgalo en ollama.com \u2014 se instala como cualquier app.',
+    s1_btn: 'Descargar Ollama \u2192',
+    s2_label: 'Paso 2', s2_h2: 'Abre Terminal y ejecuta un comando', s2_p1: 'Terminal es una app que ya tienes en tu Mac. Presiona <strong>Command + Espacio</strong>, escribe <strong>Terminal</strong>, presiona Enter.',
+    s2_p2: 'Esto descarga tu cerebro de IA \u2014 unos 5GB, como descargar una pel\u00edcula. Toma unos minutos.',
+    s3_label: 'Paso 3', s3_h2: 'Inicia Terrapin', s3_p1: 'Abre Terminal y ejecuta estos dos comandos \u2014 uno en cada pesta\u00f1a:',
+    s3_p2: 'Luego ve a <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> y los dos puntos estar\u00e1n verdes.',
+    reassure: 'Todo funciona en tu computadora. Nada va a la nube. Tus datos nunca salen de tu m\u00e1quina.',
+    req: 'Requiere una Mac con 8GB de RAM o m\u00e1s. Soporte para Windows pr\u00f3ximamente.',
+    auto_label: 'Configuraci\u00f3n con un comando', auto_h2: 'Pega esto en Terminal',
+    auto_hint: 'O sigue los pasos manuales abajo si prefieres.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+  document.documentElement.lang = lang;
+}
+// Auto-detect
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
+
 function copyCmd(btn, text) {
   navigator.clipboard.writeText(text).then(function() {
     const orig = btn.textContent;

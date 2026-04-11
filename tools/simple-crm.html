@@ -159,6 +159,10 @@ Output: Contact list with follow-up tracking, JSON export
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 520px) {
     .row { grid-template-columns: 1fr; }
     .toolbar { flex-direction: column; }
@@ -167,18 +171,19 @@ Output: Contact list with follow-up tracking, JSON export
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>Simple CRM</h1>
-    <p>Your contacts and follow-ups — all in one place</p>
+    <h1 data-i18n="h1">Simple CRM</h1>
+    <p data-i18n="sub">Your contacts and follow-ups — all in one place</p>
   </div>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <input type="text" class="toolbar-search" id="search-box" placeholder="Search contacts..." oninput="renderContacts()">
-    <button class="toolbar-btn btn-primary" onclick="openNew()">+ New contact</button>
+    <input type="text" class="toolbar-search" id="search-box" placeholder="Search contacts..." data-i18n="search" oninput="renderContacts()">
+    <button class="toolbar-btn btn-primary" onclick="openNew()" data-i18n="new_btn">+ New contact</button>
   </div>
 
   <!-- Follow-ups today -->
@@ -189,20 +194,20 @@ Output: Contact list with follow-up tracking, JSON export
 
   <!-- Empty state -->
   <div id="empty-state" class="empty" style="display:none">
-    <p>No contacts yet</p>
-    <small>Click "+ New contact" to add your first one</small>
+    <p data-i18n="empty">No contacts yet</p>
+    <small data-i18n="empty_sub">Click "+ New contact" to add your first one</small>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
 
   <!-- Data bar -->
   <div class="io-bar" style="justify-content:center;margin-top:1rem;">
-    <button class="io-btn" onclick="openImportModal()">Import Contacts</button>
-    <button class="io-btn" onclick="exportCSV()">Export CSV</button>
-    <button class="io-btn" onclick="exportJSON()">Export JSON</button>
+    <button class="io-btn" onclick="openImportModal()" data-i18n="import_btn">Import Contacts</button>
+    <button class="io-btn" onclick="exportCSV()" data-i18n="export_csv">Export CSV</button>
+    <button class="io-btn" onclick="exportJSON()" data-i18n="export_json">Export JSON</button>
   </div>
   <!-- API: window.crm -->
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <!-- IMPORT MODAL -->
@@ -246,28 +251,28 @@ Output: Contact list with follow-up tracking, JSON export
 <div class="modal-overlay" id="modal-overlay" onclick="closeModalOverlay(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title">
-      <span id="modal-title-text">New Contact</span>
+      <span id="modal-title-text" data-i18n="modal_new">New Contact</span>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="row">
-      <div class="field"><label>Contact name</label><input type="text" id="f-name" placeholder="e.g. Jane Smith"></div>
-      <div class="field"><label>Business name</label><input type="text" id="f-biz" placeholder="e.g. Smith & Co"></div>
+      <div class="field"><label data-i18n="name">Contact name</label><input type="text" id="f-name" placeholder="e.g. Jane Smith"></div>
+      <div class="field"><label data-i18n="biz">Business name</label><input type="text" id="f-biz" placeholder="e.g. Smith & Co"></div>
     </div>
     <div class="row">
-      <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
-      <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="jane@example.com"></div>
+      <div class="field"><label data-i18n="phone">Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
+      <div class="field"><label data-i18n="email">Email</label><input type="email" id="f-email" placeholder="jane@example.com"></div>
     </div>
     <div class="row">
-      <div class="field"><label>Last contacted</label><input type="date" id="f-last"></div>
-      <div class="field"><label>Next follow-up</label><input type="date" id="f-followup"></div>
+      <div class="field"><label data-i18n="last">Last contacted</label><input type="date" id="f-last"></div>
+      <div class="field"><label data-i18n="followup">Next follow-up</label><input type="date" id="f-followup"></div>
     </div>
     <div class="field">
-      <label>Notes</label>
+      <label data-i18n="notes">Notes</label>
       <textarea id="f-notes" placeholder="Anything you want to remember about this contact..."></textarea>
     </div>
     <div class="modal-actions">
-      <button class="toolbar-btn btn-primary" id="modal-save-btn" onclick="saveContact()">Save contact</button>
-      <button class="btn-danger" id="modal-delete-btn" onclick="deleteContact()" style="display:none">Delete</button>
+      <button class="toolbar-btn btn-primary" id="modal-save-btn" onclick="saveContact()" data-i18n="save_contact">Save contact</button>
+      <button class="btn-danger" id="modal-delete-btn" onclick="deleteContact()" style="display:none" data-i18n="delete_btn">Delete</button>
     </div>
   </div>
 </div>
@@ -1047,6 +1052,41 @@ init();
     window._terrapinProfile = profile;
   } catch(e) {}
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Simple CRM', sub: 'Your contacts and follow-ups \u2014 all in one place',
+    search: 'Search contacts...', new_btn: '+ New contact', modal_new: 'New Contact', modal_edit: 'Edit Contact',
+    save_contact: 'Save contact', update_contact: 'Update contact', delete_btn: 'Delete',
+    name: 'Contact name', biz: 'Business name', last: 'Last contacted', followup: 'Next follow-up', notes: 'Notes',
+    import_btn: 'Import Contacts', export_csv: 'Export CSV', export_json: 'Export JSON',
+    empty: 'No contacts yet', empty_sub: 'Click "+ New contact" to add your first one',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'CRM Simple', sub: 'Tus contactos y seguimientos \u2014 todo en un lugar',
+    search: 'Buscar contactos...', new_btn: '+ Nuevo contacto', modal_new: 'Nuevo Contacto', modal_edit: 'Editar Contacto',
+    save_contact: 'Guardar contacto', update_contact: 'Actualizar contacto', delete_btn: 'Eliminar',
+    name: 'Nombre del contacto', biz: 'Nombre del negocio', last: '\u00daltimo contacto', followup: 'Pr\u00f3ximo seguimiento', notes: 'Notas',
+    import_btn: 'Importar Contactos', export_csv: 'Exportar CSV', export_json: 'Exportar JSON',
+    empty: 'Sin contactos a\u00fan', empty_sub: 'Haz clic en "+ Nuevo contacto" para agregar el primero',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

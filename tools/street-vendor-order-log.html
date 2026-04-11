@@ -160,6 +160,10 @@ Output: Daily sales summary with item counts, revenue, and best seller
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 480px) {
     .summary-stats { grid-template-columns: 1fr; }
     .revenue-bar .rev-amount { font-size: 26px; }
@@ -173,28 +177,29 @@ Output: Daily sales summary with item counts, revenue, and best seller
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>Street Vendor Order Log</h1>
-    <p>Tap to log orders. See your daily totals. No POS needed.</p>
+    <h1 data-i18n="h1">Street Vendor Order Log</h1>
+    <p data-i18n="sub">Tap to log orders. See your daily totals. No POS needed.</p>
   </div>
 
   <!-- ══════════ SETUP SCREEN ══════════ -->
   <div class="screen active" id="screen-setup">
     <div class="card">
-      <div class="card-title">Your Menu</div>
-      <p style="font-size:14px; color:#6B6B6B; margin-bottom:14px;">Add your items and prices. This saves on your device — you only do it once.</p>
+      <div class="card-title" data-i18n="menu_title">Your Menu</div>
+      <p style="font-size:14px; color:#6B6B6B; margin-bottom:14px;" data-i18n="menu_hint">Add your items and prices. This saves on your device — you only do it once.</p>
       <div class="menu-add-row">
-        <input type="text" id="new-item-name" placeholder="Item name (e.g. Al Pastor Taco)">
-        <input type="number" id="new-item-price" placeholder="Price" min="0" step="0.25">
-        <button class="btn-primary" onclick="addMenuItem()" style="padding:10px 16px; font-size:14px;">Add</button>
+        <input type="text" id="new-item-name" placeholder="Item name (e.g. Al Pastor Taco)" data-i18n="item_name">
+        <input type="number" id="new-item-price" placeholder="Price" min="0" step="0.25" data-i18n="price">
+        <button class="btn-primary" onclick="addMenuItem()" style="padding:10px 16px; font-size:14px;" data-i18n="add">Add</button>
       </div>
       <div id="menu-list"></div>
     </div>
     <div class="setup-actions">
-      <button class="btn-primary" id="start-service-btn" onclick="startService()" style="width:100%;">Start Taking Orders</button>
+      <button class="btn-primary" id="start-service-btn" onclick="startService()" style="width:100%;" data-i18n="start">Start Taking Orders</button>
     </div>
   </div>
 
@@ -202,7 +207,7 @@ Output: Daily sales summary with item counts, revenue, and best seller
   <div class="screen" id="screen-service">
     <div class="revenue-bar">
       <div>
-        <div class="rev-label">Today's Revenue</div>
+        <div class="rev-label" data-i18n="revenue">Today's Revenue</div>
         <div class="rev-amount" id="live-revenue">$0.00</div>
       </div>
       <div>
@@ -211,33 +216,33 @@ Output: Daily sales summary with item counts, revenue, and best seller
     </div>
     <div class="item-grid" id="item-grid"></div>
     <div class="service-actions">
-      <button class="btn-secondary no-print" onclick="showSetup()">Edit Menu</button>
-      <button class="btn-primary no-print" onclick="endDay()">End of Day Summary</button>
+      <button class="btn-secondary no-print" onclick="showSetup()" data-i18n="edit_menu">Edit Menu</button>
+      <button class="btn-primary no-print" onclick="endDay()" data-i18n="end_day">End of Day Summary</button>
     </div>
   </div>
 
   <!-- ══════════ SUMMARY SCREEN ══════════ -->
   <div class="screen" id="screen-summary">
     <div class="summary-header">
-      <h2>End of Day Summary</h2>
+      <h2 data-i18n="summary_h2">End of Day Summary</h2>
       <p id="summary-date"></p>
     </div>
     <div class="summary-stats" id="summary-stats"></div>
     <div id="best-seller-section"></div>
     <div class="card">
-      <div class="card-title">Item Breakdown</div>
+      <div class="card-title" data-i18n="breakdown">Item Breakdown</div>
       <div class="item-breakdown" id="item-breakdown"></div>
     </div>
     <div class="summary-actions">
-      <button class="btn-secondary no-print" onclick="backToService()">Back to Orders</button>
-      <button class="btn-primary" onclick="generatePDF()">Download PDF Summary</button>
+      <button class="btn-secondary no-print" onclick="backToService()" data-i18n="back_orders">Back to Orders</button>
+      <button class="btn-primary" onclick="generatePDF()" data-i18n="dl_pdf">Download PDF Summary</button>
     </div>
-    <button class="btn-danger no-print" onclick="confirmNewDay()" style="width:100%; margin-top:8px;">Start New Day</button>
+    <button class="btn-danger no-print" onclick="confirmNewDay()" style="width:100%; margin-top:8px;" data-i18n="new_day">Start New Day</button>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <!-- API: window.vendorLog -->
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <script>
@@ -860,6 +865,43 @@ document.getElementById('new-item-price').addEventListener('keydown', e => {
     window._terrapinProfile = profile;
   } catch(e) {}
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Street Vendor Order Log', sub: 'Tap to log orders. See your daily totals. No POS needed.',
+    menu_title: 'Your Menu', menu_hint: 'Add your items and prices. This saves on your device \u2014 you only do it once.',
+    item_name: 'Item name (e.g. Al Pastor Taco)', price: 'Price', add: 'Add', start: 'Start Taking Orders',
+    revenue: "Today's Revenue", orders: 'orders', edit_menu: 'Edit Menu', end_day: 'End of Day Summary',
+    summary_h2: 'End of Day Summary', best: 'Best Seller', breakdown: 'Item Breakdown',
+    back_orders: 'Back to Orders', dl_pdf: 'Download PDF Summary', new_day: 'Start New Day',
+    revenue_label: "Today's Revenue", items_sold: 'Items Sold', avg: 'Avg / Order',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Registro de Pedidos', sub: 'Toca para registrar pedidos. Ve tus totales diarios. Sin POS.',
+    menu_title: 'Tu Men\u00fa', menu_hint: 'Agrega tus productos y precios. Se guardan en tu dispositivo \u2014 solo lo haces una vez.',
+    item_name: 'Nombre del producto (ej. Taco al Pastor)', price: 'Precio', add: 'Agregar', start: 'Empezar a Tomar Pedidos',
+    revenue: 'Ingresos de Hoy', orders: 'pedidos', edit_menu: 'Editar Men\u00fa', end_day: 'Resumen del D\u00eda',
+    summary_h2: 'Resumen del D\u00eda', best: 'M\u00e1s Vendido', breakdown: 'Desglose por Producto',
+    back_orders: 'Volver a Pedidos', dl_pdf: 'Descargar Resumen PDF', new_day: 'Nuevo D\u00eda',
+    revenue_label: 'Ingresos de Hoy', items_sold: 'Productos Vendidos', avg: 'Promedio / Pedido',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

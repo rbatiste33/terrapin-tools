@@ -102,6 +102,10 @@ Output: Professional PDF invoice with line items, tax, and totals
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 600px) {
     .row { grid-template-columns: 1fr; }
     .row.three { grid-template-columns: 1fr 1fr; }
@@ -110,23 +114,24 @@ Output: Professional PDF invoice with line items, tax, and totals
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>Invoice Generator</h1>
-    <p>Fill in the details, generate a professional PDF</p>
+    <h1 data-i18n="h1">Invoice Generator</h1>
+    <p data-i18n="sub">Fill in the details, generate a professional PDF</p>
   </div>
 
   <!-- YOUR BUSINESS -->
   <div class="card">
-    <div class="card-title">Your business</div>
+    <div class="card-title" data-i18n="biz_title">Your business</div>
     <div class="field">
-      <label>Business name</label>
+      <label data-i18n="biz_name">Business name</label>
       <input type="text" id="biz-name" placeholder="e.g. Smith Contracting LLC">
     </div>
     <div class="field">
-      <label>Logo (optional)</label>
+      <label data-i18n="logo">Logo (optional)</label>
       <div class="logo-zone" id="logo-zone">
         <div id="logo-preview"></div>
         <p id="logo-placeholder">Click or drag to upload your logo</p>
@@ -134,59 +139,59 @@ Output: Professional PDF invoice with line items, tax, and totals
       </div>
     </div>
     <div class="field">
-      <label>Business address</label>
+      <label data-i18n="biz_addr">Business address</label>
       <textarea id="biz-address" rows="2" placeholder="123 Main St&#10;Anytown, TX 75001"></textarea>
     </div>
     <div class="row">
-      <div class="field"><label>Phone</label><input type="text" id="biz-phone" placeholder="(555) 123-4567"></div>
-      <div class="field"><label>Email</label><input type="email" id="biz-email" placeholder="you@business.com"></div>
+      <div class="field"><label data-i18n="phone">Phone</label><input type="text" id="biz-phone" placeholder="(555) 123-4567"></div>
+      <div class="field"><label data-i18n="email">Email</label><input type="email" id="biz-email" placeholder="you@business.com"></div>
     </div>
   </div>
 
   <!-- CLIENT INFO -->
   <div class="card">
-    <div class="card-title">Client</div>
+    <div class="card-title" data-i18n="client_title">Client</div>
     <div class="field">
-      <label>Client name</label>
+      <label data-i18n="client_name">Client name</label>
       <input type="text" id="client-name" placeholder="e.g. Jane Doe">
     </div>
     <div class="field">
-      <label>Client address</label>
+      <label data-i18n="client_addr">Client address</label>
       <textarea id="client-address" rows="2" placeholder="456 Oak Ave&#10;Othertown, TX 75002"></textarea>
     </div>
   </div>
 
   <!-- INVOICE DETAILS -->
   <div class="card">
-    <div class="card-title">Invoice details</div>
+    <div class="card-title" data-i18n="invoice_title">Invoice details</div>
     <div class="row three">
-      <div class="field"><label>Invoice #</label><input type="text" id="inv-number" placeholder="INV-001"></div>
-      <div class="field"><label>Invoice date</label><input type="date" id="inv-date"></div>
-      <div class="field"><label>Due date</label><input type="date" id="inv-due"></div>
+      <div class="field"><label data-i18n="inv_num">Invoice #</label><input type="text" id="inv-number" placeholder="INV-001"></div>
+      <div class="field"><label data-i18n="inv_date">Invoice date</label><input type="date" id="inv-date"></div>
+      <div class="field"><label data-i18n="due_date">Due date</label><input type="date" id="inv-due"></div>
     </div>
     <div class="field">
-      <label>Job description</label>
+      <label data-i18n="job_desc">Job description</label>
       <textarea id="job-desc" rows="2" placeholder="e.g. Kitchen remodel — full demolition and cabinet installation"></textarea>
     </div>
   </div>
 
   <!-- LINE ITEMS -->
   <div class="card">
-    <div class="card-title">Line items</div>
+    <div class="card-title" data-i18n="items_title">Line items</div>
 
-    <div class="section-label">Labor</div>
+    <div class="section-label" data-i18n="labor">Labor</div>
     <div class="line-header">
       <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span>
     </div>
     <div id="labor-rows"></div>
-    <button class="add-line-btn" onclick="addLine('labor')">+ Add labor item</button>
+    <button class="add-line-btn" data-i18n="add_labor" onclick="addLine('labor')">+ Add labor item</button>
 
-    <div class="section-label" style="margin-top:20px">Materials</div>
+    <div class="section-label" style="margin-top:20px" data-i18n="materials">Materials</div>
     <div class="line-header">
       <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span>
     </div>
     <div id="materials-rows"></div>
-    <button class="add-line-btn" onclick="addLine('materials')">+ Add material item</button>
+    <button class="add-line-btn" data-i18n="add_material" onclick="addLine('materials')">+ Add material item</button>
 
     <!-- Totals -->
     <div class="totals" id="totals-section">
@@ -194,7 +199,7 @@ Output: Professional PDF invoice with line items, tax, and totals
       <div class="total-row"><span>Materials subtotal</span><span id="materials-sub">$0.00</span></div>
       <div class="total-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
       <div class="total-row">
-        <span>Tax</span>
+        <span data-i18n="tax">Tax</span>
         <div class="tax-input-row">
           <input type="number" id="tax-rate" value="0" min="0" step="0.25" oninput="recalc()">
           <span>%</span>
@@ -207,10 +212,10 @@ Output: Professional PDF invoice with line items, tax, and totals
 
   <!-- PAYMENT & NOTES -->
   <div class="card">
-    <div class="card-title">Payment & notes</div>
+    <div class="card-title" data-i18n="payment_title">Payment & notes</div>
     <div class="row">
       <div class="field">
-        <label>Payment terms</label>
+        <label data-i18n="terms">Payment terms</label>
         <select id="pay-terms" onchange="handleTermsChange()">
           <option value="Due on receipt">Due on receipt</option>
           <option value="Net 15">Net 15</option>
@@ -221,20 +226,20 @@ Output: Professional PDF invoice with line items, tax, and totals
         <input type="text" id="pay-terms-custom" placeholder="Enter custom terms" style="display:none;margin-top:6px">
       </div>
       <div class="field">
-        <label>Payment methods</label>
+        <label data-i18n="methods">Payment methods</label>
         <input type="text" id="pay-methods" placeholder="e.g. Check, Zelle, Cash">
       </div>
     </div>
     <div class="field">
-      <label>Notes (optional)</label>
+      <label data-i18n="notes">Notes (optional)</label>
       <textarea id="notes" rows="2" placeholder="e.g. Thank you for your business!"></textarea>
     </div>
   </div>
 
-  <button class="generate-btn" id="gen-btn" onclick="handleGenerate()">Generate PDF Invoice</button>
+  <button class="generate-btn" id="gen-btn" data-i18n="generate" onclick="handleGenerate()">Generate PDF Invoice</button>
   <!-- API: window.generateInvoice(data) -->
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" data-i18n="footer" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <script>
@@ -1033,6 +1038,43 @@ init();
   }
   if (params.get('tax_rate')) recalc();
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Invoice Generator', sub: 'Fill in the details, generate a professional PDF',
+    biz_title: 'Your business', client_title: 'Client', invoice_title: 'Invoice details', items_title: 'Line items',
+    biz_name: 'Business name', logo: 'Logo (optional)', biz_addr: 'Business address', phone: 'Phone', email: 'Email',
+    client_name: 'Client name', client_addr: 'Client address', inv_num: 'Invoice #', inv_date: 'Invoice date',
+    due_date: 'Due date', job_desc: 'Job description', labor: 'Labor', materials: 'Materials',
+    add_labor: '+ Add labor item', add_material: '+ Add material item', tax: 'Tax', generate: 'Generate PDF Invoice',
+    payment_title: 'Payment', terms: 'Payment terms', methods: 'Payment methods', notes: 'Notes (optional)',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Generador de Facturas', sub: 'Completa los datos, genera un PDF profesional',
+    biz_title: 'Tu negocio', client_title: 'Cliente', invoice_title: 'Detalles de factura', items_title: 'L\u00edneas de art\u00edculos',
+    biz_name: 'Nombre del negocio', logo: 'Logo (opcional)', biz_addr: 'Direcci\u00f3n del negocio', phone: 'Tel\u00e9fono', email: 'Correo',
+    client_name: 'Nombre del cliente', client_addr: 'Direcci\u00f3n del cliente', inv_num: 'Factura #', inv_date: 'Fecha de factura',
+    due_date: 'Fecha de vencimiento', job_desc: 'Descripci\u00f3n del trabajo', labor: 'Mano de Obra', materials: 'Materiales',
+    add_labor: '+ Agregar mano de obra', add_material: '+ Agregar material', tax: 'Impuesto', generate: 'Generar Factura PDF',
+    payment_title: 'Pago', terms: 'T\u00e9rminos de pago', methods: 'M\u00e9todos de pago', notes: 'Notas (opcional)',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 
 // ══════════════════════════════════════
 //  BUSINESS PROFILE PRE-FILL (human path)

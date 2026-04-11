@@ -142,6 +142,10 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 520px) {
     .row { grid-template-columns: 1fr; }
     .row.three { grid-template-columns: 1fr; }
@@ -152,6 +156,7 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
@@ -159,12 +164,12 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 </div>
 
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <div class="alpha-badge">Start Here</div>
-    <h1>Business Profile</h1>
-    <p>Set up once — every Terrapin tool reads this</p>
+    <div class="alpha-badge" data-i18n="badge">Start Here</div>
+    <h1 data-i18n="h1">Business Profile</h1>
+    <p data-i18n="sub">Set up once — every Terrapin tool reads this</p>
   </div>
 
   <!-- ══════════ FORM SCREEN ══════════ -->
@@ -172,17 +177,17 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 
     <div class="note-banner">
       <span class="note-icon">&#128209;</span>
-      <div><strong>Save your business.md file somewhere easy to find.</strong> The Terrapin agent will need to read it.</div>
+      <div data-i18n="note"><strong>Save your business.md file somewhere easy to find.</strong> The Terrapin agent will need to read it.</div>
     </div>
 
     <!-- Business basics -->
     <div class="card">
-      <div class="card-title">Business Basics</div>
-      <div class="field"><label>Business name</label><input type="text" id="f-bizname" placeholder="e.g. Smith Contracting LLC"></div>
+      <div class="card-title" data-i18n="basics">Business Basics</div>
+      <div class="field"><label data-i18n="biz_name">Business name</label><input type="text" id="f-bizname" placeholder="e.g. Smith Contracting LLC"></div>
       <div class="row">
-        <div class="field"><label>Owner name</label><input type="text" id="f-owner" placeholder="e.g. John Smith"></div>
+        <div class="field"><label data-i18n="owner">Owner name</label><input type="text" id="f-owner" placeholder="e.g. John Smith"></div>
         <div class="field">
-          <label>Business type</label>
+          <label data-i18n="biz_type">Business type</label>
           <select id="f-type">
             <option value="">Select...</option>
             <option value="Contractor">Contractor</option>
@@ -196,23 +201,23 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
           </select>
         </div>
       </div>
-      <div class="field"><label>Tagline or business description (optional)</label><textarea id="f-tagline" rows="2" placeholder="What does your business do? One or two sentences."></textarea></div>
+      <div class="field"><label data-i18n="tagline_label">Tagline or business description (optional)</label><textarea id="f-tagline" rows="2" placeholder="What does your business do? One or two sentences."></textarea></div>
     </div>
 
     <!-- Contact info -->
     <div class="card">
-      <div class="card-title">Contact Info</div>
-      <div class="field"><label>Address</label><input type="text" id="f-address" placeholder="123 Main St, Anytown TX 75001"></div>
+      <div class="card-title" data-i18n="contact">Contact Info</div>
+      <div class="field"><label data-i18n="address">Address</label><input type="text" id="f-address" placeholder="123 Main St, Anytown TX 75001"></div>
       <div class="row">
-        <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
-        <div class="field"><label>Email</label><input type="email" id="f-email" placeholder="you@business.com"></div>
+        <div class="field"><label data-i18n="phone">Phone</label><input type="tel" id="f-phone" placeholder="(555) 123-4567"></div>
+        <div class="field"><label data-i18n="email">Email</label><input type="email" id="f-email" placeholder="you@business.com"></div>
       </div>
-      <div class="field"><label>Website (optional)</label><input type="url" id="f-website" placeholder="https://yourbusiness.com"></div>
+      <div class="field"><label data-i18n="website">Website (optional)</label><input type="url" id="f-website" placeholder="https://yourbusiness.com"></div>
     </div>
 
     <!-- Logo -->
     <div class="card">
-      <div class="card-title">Logo (Optional)</div>
+      <div class="card-title" data-i18n="logo_title">Logo (Optional)</div>
       <div class="logo-zone" id="logo-zone">
         <div id="logo-preview"></div>
         <p id="logo-placeholder">Click or drag to upload your logo</p>
@@ -222,14 +227,14 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 
     <!-- Financial -->
     <div class="card">
-      <div class="card-title">Financial Defaults</div>
+      <div class="card-title" data-i18n="financial">Financial Defaults</div>
       <div class="row three">
         <div class="field">
-          <label>Tax rate %</label>
+          <label data-i18n="tax">Tax rate %</label>
           <input type="number" id="f-tax" placeholder="8.25" min="0" max="100" step="0.01">
         </div>
         <div class="field">
-          <label>Payment terms</label>
+          <label data-i18n="terms">Payment terms</label>
           <select id="f-terms">
             <option value="Due on receipt">Due on receipt</option>
             <option value="Net 15">Net 15</option>
@@ -238,7 +243,7 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
           </select>
         </div>
         <div class="field">
-          <label>Default hourly rate (optional)</label>
+          <label data-i18n="rate">Default hourly rate (optional)</label>
           <input type="number" id="f-rate" placeholder="75" min="0" step="0.50">
         </div>
       </div>
@@ -250,7 +255,7 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 
     <!-- Staff -->
     <div class="card">
-      <div class="card-title">Staff Members (Optional)</div>
+      <div class="card-title" data-i18n="staff_title">Staff Members (Optional)</div>
       <div class="repeater-header staff-row">
         <span>Name</span><span>Role</span><span></span>
       </div>
@@ -260,7 +265,7 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
 
     <!-- Regular Clients -->
     <div class="card">
-      <div class="card-title">Regular Clients (Optional)</div>
+      <div class="card-title" data-i18n="clients_title">Regular Clients (Optional)</div>
       <div class="repeater-header client-row">
         <span>Name</span><span>Email</span><span class="hide-sm">Phone</span><span></span>
       </div>
@@ -269,26 +274,26 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
     </div>
 
     <!-- Save -->
-    <button class="btn-primary" onclick="saveProfile()">Save Business Profile</button>
+    <button class="btn-primary" onclick="saveProfile()" data-i18n="save_btn">Save Business Profile</button>
     <!-- API: window.bizProfile -->
 
-    <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+    <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></p>
   </div>
 
   <!-- ══════════ SUCCESS SCREEN ══════════ -->
   <div class="success-screen" id="screen-success">
     <div class="success-icon">&#9989;</div>
-    <h2>Your business profile is ready.</h2>
-    <p>Every Terrapin tool will now know who you are.</p>
+    <h2 data-i18n="success_h2">Your business profile is ready.</h2>
+    <p data-i18n="success_p">Every Terrapin tool will now know who you are.</p>
     <div class="success-actions">
-      <button class="btn-primary" onclick="downloadMD()">Download business.md</button>
-      <button class="btn-secondary" onclick="downloadJSON()">Download business-profile.json</button>
-      <button class="btn-secondary" onclick="editProfile()">Edit Profile</button>
+      <button class="btn-primary" onclick="downloadMD()" data-i18n="dl_md">Download business.md</button>
+      <button class="btn-secondary" onclick="downloadJSON()" data-i18n="dl_json">Download business-profile.json</button>
+      <button class="btn-secondary" onclick="editProfile()" data-i18n="edit_btn">Edit Profile</button>
     </div>
-    <p class="success-note">Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.</p>
+    <p class="success-note" data-i18n="note">Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.</p>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:16px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:16px;" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
 
 </div>
 
@@ -798,6 +803,47 @@ window.bizProfileReady = Promise.resolve(true);
 loadExisting();
 renderStaffRows();
 renderClientRows();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Business Profile', sub: 'Set up once \u2014 every Terrapin tool reads this',
+    badge: 'Start Here', basics: 'Business Basics', contact: 'Contact Info', logo_title: 'Logo (Optional)',
+    financial: 'Financial Defaults', staff_title: 'Staff Members (Optional)', clients_title: 'Regular Clients (Optional)',
+    save_btn: 'Save Business Profile', biz_name: 'Business name', owner: 'Owner name', biz_type: 'Business type',
+    tagline_label: 'Tagline or business description (optional)', address: 'Address', phone: 'Phone', email: 'Email',
+    website: 'Website (optional)', tax: 'Tax rate %', terms: 'Payment terms', rate: 'Default hourly rate (optional)',
+    note: 'Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.',
+    success_h2: 'Your business profile is ready.', success_p: 'Every Terrapin tool will now know who you are.',
+    dl_md: 'Download business.md', dl_json: 'Download business-profile.json', edit_btn: 'Edit Profile',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Perfil del Negocio', sub: 'Configura una vez \u2014 cada herramienta Terrapin lo lee',
+    badge: 'Empieza Aqu\u00ed', basics: 'Datos B\u00e1sicos', contact: 'Informaci\u00f3n de Contacto', logo_title: 'Logo (Opcional)',
+    financial: 'Configuraci\u00f3n Financiera', staff_title: 'Empleados (Opcional)', clients_title: 'Clientes Frecuentes (Opcional)',
+    save_btn: 'Guardar Perfil del Negocio', biz_name: 'Nombre del negocio', owner: 'Nombre del due\u00f1o', biz_type: 'Tipo de negocio',
+    tagline_label: 'Descripci\u00f3n del negocio (opcional)', address: 'Direcci\u00f3n', phone: 'Tel\u00e9fono', email: 'Correo electr\u00f3nico',
+    website: 'Sitio web (opcional)', tax: 'Tasa de impuesto %', terms: 'T\u00e9rminos de pago', rate: 'Tarifa por hora (opcional)',
+    note: 'Guarda tu archivo business.md en un lugar f\u00e1cil de encontrar. El agente Terrapin lo necesitar\u00e1.',
+    success_h2: 'Tu perfil de negocio est\u00e1 listo.', success_p: 'Cada herramienta Terrapin ahora sabe qui\u00e9n eres.',
+    dl_md: 'Descargar business.md', dl_json: 'Descargar business-profile.json', edit_btn: 'Editar Perfil',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

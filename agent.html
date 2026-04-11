@@ -312,16 +312,20 @@
     .message { max-width: 92%; }
     .input-bar { padding: 12px 12px; }
   }
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:rgba(255,255,255,0.4);transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
 
 <div class="app">
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 
   <!-- TOP BAR -->
   <div class="top-bar">
     <img src="Handyman turtle ready for work.png" alt="Terrapin">
-    <span class="top-bar-title">Terrapin Agent</span>
+    <span class="top-bar-title" data-i18n="title">Terrapin Agent</span>
     <a href="https://ai.google.dev/gemma" target="_blank" style="font-family:'DM Mono',monospace;font-size:10px;color:#C9A84C;background:#2C3E2D;border:1px solid #C9A84C;border-radius:6px;padding:4px 10px;text-decoration:none;margin-left:10px;white-space:nowrap;">Powered by Gemma 4</a>
     <div class="status-group">
       <div class="status">
@@ -350,16 +354,16 @@
 
   <!-- INPUT -->
   <div class="input-bar">
-    <input type="text" id="msg-input" placeholder="Tell Terrapin what you need..." autocomplete="off">
-    <button class="send-btn" onclick="sendMessage()">Send</button>
+    <input type="text" id="msg-input" data-i18n="placeholder" placeholder="Tell Terrapin what you need..." autocomplete="off">
+    <button class="send-btn" data-i18n="send" onclick="sendMessage()">Send</button>
   </div>
 
   <!-- BOTTOM -->
   <div class="bottom-section">
     <div class="bottom-row">
-      <button class="profile-btn" onclick="document.getElementById('profile-file').click()">Load Business Profile</button>
+      <button class="profile-btn" data-i18n="profile_btn" onclick="document.getElementById('profile-file').click()">Load Business Profile</button>
       <input type="file" id="profile-file" accept=".md,.json,text/markdown,application/json" onchange="loadProfile(event)">
-      <button class="setup-toggle" id="setup-toggle" onclick="toggleSetup()">Setup Guide &#9662;</button>
+      <button class="setup-toggle" id="setup-toggle" data-i18n="setup_toggle" onclick="toggleSetup()">Setup Guide &#9662;</button>
     </div>
 
     <div class="setup-guide" id="setup-guide">
@@ -410,7 +414,7 @@
     </div>
 
     <div class="agent-footer">
-      <a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a>
+      <a href="https://terrapin.tools" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a>
     </div>
   </div>
 
@@ -434,6 +438,49 @@
 </div>
 
 <script>
+// ══════════════════════════════════════
+//  TRANSLATIONS
+// ══════════════════════════════════════
+const T = {
+  en: {
+    title: 'Terrapin Agent',
+    placeholder: 'Tell Terrapin what you need...',
+    send: 'Send',
+    profile_btn: 'Load Business Profile',
+    setup_toggle: 'Setup Guide',
+    welcome: "Hey. I\u2019m your Terrapin agent. Once you\u2019ve set up Ollama and Gemma I\u2019ll be able to help you run your tools with plain English. For now I\u2019m getting ready. Drop your business profile in to get started \u2014 it helps me know who you are.",
+    footer: 'A Terrapin Tool \u2014 terrapin.tools'
+  },
+  es: {
+    title: 'Agente Terrapin',
+    placeholder: 'Dile a Terrapin lo que necesitas...',
+    send: 'Enviar',
+    profile_btn: 'Cargar Perfil del Negocio',
+    setup_toggle: 'Gu\u00eda de Configuraci\u00f3n',
+    welcome: "Hola. Soy tu agente Terrapin. Cuando configures Ollama y Gemma podr\u00e9 ayudarte a usar tus herramientas con espa\u00f1ol. Por ahora me estoy preparando. Sube tu perfil de negocio para empezar \u2014 me ayuda a conocerte.",
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools'
+  }
+};
+
+var currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+  document.documentElement.lang = lang;
+}
+// Auto-detect
+(function(){var s=localStorage.getItem('terrapin-language');if(s){currentLang=s;setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es')){currentLang='es';setLang('es');}})();
+
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
@@ -1549,7 +1596,7 @@ if (IS_FILE) {
   checkStatus();
 })();
 
-addMessage('agent', "Hey. I'm your Terrapin agent. Once you've set up Ollama and Gemma I'll be able to help you run your tools with plain English. For now I'm getting ready. Drop your business profile in to get started \u2014 it helps me know who you are.");
+addMessage('agent', T[currentLang].welcome);
 </script>
 </body>
 </html>

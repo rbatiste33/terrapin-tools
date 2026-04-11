@@ -91,23 +91,27 @@
     .page-header { padding: 32px 0 28px; margin-bottom: 32px; }
     h2 { font-size: 20px; margin-top: 36px; }
   }
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
 
   <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
 
   <div class="page-header">
-    <p class="label">Privacy Promise</p>
-    <h1>Your data is yours. Period.</h1>
-    <p>This is not a legal document. This is a human promise from us to you about how Terrapin works.</p>
+    <p class="label" data-i18n="label">Privacy Promise</p>
+    <h1 data-i18n="h1">Your data is yours. Period.</h1>
+    <p data-i18n="intro">This is not a legal document. This is a human promise from us to you about how Terrapin works.</p>
   </div>
 
-  <h2>The Promise</h2>
-  <p>Terrapin will always run local models. Always stay on your hardware. Always keep your data yours.</p>
+  <h2 data-i18n="h2_promise">The Promise</h2>
+  <p data-i18n="promise_p">Terrapin will always run local models. Always stay on your hardware. Always keep your data yours.</p>
 
-  <h2>We will never:</h2>
+  <h2 data-i18n="h2_never">We will never:</h2>
   <ul class="promise-list never">
     <li>Connect to cloud AI models with your business data</li>
     <li>Store your information on our servers</li>
@@ -117,7 +121,7 @@
     <li>Change this. Ever.</li>
   </ul>
 
-  <h2>We will always:</h2>
+  <h2 data-i18n="h2_always">We will always:</h2>
   <ul class="promise-list always">
     <li>Run AI locally on your machine</li>
     <li>Keep your business profile on your hardware</li>
@@ -127,9 +131,9 @@
     <li>Be honest about what we are and what we aren't</li>
   </ul>
 
-  <p style="font-size:14px;color:#6B6B6B;margin-top:8px;">Our public website uses anonymous analytics to count page visits &mdash; no personal data, no cookies. Our tools collect nothing.</p>
+  <p style="font-size:14px;color:#6B6B6B;margin-top:8px;" data-i18n="analytics">Our public website uses anonymous analytics to count page visits &mdash; no personal data, no cookies. Our tools collect nothing.</p>
 
-  <h2>Why This Matters</h2>
+  <h2 data-i18n="h2_why">Why This Matters</h2>
   <p>Every AI company tells you they respect your privacy. Then they train on your data. Then they get acquired. Then the terms of service change.</p>
   <p>We're not building a cloud product that handles your data carefully. We're building a product where your data never leaves your machine in the first place. There's nothing to leak. Nothing to breach. Nothing to sell.</p>
 
@@ -141,17 +145,17 @@
     <p style="margin-top:12px; color:#6B6B6B; font-weight:400; font-style:italic;">We never see any of it.</p>
   </div>
 
-  <h2>The Only Thing We Take</h2>
+  <h2 data-i18n="h2_take">The Only Thing We Take</h2>
   <p>Your $5 a month. That's it. That's the deal.</p>
   <p>You pay us to maintain the tool library, build new tools, and keep the lights on at terrapin.tools. We make money from subscriptions &mdash; not from your data. That alignment matters. When we make money from subscriptions we have to keep earning your trust every month. When companies make money from data they have an incentive to collect more of it.</p>
   <p>We chose the harder business model on purpose.</p>
 
-  <h2>On Cloud Agents</h2>
+  <h2 data-i18n="h2_cloud">On Cloud Agents</h2>
   <p>Terrapin will never integrate with cloud AI agents or allow cloud models to access your local tools or data. No OpenAI. No Anthropic API calls with your business data. No Google Gemini in the cloud. No exceptions.</p>
   <p>If you want to use Terrapin with an AI agent it runs locally. Gemma. Llama. Mistral. Whatever open model runs on your hardware. The agent lives on your machine the same way the tools do.</p>
   <p>This limits some capabilities. We accept that tradeoff completely.</p>
 
-  <h2>The Technical Reality</h2>
+  <h2 data-i18n="h2_tech">The Technical Reality</h2>
   <p>When Terrapin is fully agentic:</p>
   <div class="highlight-block">
     <p>Gemma runs on localhost via Ollama</p>
@@ -164,16 +168,68 @@
   <p>The only internet activity: downloading software during initial setup, sending emails through your own email account, and paying your $5/month subscription.</p>
   <p>That's it. Everything else is local. Everything else is yours.</p>
 
-  <h2>This Is The Shell</h2>
+  <h2 data-i18n="h2_shell">This Is The Shell</h2>
   <p>The turtle carries everything on its back. That's not just a brand metaphor. That's the architecture. Your business data lives on your machine the way a turtle's home lives on its back. It goes where you go. It belongs to you. Nobody can take it.</p>
 
-  <p class="closing">Tantalizing terrapin terraforming agentic planetary contributions &mdash; locally, privately, always.</p>
+  <p class="closing" data-i18n="closing">Tantalizing terrapin terraforming agentic planetary contributions &mdash; locally, privately, always.</p>
 
   <div class="page-footer">
     <a href="/">terrapin.tools &mdash; simple tools for people who work</a>
   </div>
 
 </div>
+<script>
+const T = {
+  en: {
+    label: 'Privacy Promise',
+    h1: 'Your data is yours. Period.',
+    intro: 'This is not a legal document. This is a human promise from us to you about how Terrapin works.',
+    h2_promise: 'The Promise',
+    promise_p: 'Terrapin will always run local models. Always stay on your hardware. Always keep your data yours.',
+    h2_never: 'We will never:',
+    h2_always: 'We will always:',
+    analytics: 'Our public website uses anonymous analytics to count page visits \u2014 no personal data, no cookies. Our tools collect nothing.',
+    h2_why: 'Why This Matters',
+    h2_take: 'The Only Thing We Take',
+    h2_cloud: 'On Cloud Agents',
+    h2_tech: 'The Technical Reality',
+    h2_shell: 'This Is The Shell',
+    closing: 'Tantalizing terrapin terraforming agentic planetary contributions \u2014 locally, privately, always.'
+  },
+  es: {
+    label: 'Promesa de Privacidad',
+    h1: 'Tus datos son tuyos. Punto.',
+    intro: 'Esto no es un documento legal. Es una promesa humana de nosotros hacia ti sobre c\u00f3mo funciona Terrapin.',
+    h2_promise: 'La Promesa',
+    promise_p: 'Terrapin siempre usar\u00e1 modelos locales. Siempre se quedar\u00e1 en tu computadora. Siempre mantendr\u00e1 tus datos tuyos.',
+    h2_never: 'Nunca haremos:',
+    h2_always: 'Siempre haremos:',
+    analytics: 'Nuestro sitio web p\u00fablico usa an\u00e1lisis an\u00f3nimos para contar visitas \u2014 sin datos personales, sin cookies. Nuestras herramientas no recopilan nada.',
+    h2_why: 'Por Qu\u00e9 Importa',
+    h2_take: 'Lo \u00danico Que Tomamos',
+    h2_cloud: 'Sobre Agentes en la Nube',
+    h2_tech: 'La Realidad T\u00e9cnica',
+    h2_shell: 'Este Es El Caparaz\u00f3n',
+    closing: 'Tantalizing terrapin terraforming agentic planetary contributions \u2014 localmente, privadamente, siempre.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+  document.documentElement.lang = lang;
+}
+// Auto-detect
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
+</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

@@ -120,6 +120,10 @@ Output: QR code preview with PNG and SVG download
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 520px) {
     .row { grid-template-columns: 1fr; }
     .type-tabs { gap: 4px; }
@@ -129,17 +133,18 @@ Output: QR code preview with PNG and SVG download
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>QR Code Generator</h1>
-    <p>Create QR codes for your business — no watermarks, no limits</p>
+    <h1 data-i18n="h1">QR Code Generator</h1>
+    <p data-i18n="sub">Create QR codes for your business — no watermarks, no limits</p>
   </div>
 
   <!-- INPUT TYPE -->
   <div class="card">
-    <div class="card-title">What are you linking to?</div>
+    <div class="card-title" data-i18n="type_title">What are you linking to?</div>
     <div class="type-tabs" id="type-tabs">
       <button class="type-tab active" data-type="url">URL</button>
       <button class="type-tab" data-type="zelle">Zelle</button>
@@ -223,49 +228,49 @@ Output: QR code preview with PNG and SVG download
 
   <!-- DESIGN OPTIONS -->
   <div class="card">
-    <div class="card-title">Design</div>
+    <div class="card-title" data-i18n="design_title">Design</div>
     <div class="field">
-      <label>Size</label>
+      <label data-i18n="size">Size</label>
       <div class="size-tabs" id="size-tabs">
-        <button class="size-tab" data-size="200">Small</button>
-        <button class="size-tab active" data-size="300">Medium</button>
-        <button class="size-tab" data-size="400">Large</button>
+        <button class="size-tab" data-size="200" data-i18n="small">Small</button>
+        <button class="size-tab active" data-size="300" data-i18n="medium">Medium</button>
+        <button class="size-tab" data-size="400" data-i18n="large">Large</button>
       </div>
     </div>
     <div class="field">
       <div class="color-row">
         <div class="color-field">
-          <label>QR color</label>
+          <label data-i18n="fg">QR color</label>
           <input type="color" id="color-fg" value="#1a1a1a" oninput="generate()">
         </div>
         <div class="color-field">
-          <label>Background</label>
+          <label data-i18n="bg_color">Background</label>
           <input type="color" id="color-bg" value="#ffffff" oninput="generate()">
         </div>
       </div>
     </div>
     <div class="field">
-      <label>Business name below QR (optional)</label>
+      <label data-i18n="biz_below">Business name below QR (optional)</label>
       <input type="text" id="input-bizname" placeholder="Your Business Name" oninput="generate()">
     </div>
   </div>
 
   <!-- PREVIEW & DOWNLOAD -->
   <div class="card">
-    <div class="card-title">Preview</div>
+    <div class="card-title" data-i18n="preview_title">Preview</div>
     <div class="preview-area">
       <div id="qr-canvas-wrap"></div>
       <div class="biz-name-preview" id="biz-name-display"></div>
-      <div class="preview-empty" id="preview-empty">Type something above to see your QR code</div>
+      <div class="preview-empty" id="preview-empty" data-i18n="preview_empty">Type something above to see your QR code</div>
     </div>
     <div class="download-row" id="download-row" style="display:none;">
-      <button class="btn-primary" onclick="downloadPNG()">Download PNG</button>
-      <button class="btn-secondary" onclick="downloadSVG()">Download SVG</button>
+      <button class="btn-primary" data-i18n="dl_png" onclick="downloadPNG()">Download PNG</button>
+      <button class="btn-secondary" data-i18n="dl_svg" onclick="downloadSVG()">Download SVG</button>
     </div>
   </div>
 
   <!-- API: window.qrGen -->
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" data-i18n="footer" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <!-- QR Code library - lightweight, no dependencies -->
@@ -710,6 +715,39 @@ window.qrGenReady = Promise.resolve(true);
     }
   } catch(e) {}
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'QR Code Generator', sub: 'Create QR codes for your business \u2014 no watermarks, no limits',
+    type_title: 'What are you linking to?', design_title: 'Design', preview_title: 'Preview',
+    size: 'Size', small: 'Small', medium: 'Medium', large: 'Large',
+    fg: 'QR color', bg_color: 'Background', biz_below: 'Business name below QR (optional)',
+    dl_png: 'Download PNG', dl_svg: 'Download SVG', preview_empty: 'Type something above to see your QR code',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Generador de C\u00f3digos QR', sub: 'Crea c\u00f3digos QR para tu negocio \u2014 sin marcas de agua, sin l\u00edmites',
+    type_title: '\u00bfA qu\u00e9 est\u00e1s enlazando?', design_title: 'Dise\u00f1o', preview_title: 'Vista Previa',
+    size: 'Tama\u00f1o', small: 'Peque\u00f1o', medium: 'Mediano', large: 'Grande',
+    fg: 'Color del QR', bg_color: 'Fondo', biz_below: 'Nombre del negocio debajo del QR (opcional)',
+    dl_png: 'Descargar PNG', dl_svg: 'Descargar SVG', preview_empty: 'Escribe algo arriba para ver tu c\u00f3digo QR',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

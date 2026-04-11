@@ -161,6 +161,10 @@ Output: Calendar event saved confirmation or upcoming events list
 
   .api-note { text-align: center; font-size: 11px; color: #6B6B6B; margin-top: 12px; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 700px) {
     .layout { grid-template-columns: 1fr; }
     .cal-day { min-height: 38px; padding: 4px 1px; }
@@ -169,12 +173,13 @@ Output: Calendar event saved confirmation or upcoming events list
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1 id="cal-header">Simple Calendar</h1>
-    <p>Track appointments, jobs, events and deadlines</p>
+    <h1 id="cal-header" data-i18n="h1_default">Simple Calendar</h1>
+    <p data-i18n="sub">Track appointments, jobs, events and deadlines</p>
   </div>
 
   <div class="layout">
@@ -194,20 +199,20 @@ Output: Calendar event saved confirmation or upcoming events list
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-card">
-        <div class="sidebar-title">Next 7 Days</div>
+        <div class="sidebar-title" data-i18n="upcoming">Next 7 Days</div>
         <div id="upcoming-list"></div>
       </div>
       <div class="io-bar">
-        <button class="io-btn" onclick="openCalImportModal()">Import</button>
-        <button class="io-btn" onclick="exportCalCSV()">Export CSV</button>
+        <button class="io-btn" onclick="openCalImportModal()" data-i18n="import_btn">Import</button>
+        <button class="io-btn" onclick="exportCalCSV()" data-i18n="export_btn">Export CSV</button>
       </div>
-      <button class="add-btn" onclick="openAddModal()">+ Add Event</button>
+      <button class="add-btn" onclick="openAddModal()" data-i18n="add_btn">+ Add Event</button>
     </div>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <!-- API: window.calendar -->
-  <div class="footer"><a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a></div>
+  <div class="footer"><a href="https://terrapin.tools" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></div>
 </div>
 
 <!-- IMPORT MODAL -->
@@ -247,17 +252,17 @@ Output: Calendar event saved confirmation or upcoming events list
 <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-title">
-      <span id="modal-title-text">New Event</span>
+      <span id="modal-title-text" data-i18n="modal_new">New Event</span>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
-    <div class="field"><label>Title</label><input type="text" id="f-title" placeholder="e.g. Smith kitchen inspection"></div>
+    <div class="field"><label data-i18n="title_label">Title</label><input type="text" id="f-title" placeholder="e.g. Smith kitchen inspection"></div>
     <div class="row">
-      <div class="field"><label>Date</label><input type="date" id="f-date"></div>
-      <div class="field"><label>Time (optional)</label><input type="time" id="f-time"></div>
+      <div class="field"><label data-i18n="date_label">Date</label><input type="date" id="f-date"></div>
+      <div class="field"><label data-i18n="time_label">Time (optional)</label><input type="time" id="f-time"></div>
     </div>
     <div class="row">
       <div class="field">
-        <label>Type</label>
+        <label data-i18n="type_label">Type</label>
         <select id="f-type">
           <option value="appointment">Appointment</option>
           <option value="job">Job</option>
@@ -267,14 +272,14 @@ Output: Calendar event saved confirmation or upcoming events list
         </select>
       </div>
       <div class="field">
-        <label>Client (optional)</label>
+        <label data-i18n="client_label">Client (optional)</label>
         <select id="f-client"><option value="">None</option></select>
       </div>
     </div>
-    <div class="field"><label>Notes (optional)</label><textarea id="f-notes" placeholder="Any details..." rows="2"></textarea></div>
+    <div class="field"><label data-i18n="notes_label">Notes (optional)</label><textarea id="f-notes" placeholder="Any details..." rows="2"></textarea></div>
     <div class="modal-actions">
-      <button class="btn-save" id="btn-save" onclick="saveEvent()">Save Event</button>
-      <button class="btn-delete" id="btn-delete" onclick="deleteEvent()" style="display:none">Delete</button>
+      <button class="btn-save" id="btn-save" onclick="saveEvent()" data-i18n="save_event">Save Event</button>
+      <button class="btn-delete" id="btn-delete" onclick="deleteEvent()" style="display:none" data-i18n="delete_event">Delete</button>
     </div>
   </div>
 </div>
@@ -921,6 +926,39 @@ document.addEventListener('keydown', function(e) {
   console.log('Calendar boot: data loaded, events:', events.length);
   handleURLParams();
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1_default: 'Simple Calendar', sub: 'Track appointments, jobs, events and deadlines',
+    upcoming: 'Next 7 Days', add_btn: '+ Add Event', import_btn: 'Import', export_btn: 'Export CSV',
+    modal_new: 'New Event', modal_edit: 'Edit Event', title_label: 'Title', date_label: 'Date',
+    time_label: 'Time (optional)', type_label: 'Type', client_label: 'Client (optional)', notes_label: 'Notes (optional)',
+    save_event: 'Save Event', delete_event: 'Delete', empty: 'Nothing scheduled this week',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1_default: 'Calendario Simple', sub: 'Rastrea citas, trabajos, eventos y fechas l\u00edmite',
+    upcoming: 'Pr\u00f3ximos 7 D\u00edas', add_btn: '+ Agregar Evento', import_btn: 'Importar', export_btn: 'Exportar CSV',
+    modal_new: 'Nuevo Evento', modal_edit: 'Editar Evento', title_label: 'T\u00edtulo', date_label: 'Fecha',
+    time_label: 'Hora (opcional)', type_label: 'Tipo', client_label: 'Cliente (opcional)', notes_label: 'Notas (opcional)',
+    save_event: 'Guardar Evento', delete_event: 'Eliminar', empty: 'Nada programado esta semana',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

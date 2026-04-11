@@ -124,6 +124,10 @@ Output: Dated PDF log entry saved to localStorage
   .back-to-terrapin { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6B6B; text-decoration: none; padding: 16px 0 8px; transition: color 0.15s; }
   .back-to-terrapin:hover { color: #2C3E2D; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 520px) {
     .row { grid-template-columns: 1fr; }
     .row.three { grid-template-columns: 1fr 1fr; }
@@ -133,21 +137,22 @@ Output: Dated PDF log entry saved to localStorage
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>Job Site Daily Log</h1>
-    <p>Log your crew, work, and materials — pull up any past day</p>
+    <h1 data-i18n="h1">Job Site Daily Log</h1>
+    <p data-i18n="sub">Log your crew, work, and materials — pull up any past day</p>
   </div>
 
   <!-- ══════════ LIST SCREEN ══════════ -->
   <div class="screen active" id="screen-list">
     <div class="actions-row" style="margin-top:0; margin-bottom:16px;">
-      <button class="btn-primary" onclick="newEntry()">+ New Daily Log</button>
+      <button class="btn-primary" onclick="newEntry()" data-i18n="new_btn">+ New Daily Log</button>
     </div>
     <div class="card">
-      <div class="card-title">Past Logs</div>
+      <div class="card-title" data-i18n="past">Past Logs</div>
       <div id="history-list"></div>
     </div>
   </div>
@@ -157,11 +162,11 @@ Output: Dated PDF log entry saved to localStorage
 
     <!-- Job Info -->
     <div class="card">
-      <div class="card-title">Job Info</div>
+      <div class="card-title" data-i18n="job_info">Job Info</div>
       <div class="row">
-        <div class="field"><label>Date</label><input type="date" id="f-date"></div>
+        <div class="field"><label data-i18n="date">Date</label><input type="date" id="f-date"></div>
         <div class="field">
-          <label>Weather</label>
+          <label data-i18n="weather">Weather</label>
           <div class="weather-options" id="weather-options">
             <button class="weather-chip" data-val="Clear">&#9728;&#65039; Clear</button>
             <button class="weather-chip" data-val="Cloudy">&#9729;&#65039; Cloudy</button>
@@ -172,13 +177,13 @@ Output: Dated PDF log entry saved to localStorage
           </div>
         </div>
       </div>
-      <div class="field"><label>Job name</label><input type="text" id="f-jobname" placeholder="e.g. Smith Kitchen Remodel"></div>
-      <div class="field"><label>Job address</label><input type="text" id="f-address" placeholder="e.g. 123 Main St, Anytown TX"></div>
+      <div class="field"><label data-i18n="job_name">Job name</label><input type="text" id="f-jobname" placeholder="e.g. Smith Kitchen Remodel"></div>
+      <div class="field"><label data-i18n="address">Job address</label><input type="text" id="f-address" placeholder="e.g. 123 Main St, Anytown TX"></div>
     </div>
 
     <!-- Crew -->
     <div class="card">
-      <div class="card-title">Crew</div>
+      <div class="card-title" data-i18n="crew">Crew</div>
       <div class="repeater-header crew-row">
         <span>Name</span><span>Hours</span><span></span>
       </div>
@@ -188,7 +193,7 @@ Output: Dated PDF log entry saved to localStorage
 
     <!-- Work Completed -->
     <div class="card">
-      <div class="card-title">Work Completed Today</div>
+      <div class="card-title" data-i18n="work">Work Completed Today</div>
       <div class="field">
         <textarea id="f-work" placeholder="Describe what was accomplished today..." rows="4"></textarea>
       </div>
@@ -196,7 +201,7 @@ Output: Dated PDF log entry saved to localStorage
 
     <!-- Materials -->
     <div class="card">
-      <div class="card-title">Materials Used</div>
+      <div class="card-title" data-i18n="materials">Materials Used</div>
       <div class="repeater-header material-row">
         <span>Material</span><span>Qty</span><span>Unit</span><span></span>
       </div>
@@ -206,30 +211,30 @@ Output: Dated PDF log entry saved to localStorage
 
     <!-- Issues & Notes -->
     <div class="card">
-      <div class="card-title">Issues & Notes</div>
+      <div class="card-title" data-i18n="issues_title">Issues & Notes</div>
       <div class="field">
-        <label>Issues or delays</label>
+        <label data-i18n="issues">Issues or delays</label>
         <textarea id="f-issues" placeholder="Any problems, delays, safety concerns..." rows="3"></textarea>
       </div>
       <div class="field">
-        <label>Additional notes</label>
+        <label data-i18n="notes">Additional notes</label>
         <textarea id="f-notes" placeholder="Anything else worth recording..." rows="3"></textarea>
       </div>
     </div>
 
     <!-- Actions -->
     <div class="actions-row">
-      <button class="btn-secondary" onclick="cancelForm()">Cancel</button>
-      <button class="btn-primary" onclick="saveEntry()">Save Log Entry</button>
+      <button class="btn-secondary" onclick="cancelForm()" data-i18n="cancel">Cancel</button>
+      <button class="btn-primary" onclick="saveEntry()" data-i18n="save_btn">Save Log Entry</button>
     </div>
     <div class="actions-row">
-      <button class="btn-primary" onclick="saveAndPDF()" style="background:#4A7C59;">Save & Download PDF</button>
+      <button class="btn-primary" onclick="saveAndPDF()" style="background:#4A7C59;" data-i18n="save_pdf">Save & Download PDF</button>
     </div>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
   <!-- API: window.jobLog -->
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <script>
@@ -892,6 +897,41 @@ window.jobLogReady = Promise.resolve(true);
     window._terrapinProfile = profile;
   } catch(e) {}
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Job Site Daily Log', sub: 'Log your crew, work, and materials \u2014 pull up any past day',
+    new_btn: '+ New Daily Log', past: 'Past Logs', job_info: 'Job Info', crew: 'Crew',
+    work: 'Work Completed Today', materials: 'Materials Used', issues_title: 'Issues & Notes',
+    save_btn: 'Save Log Entry', save_pdf: 'Save & Download PDF', cancel: 'Cancel',
+    date: 'Date', job_name: 'Job name', address: 'Job address', weather: 'Weather',
+    issues: 'Issues or delays', notes: 'Additional notes', empty: 'No logs yet. Start your first daily log above.',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Bit\u00e1cora Diaria de Obra', sub: 'Registra tu equipo, trabajo y materiales \u2014 consulta cualquier d\u00eda anterior',
+    new_btn: '+ Nueva Bit\u00e1cora', past: 'Bit\u00e1coras Anteriores', job_info: 'Info del Trabajo', crew: 'Equipo',
+    work: 'Trabajo Completado Hoy', materials: 'Materiales Usados', issues_title: 'Problemas y Notas',
+    save_btn: 'Guardar Entrada', save_pdf: 'Guardar y Descargar PDF', cancel: 'Cancelar',
+    date: 'Fecha', job_name: 'Nombre del trabajo', address: 'Direcci\u00f3n de obra', weather: 'Clima',
+    issues: 'Problemas o retrasos', notes: 'Notas adicionales', empty: 'Sin bit\u00e1coras a\u00fan. Comienza tu primera bit\u00e1cora arriba.',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>

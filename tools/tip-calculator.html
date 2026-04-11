@@ -115,6 +115,10 @@ Output: Tip breakdown per role with per-person amounts
 
   #results-section { display: none; }
 
+  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+  .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
   @media (max-width: 520px) {
     .row { grid-template-columns: 1fr; }
     .result-summary { grid-template-columns: 1fr; gap: 12px; }
@@ -135,22 +139,23 @@ Output: Tip breakdown per role with per-person amounts
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
-  <a href="https://terrapin.tools" class="back-to-terrapin">&#8592; Back to Terrapin Tools</a>
+  <a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
 
   <div class="app-header">
-    <h1>Tip Calculator & Staff Splitter</h1>
-    <p>Calculate tips and split them across your team by role</p>
+    <h1 data-i18n="h1">Tip Calculator & Staff Splitter</h1>
+    <p data-i18n="sub">Calculate tips and split them across your team by role</p>
   </div>
 
   <!-- BILL & TIP -->
   <div class="card">
-    <div class="card-title">Bill & Tip</div>
+    <div class="card-title" data-i18n="bill_title">Bill & Tip</div>
     <div class="field">
-      <label>Total bill amount</label>
+      <label data-i18n="bill_label">Total bill amount</label>
       <input type="number" id="bill-amount" placeholder="0.00" min="0" step="0.01" oninput="calculate()">
     </div>
-    <label style="margin-bottom: 8px; display: block;">Tip percentage</label>
+    <label style="margin-bottom: 8px; display: block;" data-i18n="tip_label">Tip percentage</label>
     <div class="tip-options">
       <button class="tip-btn" onclick="setTip(15)">15%</button>
       <button class="tip-btn active" onclick="setTip(18)">18%</button>
@@ -165,11 +170,11 @@ Output: Tip breakdown per role with per-person amounts
 
   <!-- STAFF ROLES -->
   <div class="card">
-    <div class="card-title">Staff Roles & Split</div>
+    <div class="card-title" data-i18n="roles_title">Staff Roles & Split</div>
     <div class="role-header">
-      <span>Role</span>
-      <span>Staff</span>
-      <span>Share %</span>
+      <span data-i18n="role">Role</span>
+      <span data-i18n="staff">Staff</span>
+      <span data-i18n="share">Share %</span>
     </div>
     <div id="roles-container">
       <div class="role-row" data-role="Servers">
@@ -220,12 +225,12 @@ Output: Tip breakdown per role with per-person amounts
         <span class="br-amount" id="r-distributed">$0.00</span>
       </div>
     </div>
-    <button class="print-btn" onclick="window.print()">Print Breakdown</button>
-    <button class="reset-btn no-print" onclick="resetAll()">Start Over</button>
+    <button class="print-btn" data-i18n="print" onclick="window.print()">Print Breakdown</button>
+    <button class="reset-btn no-print" data-i18n="reset" onclick="resetAll()">Start Over</button>
   </div>
 
   <!-- API: window.tipCalc -->
-  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
+  <p style="text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px;"><a href="https://terrapin.tools" data-i18n="footer" style="color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace;">A Terrapin Tool &mdash; terrapin.tools</a></p>
 </div>
 
 <script>
@@ -485,6 +490,37 @@ window.tipCalcReady = Promise.resolve(true);
     window._terrapinProfile = profile;
   } catch(e) {}
 })();
+
+const T = {
+  en: {
+    back: '\u2190 Back to Terrapin Tools', h1: 'Tip Calculator & Staff Splitter', sub: 'Calculate tips and split them across your team by role',
+    bill_title: 'Bill & Tip', bill_label: 'Total bill amount', tip_label: 'Tip percentage',
+    roles_title: 'Staff Roles & Split', role: 'Role', staff: 'Staff', share: 'Share %',
+    print: 'Print Breakdown', reset: 'Start Over',
+    footer: 'A Terrapin Tool \u2014 terrapin.tools'
+  },
+  es: {
+    back: '\u2190 Volver a Terrapin Tools', h1: 'Calculadora de Propinas', sub: 'Calcula propinas y div\u00eddelas entre tu equipo por rol',
+    bill_title: 'Cuenta y Propina', bill_label: 'Monto total de la cuenta', tip_label: 'Porcentaje de propina',
+    roles_title: 'Roles del Personal', role: 'Rol', staff: 'Personal', share: '% del Total',
+    print: 'Imprimir Desglose', reset: 'Empezar de Nuevo',
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools'
+  }
+};
+
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][key]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][key];
+      else el.innerHTML = T[lang][key];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
 </script>
 </body>
 </html>
