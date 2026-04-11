@@ -53,42 +53,71 @@ nav a.browse:hover{color:#2C3E2D}
 .pills{gap:8px}
 .pill{padding:8px 14px;font-size:12px}
 }
+.lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+.lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+.lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
 <nav>
-<a href="https://terrapin.tools" class="brand">Terrapin Tools</a>
-<a href="https://terrapin.tools#tools" class="browse">Browse All Tools</a>
+<a href="https://terrapin.tools" class="brand" data-i18n="nav_brand">Terrapin Tools</a>
+<a href="https://terrapin.tools#tools" class="browse" data-i18n="nav_browse">Browse All Tools</a>
 </nav>
 <div class="hero">
-<h1>Free Tip Calculator and Staff Splitter for Restaurants</h1>
-<p>End of shift, everyone wants to know their cut. Enter the bill total, set tip percentage, assign staff to roles, and see exactly what each person takes home. Fair, transparent, and takes 10 seconds.</p>
-<a href="../tip-calculator.html" class="cta">Open Free Tool &rarr;</a>
+<h1 data-i18n="h1">Free Tip Calculator and Staff Splitter for Restaurants</h1>
+<p data-i18n="body">End of shift, everyone wants to know their cut. Enter the bill total, set tip percentage, assign staff to roles, and see exactly what each person takes home. Fair, transparent, and takes 10 seconds.</p>
+<a href="../tip-calculator.html" class="cta" data-i18n="cta">Open Free Tool &rarr;</a>
 </div>
 <div class="pills">
-<span class="pill">No login ever</span>
-<span class="pill">Runs on your computer</span>
-<span class="pill">Your data stays yours</span>
+<span class="pill" data-i18n="pill1">No login ever</span>
+<span class="pill" data-i18n="pill2">Runs on your computer</span>
+<span class="pill" data-i18n="pill3">Your data stays yours</span>
 </div>
 <div class="steps">
-<h2>How it works</h2>
-<div class="step"><span class="step-num">1</span><span class="step-text">Open the tool &mdash; no sign up, no account, just click</span></div>
-<div class="step"><span class="step-num">2</span><span class="step-text">Fill in your details &mdash; the form is simple and obvious</span></div>
-<div class="step"><span class="step-num">3</span><span class="step-text">See each person's share &mdash; done in under 2 minutes</span></div>
+<h2 data-i18n="how">How it works</h2>
+<div class="step"><span class="step-num">1</span><span class="step-text"><span data-i18n="step1">Open the tool &mdash; no sign up, no account, just click</span></span></div>
+<div class="step"><span class="step-num">2</span><span class="step-text"><span data-i18n="step2">Fill in your details &mdash; the form is simple and obvious</span></span></div>
+<div class="step"><span class="step-num">3</span><span class="step-text"><span data-i18n="step3">See each person's share &mdash; done in under 2 minutes</span></span></div>
 </div>
 <div class="who">
-<h2>Built for</h2>
+<h2 data-i18n="built">Built for</h2>
 <div class="who-grid">
-<div class="who-card"><div class="icon">🍽</div><div class="label">Restaurants</div></div>
-<div class="who-card"><div class="icon">🍺</div><div class="label">Bars</div></div>
-<div class="who-card"><div class="icon">☕</div><div class="label">Cafes</div></div>
-<div class="who-card"><div class="icon">👨‍🍳</div><div class="label">Food service businesses</div></div>
+<div class="who-card"><div class="icon">🍽</div><div class="label" data-i18n="who0">Restaurants</div></div>
+<div class="who-card"><div class="icon">🍺</div><div class="label" data-i18n="who1">Bars</div></div>
+<div class="who-card"><div class="icon">☕</div><div class="label" data-i18n="who2">Cafes</div></div>
+<div class="who-card"><div class="icon">👨‍🍳</div><div class="label" data-i18n="who3">Food service businesses</div></div>
 </div>
 </div>
 <div class="mascot"><img src="https://terrapin.tools/turtle-optimized.png" alt="Terrapin Tools" width="120" height="120"></div>
-<div class="footer"><a href="https://terrapin.tools">A Terrapin Tool &mdash; terrapin.tools</a></div>
+<div class="footer"><a href="https://terrapin.tools"><span data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</span></a></div>
 </div>
 <script defer src="/_vercel/insights/script.js"></script>
+
+<script>
+const T = {
+  en: {
+    nav_brand: 'Terrapin Tools', nav_browse: 'Browse All Tools',
+    h1: "Free Tip Calculator and Staff Splitter for Restaurants", body: "End of shift, everyone wants to know their cut. Enter the bill total, set tip percentage, assign staff to roles, and see exactly what each person takes home. Fair, transparent, and takes 10 seconds.", cta: 'Open Free Tool →',
+    pill1: 'No login ever', pill2: 'Runs on your computer', pill3: 'Your data stays yours',
+    how: 'How it works', step1: 'Open the tool — no sign up, no account, just click', step2: 'Fill in your details — the form is simple and obvious',
+    step3: "See each person's share — done in under 2 minutes",
+    built: 'Built for', footer: 'A Terrapin Tool — terrapin.tools',
+    who0: 'Restaurants', who1: 'Bars', who2: 'Cafes', who3: 'Food service businesses'
+  },
+  es: {
+    nav_brand: 'Terrapin Tools', nav_browse: 'Ver Todas las Herramientas',
+    h1: "Calculadora de Propinas Gratis para Restaurantes", body: "Fin de turno, todos quieren saber su parte. Ingresa el total, define el porcentaje de propina, asigna roles al personal y ve exactamente cuánto se lleva cada uno. Justo, transparente y toma 10 segundos.", cta: 'Abrir Herramienta Gratis →',
+    pill1: 'Sin registro nunca', pill2: 'Funciona en tu computadora', pill3: 'Tus datos son tuyos',
+    how: 'Cómo funciona', step1: 'Abre la herramienta — sin registro, sin cuenta, solo haz clic', step2: 'Llena tus datos — el formulario es simple y obvio',
+    step3: "Ve la parte de cada persona — listo en menos de 2 minutos",
+    built: 'Hecho para', footer: 'Una Herramienta Terrapin — terrapin.tools',
+    who0: 'Restaurantes', who1: 'Bares', who2: 'Cafés', who3: 'Negocios de comida'
+  }
+};
+function setLang(lang){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(T[lang]&&T[lang][k])el.innerHTML=T[lang][k]});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-es').classList.toggle('active',lang==='es');localStorage.setItem('terrapin-language',lang)}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es')})();
+</script>
 </body>
 </html>
