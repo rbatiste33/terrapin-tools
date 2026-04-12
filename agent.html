@@ -786,6 +786,18 @@ async function handleAgentResponse(data) {
       }
       break;
     case 'respond':
+      // Safety net: if the message looks like a JSON tool call that wasn't parsed, try to handle it
+      try {
+        var jsonMatch = (data.message || '').match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          var parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.tool_id) {
+            var toolUrl = parsed.params ? Object.entries(parsed.params).filter(function(e) { return e[1] != null && e[1] !== ''; }).map(function(e) { return encodeURIComponent(e[0]) + '=' + encodeURIComponent(e[1]); }).join('&') : '';
+            await handleToolCall({ tool_id: parsed.tool_id, params: parsed.params || {}, url: '', action: 'call_tool' });
+            break;
+          }
+        }
+      } catch(e) { /* not JSON, show as text */ }
       addMessage('agent', data.message);
       break;
     default:

@@ -483,7 +483,14 @@ app.post('/chat', async (req, res) => {
   }
   console.log('CRM contacts available:', mergedContacts.length);
 
-  const systemPrompt = buildSystemPrompt(business_profile || null, mergedContacts);
+  // Strip logo from profile before building system prompt — base64 images bloat the prompt
+  let profileForPrompt = business_profile || null;
+  if (profileForPrompt && profileForPrompt.logo) {
+    profileForPrompt = Object.assign({}, profileForPrompt);
+    delete profileForPrompt.logo;
+  }
+
+  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts);
 
   try {
     const ollamaRes = await fetch(OLLAMA_URL + '/api/chat', {
