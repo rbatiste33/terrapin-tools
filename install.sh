@@ -67,6 +67,12 @@ mkdir -p ~/terrapin
 cd ~/terrapin
 curl -fsSL https://terrapin.tools/agent-package.tar.gz | tar -xz
 npm install --silent 2>/dev/null
+
+# Verify dependencies installed correctly
+if [ ! -d "$HOME/terrapin/node_modules/express" ]; then
+    echo "Installing dependencies..."
+    cd ~/terrapin && npm install
+fi
 echo "✓ Terrapin agent installed"
 
 # Create data directory
@@ -88,6 +94,7 @@ fi
 
 # Find node path for launchd
 NODE_PATH=$(which node)
+echo "Using node at: $NODE_PATH"
 
 # Auto-start on login
 echo ""
@@ -123,15 +130,25 @@ PLIST
 launchctl load ~/Library/LaunchAgents/tools.terrapin.agent.plist 2>/dev/null
 echo "✓ Auto-start configured"
 
-# Wait for agent to start
-echo "Starting Terrapin agent..."
-sleep 3
+# Show early errors from launchd
+sleep 2
+cat ~/.terrapin/agent-error.log 2>/dev/null || echo "No errors logged yet"
 
-# Verify agent is running
+# Wait for agent to start
+echo "Waiting for agent to start..."
+MAX_WAIT=30
+COUNT=0
+while ! curl -s http://localhost:7777/health > /dev/null 2>&1; do
+    sleep 1
+    COUNT=$((COUNT + 1))
+    if [ $COUNT -ge $MAX_WAIT ]; then
+        echo "Agent taking longer than expected. Try opening manually: http://localhost:7777/agent.html"
+        break
+    fi
+done
+
 if curl -s http://localhost:7777/health > /dev/null 2>&1; then
     echo "✓ Terrapin agent is running"
-else
-    echo "⚠ Agent may still be starting. Give it a few seconds."
 fi
 
 # Done
