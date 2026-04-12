@@ -425,7 +425,7 @@ const app = express();
 // CORS — localhost, file://, and terrapin.tools (user's own browser tabs only)
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
-  const isAllowed = !origin || origin === 'null' || origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/) || origin === 'https://terrapin.tools';
+  const isAllowed = !origin || origin === 'null' || origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/) || origin === 'https://terrapin.tools' || origin === 'https://www.terrapin.tools';
   if (!isAllowed) {
     return res.status(403).json({ success: false, error: 'Forbidden — localhost and terrapin.tools only' });
   }
