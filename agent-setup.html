@@ -32,6 +32,18 @@
   .step p { font-size: 15px; color: #6B6B6B; margin-bottom: 12px; }
   .step p:last-child { margin-bottom: 0; }
 
+  .hero-badge { display: inline-block; background: #C9A84C; color: #1A1A1A; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; padding: 5px 14px; border-radius: 6px; margin-bottom: 14px; }
+  .hero-cmd { background: #2C3E2D; border-radius: 12px; padding: 20px 24px; margin: 24px 0 20px; display: flex; align-items: center; gap: 12px; }
+  .hero-cmd code { font-family: 'DM Mono', monospace; font-size: 15px; color: #C9A84C; flex: 1; word-break: break-all; }
+  .hero-cmd .copy-btn { padding: 8px 16px; font-size: 13px; }
+  .checks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+  .checks span { font-size: 14px; color: #4A7C59; }
+  .divider { text-align: center; padding: 32px 0 24px; color: #6B6B6B; font-size: 14px; position: relative; }
+  .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: #E8E0D0; }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+  .win-note { text-align: center; font-size: 13px; color: #6B6B6B; margin-top: 8px; padding: 12px; background: #FDFAF4; border: 1px solid #E8E0D0; border-radius: 8px; }
+
   .cmd-block {
     display: flex; align-items: center; gap: 8px; background: #2C3E2D; border-radius: 8px;
     padding: 14px 16px; margin: 12px 0; font-family: 'DM Mono', monospace; font-size: 14px; color: #C9A84C;
@@ -80,20 +92,23 @@
   </div>
 
   <div class="page-header">
-    <h1 data-i18n="h1">Unlock the Terrapin Agent</h1>
-    <p data-i18n="sub">Talk to your tools in plain English. Everything runs on your computer.</p>
+    <span class="hero-badge" data-i18n="hero_badge">Simplest Setup</span>
+    <h1 data-i18n="h1">One command. Everything installs.</h1>
+    <p data-i18n="sub">Paste this into Terminal on your Mac and walk away. Takes about 10 minutes.</p>
   </div>
 
-  <!-- ONE COMMAND SETUP -->
-  <div class="step" style="border-color:#C9A84C;">
-    <div class="step-label" data-i18n="auto_label">One command setup</div>
-    <h2 data-i18n="auto_h2">Paste this into Terminal</h2>
-    <div class="cmd-block">
-      <code>curl -fsSL https://terrapin.tools/install.sh | bash</code>
-      <button class="copy-btn" onclick="copyCmd(this, 'curl -fsSL https://terrapin.tools/install.sh | bash')">Copy</button>
-    </div>
-    <p style="font-size:13px;color:#6B6B6B;" data-i18n="auto_hint">Or follow the manual steps below if you prefer.</p>
+  <div class="hero-cmd">
+    <code>curl -fsSL https://terrapin.tools/install.sh | bash</code>
+    <button class="copy-btn" onclick="copyCmd(this, 'curl -fsSL https://terrapin.tools/install.sh | bash')">Copy</button>
   </div>
+
+  <div class="checks">
+    <span data-i18n="check1">&#10003; Installs Ollama and Gemma automatically</span>
+    <span data-i18n="check2">&#10003; Agent starts every time you log in</span>
+    <span data-i18n="check3">&#10003; No terminal needed after setup</span>
+  </div>
+
+  <div class="divider" data-i18n="divider">Or install manually step by step</div>
 
   <!-- STEP 1 -->
   <div class="step">
@@ -140,8 +155,9 @@
 
   <div class="reassurance">
     <p data-i18n="reassure">Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.</p>
-    <p class="small" data-i18n="req">Requires a Mac with 8GB RAM or more. Windows support coming soon.</p>
   </div>
+
+  <p class="win-note" data-i18n="win_note">On Windows? Manual setup only for now &mdash; Windows auto-install coming soon.</p>
 
   <div class="page-footer">
     <a href="/">terrapin.tools &mdash; simple tools for people who work</a>
@@ -152,8 +168,13 @@
 <script>
 const T = {
   en: {
-    h1: 'Unlock the Terrapin Agent',
-    sub: 'Talk to your tools in plain English. Everything runs on your computer.',
+    hero_badge: 'Simplest Setup',
+    h1: 'One command. Everything installs.',
+    sub: 'Paste this into Terminal on your Mac and walk away. Takes about 10 minutes.',
+    check1: '\u2713 Installs Ollama and Gemma automatically',
+    check2: '\u2713 Agent starts every time you log in',
+    check3: '\u2713 No terminal needed after setup',
+    divider: 'Or install manually step by step',
     s1_label: 'Step 1', s1_h2: 'Download Ollama', s1_p: 'Ollama runs AI on your computer. Download it at ollama.com \u2014 installs like any app.',
     s1_btn: 'Download Ollama \u2192',
     s2_label: 'Step 2', s2_h2: 'Open Terminal and run one command', s2_p1: 'Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.',
@@ -162,13 +183,16 @@ const T = {
     s3_p2: 'Open this in your browser and bookmark it: <a href="http://localhost:7777/agent.html" style="color:#2C3E2D;font-weight:600;">http://localhost:7777/agent.html</a>',
     s4_label: 'Step 4 (Optional)', s4_h2: 'Set up email sending', s4_p: 'Want Terrapin to send invoices and quotes by email? Run this once:',
     reassure: 'Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.',
-    req: 'Requires a Mac with 8GB RAM or more. Windows support coming soon.',
-    auto_label: 'One command setup', auto_h2: 'Paste this into Terminal',
-    auto_hint: 'Or follow the manual steps below if you prefer.'
+    win_note: 'On Windows? Manual setup only for now \u2014 Windows auto-install coming soon.'
   },
   es: {
-    h1: 'Activa el Agente Terrapin',
-    sub: 'Habla con tus herramientas en espa\u00f1ol. Todo funciona en tu computadora.',
+    hero_badge: 'Configuraci\u00f3n M\u00e1s Simple',
+    h1: 'Un comando. Todo se instala.',
+    sub: 'P\u00e9galo en Terminal en tu Mac y espera. Toma unos 10 minutos.',
+    check1: '\u2713 Instala Ollama y Gemma autom\u00e1ticamente',
+    check2: '\u2713 El agente se inicia cada vez que inicias sesi\u00f3n',
+    check3: '\u2713 No necesitas Terminal despu\u00e9s de la configuraci\u00f3n',
+    divider: 'O instala manualmente paso a paso',
     s1_label: 'Paso 1', s1_h2: 'Descarga Ollama', s1_p: 'Ollama ejecuta IA en tu computadora. Desc\u00e1rgalo en ollama.com \u2014 se instala como cualquier app.',
     s1_btn: 'Descargar Ollama \u2192',
     s2_label: 'Paso 2', s2_h2: 'Abre Terminal y ejecuta un comando', s2_p1: 'Terminal es una app que ya tienes en tu Mac. Presiona <strong>Command + Espacio</strong>, escribe <strong>Terminal</strong>, presiona Enter.',
@@ -177,9 +201,7 @@ const T = {
     s3_p2: 'Abre esto en tu navegador y gu\u00e1rdalo: <a href="http://localhost:7777/agent.html" style="color:#2C3E2D;font-weight:600;">http://localhost:7777/agent.html</a>',
     s4_label: 'Paso 4 (Opcional)', s4_h2: 'Configurar env\u00edo de email', s4_p: '\u00bfQuieres que Terrapin env\u00ede facturas y cotizaciones por email? Ejecuta esto una vez:',
     reassure: 'Todo funciona en tu computadora. Nada va a la nube. Tus datos nunca salen de tu m\u00e1quina.',
-    req: 'Requiere una Mac con 8GB de RAM o m\u00e1s. Soporte para Windows pr\u00f3ximamente.',
-    auto_label: 'Configuraci\u00f3n con un comando', auto_h2: 'Pega esto en Terminal',
-    auto_hint: 'O sigue los pasos manuales abajo si prefieres.'
+    win_note: '\u00bfEn Windows? Solo configuraci\u00f3n manual por ahora \u2014 instalaci\u00f3n autom\u00e1tica para Windows pr\u00f3ximamente.'
   }
 };
 
