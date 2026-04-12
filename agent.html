@@ -101,16 +101,21 @@
   }
 
   /* ── TYPING INDICATOR ── */
-  .typing-indicator { display: flex; gap: 4px; padding: 8px 0 4px; align-items: center; }
-  .typing-indicator span {
-    width: 6px; height: 6px; border-radius: 50%; background: var(--gold-dim);
+  .typing-phrase {
+    font-size: 14px; color: var(--gold-dim); font-style: italic;
+    transition: opacity 0.3s ease;
+  }
+  .typing-phrase.fade { opacity: 0; }
+  .typing-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
+  .typing-dots span {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--gold-dim);
     animation: typingBounce 1.2s infinite;
   }
-  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes typingBounce {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-4px); opacity: 1; }
+    30% { transform: translateY(-3px); opacity: 1; }
   }
 
   /* ── PROGRESS STEP ── */
@@ -594,19 +599,77 @@ function addProgress(text) {
   return step;
 }
 
+const turtlePhrases = {
+  en: [
+    "Tantalizing terrapin terraforming planetary contributions...",
+    "Shell-sorting the situation...",
+    "Slowly and surely winning the race...",
+    "Consulting the ancient turtle wisdom...",
+    "Carrying your business on my back...",
+    "Thinking at turtle speed, working at turtle speed...",
+    "One slow step for turtle, one giant leap for your business...",
+    "Reading your business profile...",
+    "Checking the tool manifest...",
+    "Almost there. Turtles never rush.",
+    "Processing with the patience of a 100 year old turtle...",
+    "Your data stays right here. On your machine. Safe.",
+    "Gemma is thinking. Locally. Privately. Just for you.",
+    "No cloud. No API. Just a turtle and your data.",
+    "Running the numbers like a turtle who has seen some things..."
+  ],
+  es: [
+    "La tortuga est\u00e1 pensando...",
+    "Consultando la sabidur\u00eda ancestral...",
+    "Despacio pero seguro...",
+    "Leyendo tu perfil de negocio...",
+    "Revisando las herramientas...",
+    "Casi listo. Las tortugas nunca tienen prisa.",
+    "Tu informaci\u00f3n est\u00e1 segura aqu\u00ed. En tu m\u00e1quina.",
+    "Gemma est\u00e1 pensando. Localmente. Solo para ti.",
+    "Sin nube. Sin API. Solo una tortuga y tus datos.",
+    "Procesando con la paciencia de una tortuga de 100 a\u00f1os...",
+    "Un paso lento para la tortuga, un gran salto para tu negocio...",
+    "Cargando tu negocio en mi caparaz\u00f3n..."
+  ]
+};
+let typingInterval = null;
+let lastPhraseIndex = -1;
+
+function getRandomPhrase() {
+  const lang = localStorage.getItem('terrapin-language') || 'en';
+  const phrases = turtlePhrases[lang] || turtlePhrases.en;
+  let idx;
+  do { idx = Math.floor(Math.random() * phrases.length); } while (idx === lastPhraseIndex && phrases.length > 1);
+  lastPhraseIndex = idx;
+  return phrases[idx];
+}
+
 function showTyping() {
   const thread = document.getElementById('chat-thread');
   const msg = document.createElement('div');
   msg.className = 'message agent';
   msg.id = 'typing-msg';
-  msg.innerHTML = '<img src="Handyman turtle ready for work.png" alt="Terrapin" class="msg-avatar"><div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  msg.innerHTML = '<img src="turtle-optimized.png" alt="Terrapin" class="msg-avatar"><div class="msg-bubble"><span class="typing-phrase" id="typing-phrase">' + getRandomPhrase() + '</span><span class="typing-dots"><span></span><span></span><span></span></span></div>';
   thread.appendChild(msg);
   scrollChat();
+
+  typingInterval = setInterval(function() {
+    const el = document.getElementById('typing-phrase');
+    if (!el) { clearInterval(typingInterval); return; }
+    el.classList.add('fade');
+    setTimeout(function() {
+      if (!document.getElementById('typing-phrase')) return;
+      el.textContent = getRandomPhrase();
+      el.classList.remove('fade');
+    }, 300);
+  }, 1500);
 }
 
 function hideTyping() {
+  if (typingInterval) { clearInterval(typingInterval); typingInterval = null; }
   const el = document.getElementById('typing-msg');
   if (el) el.remove();
+  lastPhraseIndex = -1;
 }
 
 function scrollChat() {
