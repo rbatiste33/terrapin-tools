@@ -700,6 +700,34 @@ async function sendMessage() {
   addMessage('user', text);
   input.value = '';
 
+  // Check if user is replying with an email for a pending tool request
+  if (window._pendingTool) {
+    const emailMatch = text.match(/[\w.+-]+@[\w.-]+\.\w+/);
+    if (emailMatch) {
+      const pending = window._pendingTool;
+      pending.params.client_email = emailMatch[0];
+      window._pendingTool = null;
+      showTyping();
+      try {
+        const res = await fetch(AGENT_URL + '/call-tool', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool_id: pending.tool_id, params: pending.params })
+        });
+        hideTyping();
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            await handleToolCall({ tool_id: data.tool_id, params: pending.params, url: data.url, action: 'call_tool' });
+            return;
+          }
+        }
+      } catch(e) { hideTyping(); }
+    } else {
+      window._pendingTool = null; // User replied with something else, clear pending
+    }
+  }
+
   if (!agentReady) {
     setTimeout(function() {
       addMessage('agent', "Agent server isn't running. Start it with: `npm run agent` in your terminal. That connects me to Gemma on your machine.");
@@ -752,6 +780,10 @@ async function handleAgentResponse(data) {
       break;
     case 'ask':
       addMessage('agent', data.message);
+      // Store pending tool context so we can complete the request when user provides info
+      if (data.pending_tool) {
+        window._pendingTool = { tool_id: data.pending_tool, params: data.pending_params || {} };
+      }
       break;
     case 'respond':
       addMessage('agent', data.message);
