@@ -1,0 +1,809 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Freelance Project Tracker
+Type: data
+Description: Track freelance projects from kickoff to final invoice with milestones, change orders, and work logs
+Parameters:
+  - action (string, required): add|view|log_work
+  - client_name (string, optional): Client name for new project
+  - project_name (string, optional): Project name
+  - fee (number, optional): Agreed fee
+  - fee_type (string, optional): fixed|hourly
+  - autorun (boolean, optional): true to auto-execute
+Output: Project saved confirmation or project list
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freelance Project Tracker — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#1a1a1a;min-height:100vh;padding:1.5rem 1rem 2rem;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.container{max-width:900px;margin:0 auto}
+.back-to-terrapin{display:block;font-family:'DM Sans',sans-serif;font-size:13px;color:#6B6B6B;text-decoration:none;padding:16px 0 8px;transition:color .15s}
+.back-to-terrapin:hover{color:#2C3E2D}
+.app-header{text-align:center;margin-bottom:1.5rem}
+.app-header h1{font-family:'Lora',serif;font-size:26px;font-weight:700;color:#2C3E2D}
+.app-header p{font-size:14px;color:#6B6B6B;margin-top:2px}
+.card{background:#fff;border-radius:12px;border:1px solid #E8E0D0;padding:20px;margin-bottom:12px}
+.card-title{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:#6B6B6B;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #E8E0D0}
+label{font-size:13px;color:#6B6B6B;font-weight:500;display:block;margin-bottom:6px}
+input[type="text"],input[type="number"],input[type="email"],input[type="date"],input[type="time"],select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;color:#1a1a1a;background:#FDFAF4;border:1px solid #E8E0D0;border-radius:8px;padding:10px 12px;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#2C3E2D;background:#fff}
+textarea{resize:vertical;min-height:70px;line-height:1.5}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.row.three{grid-template-columns:1fr 1fr 1fr}
+.btn-primary{background:#2C3E2D;color:#fff;padding:12px 24px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s;text-align:center;width:100%}
+.btn-primary:hover{background:#3A5240}
+.btn-secondary{background:transparent;color:#2C3E2D;padding:10px 18px;border-radius:8px;border:1.5px solid #2C3E2D;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{background:rgba(44,62,45,.06)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:6px}
+.btn-danger{background:none;border:1px solid #E8E0D0;color:#B85C2C;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px}
+.btn-danger:hover{border-color:#B85C2C;background:#FFF8F5}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid #E8E0D0;padding-bottom:10px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid #E8E0D0;font-size:13px;cursor:pointer;background:#FDFAF4;color:#6B6B6B;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s}
+.tab:hover{border-color:#2C3E2D;color:#2C3E2D}
+.tab.active{background:#2C3E2D;color:#fff;border-color:#2C3E2D}
+.pane{display:none}
+.pane.active{display:block}
+
+/* Status pills */
+.status-pill{display:inline-block;font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;font-weight:500}
+.status-kickoff{background:#E8F0E8;color:#2C3E2D}
+.status-progress{background:#FDF5E0;color:#8B6914}
+.status-review{background:#E8EBF5;color:#3B4A8C}
+.status-invoiced{background:#FDE8E0;color:#B85C2C}
+.status-paid{background:#D8F0D8;color:#2C6E2C}
+
+/* Project list */
+.project-item{padding:14px 0;border-bottom:1px solid #E8E0D0;cursor:pointer;transition:background .1s}
+.project-item:last-child{border-bottom:none}
+.project-item:hover{background:#FDFAF4;margin:0 -12px;padding:14px 12px;border-radius:8px}
+.pi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pi-client{font-size:13px;color:#6B6B6B}
+.pi-name{font-size:16px;font-weight:600;color:#1a1a1a}
+.pi-fee{font-family:'DM Mono',monospace;font-size:14px;color:#2C3E2D;font-weight:500}
+.pi-meta{display:flex;gap:12px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.pi-days{font-size:12px;color:#6B6B6B}
+.pi-days.overdue{color:#B85C2C;font-weight:600}
+.pi-actions{display:flex;gap:6px;margin-top:8px}
+
+/* Progress bar */
+.progress-bar{width:100%;height:6px;background:#E8E0D0;border-radius:3px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:#4A7C59;border-radius:3px;transition:width .3s}
+
+/* Milestone/log items */
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #E8E0D0;font-size:14px}
+.item-row:last-child{border-bottom:none}
+.item-check{width:18px;height:18px;border-radius:4px;border:1.5px solid #E8E0D0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.item-check.done{background:#4A7C59;border-color:#4A7C59;color:#fff;font-size:11px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;justify-content:center;align-items:flex-start;padding:2rem 1rem;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;border:1px solid #E8E0D0;width:100%;max-width:560px;padding:24px;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.modal-title{font-family:'Lora',serif;font-size:18px;font-weight:700;color:#2C3E2D;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:#ccc}
+.modal-close:hover{color:#B85C2C}
+
+/* Summary cards */
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.summary-card{background:#FDFAF4;border:1px solid #E8E0D0;border-radius:10px;padding:14px;text-align:center}
+.summary-card .s-label{font-family:'DM Mono',monospace;font-size:10px;color:#6B6B6B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.summary-card .s-value{font-family:'Lora',serif;font-size:20px;font-weight:700;color:#2C3E2D}
+
+.empty{text-align:center;padding:2rem;color:#6B6B6B;font-size:14px}
+.footer-link{text-align:center;font-size:12px;color:#6B6B6B;padding:24px 0 8px}
+.footer-link a{color:#6B6B6B;text-decoration:none;font-family:'DM Mono',monospace}
+.footer-link a:hover{color:#2C3E2D}
+
+.lang-toggle{display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden;flex-shrink:0}
+.lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+.lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
+@media(max-width:600px){
+.row{grid-template-columns:1fr}
+.row.three{grid-template-columns:1fr 1fr}
+.summary-row{grid-template-columns:repeat(2,1fr)}
+.tabs{gap:3px}
+.tab{padding:6px 12px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<a href="https://terrapin.tools" class="back-to-terrapin" data-i18n="back">&#8592; Back to Terrapin Tools</a>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
+</div>
+
+<div class="app-header">
+<h1 data-i18n="h1">Freelance Project Tracker</h1>
+<p data-i18n="sub">Kickoff to final invoice. Everything in one place.</p>
+</div>
+
+<!-- MAIN TABS -->
+<div class="tabs" id="main-tabs">
+<button class="tab active" onclick="switchMain('projects')" data-i18n="tab_projects">My Projects</button>
+<button class="tab" onclick="switchMain('worklog')" data-i18n="tab_worklog">My Contractor Work Log</button>
+</div>
+
+<!-- ═══════ PROJECTS PANE ═══════ -->
+<div class="pane active" id="pane-projects">
+<div class="summary-row" id="project-summary"></div>
+<button class="btn-primary" onclick="openProjectModal()" style="margin-bottom:16px" data-i18n="new_project">+ Start a Project</button>
+<div class="card">
+<div class="card-title" data-i18n="active_projects">Active Projects</div>
+<div id="project-list"></div>
+</div>
+</div>
+
+<!-- ═══════ WORK LOG PANE ═══════ -->
+<div class="pane" id="pane-worklog">
+<div class="card">
+<div class="card-title" data-i18n="worklog_title">My Contractor Work Log</div>
+<p style="font-size:13px;color:#6B6B6B;margin-bottom:14px" data-i18n="worklog_sub">Track your work when you're the hired gun.</p>
+<button class="btn-secondary btn-sm" onclick="openWorkLogModal()" data-i18n="log_session">+ Log Work Session</button>
+<div id="worklog-list" style="margin-top:12px"></div>
+</div>
+<div class="summary-row" id="worklog-summary" style="margin-top:12px"></div>
+<button class="btn-secondary" onclick="exportWorkLogPDF()" style="width:100%;margin-top:8px" data-i18n="export_worklog">Export Work Log PDF</button>
+</div>
+
+<!-- ═══════ PROJECT DETAIL (hidden by default) ═══════ -->
+<div class="pane" id="pane-detail">
+<button class="btn-secondary btn-sm" onclick="backToList()" style="margin-bottom:12px" data-i18n="back_list">&#8592; Back to Projects</button>
+<div id="detail-header"></div>
+<div class="tabs" id="detail-tabs">
+<button class="tab active" onclick="switchDetail('milestones')" data-i18n="tab_deliverables">Deliverables</button>
+<button class="tab" onclick="switchDetail('changes')" data-i18n="tab_changes">Change Orders</button>
+<button class="tab" onclick="switchDetail('comms')" data-i18n="tab_comms">Communication</button>
+<button class="tab" onclick="switchDetail('invoice')" data-i18n="tab_invoice">Invoice</button>
+</div>
+<div class="pane active" id="sub-milestones"></div>
+<div class="pane" id="sub-changes"></div>
+<div class="pane" id="sub-comms"></div>
+<div class="pane" id="sub-invoice"></div>
+</div>
+
+<p style="text-align:center;font-size:12px;color:#6B6B6B;margin-top:12px;">Your data saves in this browser on this device. <a href="../agent-setup.html" style="color:#2C3E2D;">For permanent storage set up the Terrapin agent.</a></p>
+<!-- API: window.projectTracker -->
+<div class="footer-link"><a href="https://terrapin.tools" data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</a></div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="project-modal" onclick="if(event.target===this)closeAllModals()">
+<div class="modal">
+<div class="modal-title"><span id="pm-title" data-i18n="new_project_title">Start a Project</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
+<div class="row"><div class="field"><label data-i18n="lbl_client">Client</label><select id="f-client"><option value="">Select or type...</option></select></div>
+<div class="field"><label data-i18n="lbl_client_email">Client email</label><input type="email" id="f-client-email" placeholder="client@example.com"></div></div>
+<div class="field"><label data-i18n="lbl_project">Project name</label><input type="text" id="f-project" placeholder="e.g. Website Redesign"></div>
+<div class="field"><label data-i18n="lbl_brief">Brief</label><textarea id="f-brief" placeholder="What was agreed at kickoff..." rows="3"></textarea></div>
+<div class="row"><div class="field"><label data-i18n="lbl_fee_type">Fee type</label><select id="f-fee-type" onchange="toggleFeeFields()"><option value="fixed">Fixed Price</option><option value="hourly">Hourly</option></select></div>
+<div class="field" id="fee-fixed-field"><label data-i18n="lbl_fee">Agreed fee</label><input type="number" id="f-fee" placeholder="5000" min="0" step="1"></div>
+<div class="field" id="fee-hourly-rate" style="display:none"><label data-i18n="lbl_rate">Hourly rate</label><input type="number" id="f-rate" placeholder="125" min="0"></div></div>
+<div class="field" id="fee-hourly-est" style="display:none"><label data-i18n="lbl_est_hours">Estimated hours</label><input type="number" id="f-est-hours" placeholder="40" min="0"></div>
+<div class="row"><div class="field"><label data-i18n="lbl_kickoff">Kickoff date</label><input type="date" id="f-kickoff"></div>
+<div class="field"><label data-i18n="lbl_delivery">Target delivery</label><input type="date" id="f-delivery"></div></div>
+<div class="field"><label data-i18n="lbl_terms">Payment terms</label><select id="f-terms"><option value="50/50">50% kickoff / 50% delivery</option><option value="100">100% on delivery</option><option value="milestone">Milestone based</option></select></div>
+<div class="field"><label data-i18n="lbl_notes">Internal notes</label><textarea id="f-notes" rows="2" placeholder="Notes to self..."></textarea></div>
+<button class="btn-primary" onclick="saveProject()" data-i18n="save_project">Save Project</button>
+<button class="btn-danger" id="delete-project-btn" onclick="deleteProject()" style="display:none;width:100%;margin-top:8px" data-i18n="delete_project">Delete Project</button>
+</div></div>
+
+<div class="modal-overlay" id="milestone-modal" onclick="if(event.target===this)closeAllModals()">
+<div class="modal">
+<div class="modal-title"><span data-i18n="add_deliverable">Add Deliverable</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
+<div class="field"><label data-i18n="lbl_deliverable">Description</label><input type="text" id="f-ms-desc" placeholder="e.g. Homepage wireframe"></div>
+<div class="row"><div class="field"><label data-i18n="lbl_amount">Amount</label><input type="number" id="f-ms-amount" placeholder="1500" min="0"></div>
+<div class="field"><label data-i18n="lbl_due">Due date</label><input type="date" id="f-ms-due"></div></div>
+<button class="btn-primary" onclick="saveMilestone()" data-i18n="save_deliverable">Save Deliverable</button>
+</div></div>
+
+<div class="modal-overlay" id="change-modal" onclick="if(event.target===this)closeAllModals()">
+<div class="modal">
+<div class="modal-title"><span data-i18n="log_change">Log Change Order</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
+<div class="field"><label data-i18n="lbl_change_desc">What the client is asking for</label><textarea id="f-ch-desc" rows="3" placeholder="Additional feature request..."></textarea></div>
+<div class="field"><label data-i18n="lbl_add_cost">Additional cost</label><input type="number" id="f-ch-cost" placeholder="500" min="0"></div>
+<button class="btn-primary" onclick="saveChange()" data-i18n="save_change">Save Change Order</button>
+</div></div>
+
+<div class="modal-overlay" id="comm-modal" onclick="if(event.target===this)closeAllModals()">
+<div class="modal">
+<div class="modal-title"><span data-i18n="log_comm">Log Touchpoint</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
+<div class="row"><div class="field"><label data-i18n="lbl_comm_type">Type</label><select id="f-cm-type"><option value="email">Email</option><option value="call">Call</option><option value="meeting">Meeting</option><option value="message">Message</option></select></div>
+<div class="field"><label data-i18n="lbl_comm_date">Date</label><input type="date" id="f-cm-date"></div></div>
+<div class="field"><label data-i18n="lbl_comm_notes">Notes</label><textarea id="f-cm-notes" rows="3" placeholder="What was discussed..."></textarea></div>
+<button class="btn-primary" onclick="saveComm()" data-i18n="save_comm">Save Touchpoint</button>
+</div></div>
+
+<div class="modal-overlay" id="worklog-modal" onclick="if(event.target===this)closeAllModals()">
+<div class="modal">
+<div class="modal-title"><span data-i18n="log_work_session">Log Work Session</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
+<div class="row"><div class="field"><label data-i18n="lbl_wl_date">Date</label><input type="date" id="f-wl-date"></div>
+<div class="field"><label data-i18n="lbl_wl_hours">Hours worked</label><input type="number" id="f-wl-hours" placeholder="4" min="0" step=".25"></div></div>
+<div class="field"><label data-i18n="lbl_wl_rate">Hourly rate</label><input type="number" id="f-wl-rate" placeholder="125" min="0"></div>
+<div class="field"><label data-i18n="lbl_wl_desc">Work completed</label><textarea id="f-wl-desc" rows="3" placeholder="What you delivered..."></textarea></div>
+<button class="btn-primary" onclick="saveWorkLog()" data-i18n="save_session">Save Session</button>
+</div></div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const AGENT_URL='http://localhost:7777';
+const LS_KEY='terrapin-projects';
+const WL_KEY='terrapin-worklog';
+let projects=[];
+let workLogs=[];
+let crmContacts=[];
+let editingProjectId=null;
+let viewingProjectId=null;
+
+function genId(){return 'p_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6)}
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmt(n){return '$'+Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function daysSince(dateStr){if(!dateStr)return 999;return Math.floor((new Date()-new Date(dateStr+'T12:00:00'))/86400000)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+// ══════════════════════════════════════
+//  INDEXEDDB
+// ══════════════════════════════════════
+const IDB_NAME='terrapin-projects';const IDB_STORE='data';
+function openIDB(){return new Promise(function(r,j){var q=indexedDB.open(IDB_NAME,1);q.onupgradeneeded=function(){q.result.createObjectStore(IDB_STORE)};q.onsuccess=function(){r(q.result)};q.onerror=function(){j(q.error)}})}
+function idbGet(k){return openIDB().then(function(db){return new Promise(function(r,j){var t=db.transaction(IDB_STORE,'readonly');var q=t.objectStore(IDB_STORE).get(k);q.onsuccess=function(){r(q.result||null)};q.onerror=function(){j(q.error)}})})}
+function idbSet(k,v){return openIDB().then(function(db){return new Promise(function(r,j){var t=db.transaction(IDB_STORE,'readwrite');t.objectStore(IDB_STORE).put(v,k);t.oncomplete=function(){r()};t.onerror=function(){j(t.error)}})})}
+
+// ══════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════
+async function loadData(){
+try{var r=localStorage.getItem(LS_KEY);if(r)projects=JSON.parse(r)}catch(e){projects=[]}
+try{var r2=localStorage.getItem(WL_KEY);if(r2)workLogs=JSON.parse(r2)}catch(e){workLogs=[]}
+try{var ip=await idbGet('projects');if(Array.isArray(ip)&&ip.length){ip.forEach(function(p){if(!projects.find(function(x){return x.id===p.id}))projects.push(p)})}}catch(e){}
+try{var iw=await idbGet('worklog');if(Array.isArray(iw)&&iw.length){iw.forEach(function(w){if(!workLogs.find(function(x){return x.id===w.id}))workLogs.push(w)})}}catch(e){}
+try{var res=await fetch(AGENT_URL+'/data/projects',{signal:AbortSignal.timeout(2000)});if(res.ok){var sd=await res.json();if(sd.projects)sd.projects.forEach(function(p){var i=projects.findIndex(function(x){return x.id===p.id});if(i>-1)projects[i]=p;else projects.push(p)});if(sd.workLogs)sd.workLogs.forEach(function(w){var i=workLogs.findIndex(function(x){return x.id===w.id});if(i>-1)workLogs[i]=w;else workLogs.push(w)})}}catch(e){console.log('Agent server not available for projects')}
+saveLocal()
+}
+function saveLocal(){
+localStorage.setItem(LS_KEY,JSON.stringify(projects));
+localStorage.setItem(WL_KEY,JSON.stringify(workLogs));
+idbSet('projects',projects).catch(function(){});
+idbSet('worklog',workLogs).catch(function(){});
+try{fetch(AGENT_URL+'/data/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projects:projects,workLogs:workLogs})}).catch(function(){})}catch(e){}
+}
+
+// ══════════════════════════════════════
+//  CRM + PROFILE
+// ══════════════════════════════════════
+async function loadCRM(){
+try{var ls=localStorage.getItem('scrm_contacts');if(ls)crmContacts=JSON.parse(ls)}catch(e){}
+try{var r=await fetch(AGENT_URL+'/data/crm',{signal:AbortSignal.timeout(2000)});if(r.ok){var d=await r.json();if(Array.isArray(d)&&d.length)crmContacts=d}}catch(e){}
+populateClientDropdown()
+}
+function populateClientDropdown(){
+var s=document.getElementById('f-client');s.innerHTML='<option value="">Select or type...</option>';
+crmContacts.forEach(function(c){var o=document.createElement('option');o.value=c.name;o.textContent=c.name+(c.business?' ('+c.business+')':'');o.dataset.email=c.email||'';s.appendChild(o)})
+}
+
+// ══════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════
+function switchMain(id){
+document.querySelectorAll('#main-tabs .tab').forEach(function(t,i){t.classList.toggle('active',i===(id==='projects'?0:1))});
+document.getElementById('pane-projects').classList.toggle('active',id==='projects');
+document.getElementById('pane-worklog').classList.toggle('active',id==='worklog');
+document.getElementById('pane-detail').classList.remove('active')
+}
+function switchDetail(id){
+var tabs=['milestones','changes','comms','invoice'];
+document.querySelectorAll('#detail-tabs .tab').forEach(function(t,i){t.classList.toggle('active',tabs[i]===id)});
+tabs.forEach(function(t){document.getElementById('sub-'+t).classList.toggle('active',t===id)});
+if(id==='invoice')renderInvoice()
+}
+function showDetail(pid){
+viewingProjectId=pid;
+document.getElementById('pane-projects').classList.remove('active');
+document.getElementById('pane-worklog').classList.remove('active');
+document.getElementById('pane-detail').classList.add('active');
+renderDetail();switchDetail('milestones')
+}
+function backToList(){
+viewingProjectId=null;
+document.getElementById('pane-detail').classList.remove('active');
+document.getElementById('pane-projects').classList.add('active');
+renderProjects()
+}
+
+// ══════════════════════════════════════
+//  RENDER — PROJECT LIST
+// ══════════════════════════════════════
+function renderProjects(){
+var list=document.getElementById('project-list');
+var active=projects.filter(function(p){return p.status!=='paid'}).sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'')});
+var paid=projects.filter(function(p){return p.status==='paid'});
+if(!projects.length){list.innerHTML='<div class="empty">No projects yet. Start your first one above.</div>';renderSummary();return}
+var html='';
+active.forEach(function(p){html+=projectCard(p)});
+if(paid.length)html+='<div style="font-family:DM Mono,monospace;font-size:11px;color:#6B6B6B;text-transform:uppercase;letter-spacing:.06em;margin-top:16px;padding-top:12px;border-top:1px solid #E8E0D0">Completed</div>';
+paid.forEach(function(p){html+=projectCard(p)});
+list.innerHTML=html;
+renderSummary()
+}
+function projectCard(p){
+var lastTouch=getLastTouch(p);
+var days=daysSince(lastTouch);
+var daysClass=days>14?'overdue':'';
+var fee=p.feeType==='hourly'?fmt(p.rate*p.estHours)+' est':fmt(p.fee);
+var collected=getCollected(p);
+return '<div class="project-item" onclick="showDetail(\''+p.id+'\')">'+
+'<div class="pi-top"><div><div class="pi-client">'+esc(p.clientName)+'</div><div class="pi-name">'+esc(p.projectName)+'</div></div>'+
+'<div style="text-align:right"><div class="pi-fee">'+fee+'</div><span class="status-pill status-'+p.status+'">'+p.status+'</span></div></div>'+
+'<div class="pi-meta"><span class="pi-days '+daysClass+'">'+(lastTouch?days+'d since contact':'No contact logged')+'</span></div></div>'
+}
+function renderSummary(){
+var active=projects.filter(function(p){return p.status!=='paid'});
+var totalValue=active.reduce(function(s,p){return s+(p.feeType==='hourly'?(p.rate||0)*(p.estHours||0):(p.fee||0))},0);
+var totalCollected=projects.reduce(function(s,p){return s+getCollected(p)},0);
+var outstanding=totalValue-totalCollected;
+document.getElementById('project-summary').innerHTML=
+'<div class="summary-card"><div class="s-label">Active</div><div class="s-value">'+active.length+'</div></div>'+
+'<div class="summary-card"><div class="s-label">Pipeline</div><div class="s-value">'+fmt(totalValue)+'</div></div>'+
+'<div class="summary-card"><div class="s-label">Collected</div><div class="s-value">'+fmt(totalCollected)+'</div></div>'+
+'<div class="summary-card"><div class="s-label">Outstanding</div><div class="s-value">'+fmt(outstanding)+'</div></div>'
+}
+
+// ══════════════════════════════════════
+//  RENDER — PROJECT DETAIL
+// ══════════════════════════════════════
+function renderDetail(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+var fee=p.feeType==='hourly'?fmt(p.rate)+'/hr × '+p.estHours+'h = '+fmt(p.rate*p.estHours):fmt(p.fee);
+var collected=getCollected(p);var total=p.feeType==='hourly'?(p.rate||0)*(p.estHours||0):(p.fee||0);
+var milestones=p.milestones||[];var completed=milestones.filter(function(m){return m.done}).length;
+var pct=milestones.length?Math.round(completed/milestones.length*100):0;
+document.getElementById('detail-header').innerHTML=
+'<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div>'+
+'<div style="font-size:13px;color:#6B6B6B">'+esc(p.clientName)+'</div>'+
+'<div style="font-size:22px;font-weight:700;color:#2C3E2D;font-family:Lora,serif">'+esc(p.projectName)+'</div></div>'+
+'<div style="text-align:right"><div style="font-family:DM Mono,monospace;font-size:16px;color:#2C3E2D;font-weight:600">'+fee+'</div>'+
+'<span class="status-pill status-'+p.status+'">'+p.status+'</span>'+
+'<div style="margin-top:8px"><select onchange="updateStatus(this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #E8E0D0">'+
+['kickoff','progress','review','invoiced','paid'].map(function(s){return'<option value="'+s+'"'+(s===p.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div></div>'+
+'<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
+'<div style="font-size:12px;color:#6B6B6B">'+pct+'% delivered &middot; '+fmt(collected)+' collected of '+fmt(total)+'</div>'+
+(p.brief?'<div style="margin-top:10px;font-size:13px;color:#6B6B6B;padding:10px;background:#FDFAF4;border-radius:8px"><strong>Brief:</strong> '+esc(p.brief)+'</div>':'')+
+'<div style="display:flex;gap:6px;margin-top:10px"><button class="btn-secondary btn-sm" onclick="openProjectModal(\''+p.id+'\')">Edit Project</button></div></div>';
+renderMilestones(p);renderChanges(p);renderComms(p)
+}
+function renderMilestones(p){
+var el=document.getElementById('sub-milestones');
+var ms=p.milestones||[];
+var html='<button class="btn-secondary btn-sm" onclick="openMilestoneModal()" style="margin-bottom:12px">+ Add Deliverable</button>';
+if(!ms.length){html+='<div class="empty">No deliverables yet.</div>';el.innerHTML=html;return}
+ms.forEach(function(m,i){
+html+='<div class="item-row"><div style="display:flex;gap:10px;align-items:center"><div class="item-check'+(m.done?' done':'')+'" onclick="toggleMilestone('+i+')">'+(m.done?'&#10003;':'')+'</div><div><div style="font-weight:500'+(m.done?';text-decoration:line-through;opacity:.5':'')+'">'+esc(m.description)+'</div><div style="font-size:12px;color:#6B6B6B">'+fmt(m.amount)+(m.due?' &middot; Due '+m.due:'')+'</div></div></div></div>'
+});
+el.innerHTML=html
+}
+function renderChanges(p){
+var el=document.getElementById('sub-changes');
+var ch=p.changes||[];
+var html='<button class="btn-secondary btn-sm" onclick="openChangeModal()" style="margin-bottom:12px">+ Log Change Order</button>';
+if(!ch.length){html+='<div class="empty">No change orders.</div>';el.innerHTML=html;return}
+ch.forEach(function(c){
+var statusCls=c.status==='approved'?'status-paid':c.status==='declined'?'status-invoiced':'status-review';
+html+='<div class="item-row"><div><div style="font-weight:500">'+esc(c.description)+'</div><div style="font-size:12px;color:#6B6B6B">'+fmt(c.cost)+'</div></div><div><span class="status-pill '+statusCls+'">'+c.status+'</span>'+
+(c.status==='pending'?'<div style="margin-top:4px;display:flex;gap:4px"><button class="btn-sm btn-secondary" onclick="updateChange(\''+c.id+'\',\'approved\')">Approve</button><button class="btn-sm btn-danger" onclick="updateChange(\''+c.id+'\',\'declined\')">Decline</button></div>':'')+
+'</div></div>'
+});
+el.innerHTML=html
+}
+function renderComms(p){
+var el=document.getElementById('sub-comms');
+var cm=p.comms||[];
+var html='<button class="btn-secondary btn-sm" onclick="openCommModal()" style="margin-bottom:12px">+ Log Touchpoint</button>';
+if(!cm.length){html+='<div class="empty">No touchpoints logged.</div>';el.innerHTML=html;return}
+cm.sort(function(a,b){return(b.date||'').localeCompare(a.date||'')});
+cm.forEach(function(c){
+html+='<div class="item-row"><div><div style="font-weight:500;font-size:13px">'+esc(c.type)+' &middot; '+c.date+'</div><div style="font-size:12px;color:#6B6B6B">'+esc(c.notes)+'</div></div></div>'
+});
+el.innerHTML=html
+}
+
+// ══════════════════════════════════════
+//  RENDER — INVOICE
+// ══════════════════════════════════════
+function renderInvoice(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+var el=document.getElementById('sub-invoice');
+var ms=(p.milestones||[]).filter(function(m){return m.done});
+var ch=(p.changes||[]).filter(function(c){return c.status==='approved'});
+var totalMilestones=ms.reduce(function(s,m){return s+(m.amount||0)},0);
+var totalChanges=ch.reduce(function(s,c){return s+(c.cost||0)},0);
+var baseFee=p.feeType==='hourly'?(p.rate||0)*(p.estHours||0):(p.fee||0);
+var grandTotal=baseFee+totalChanges;
+var collected=getCollected(p);
+var balance=grandTotal-collected;
+var html='<div class="card"><div class="card-title">Invoice Preview</div>';
+html+='<div class="item-row"><div>Base fee'+(p.feeType==='hourly'?' ('+p.estHours+'h × '+fmt(p.rate)+')':'')+'</div><div style="font-weight:600">'+fmt(baseFee)+'</div></div>';
+ch.forEach(function(c){html+='<div class="item-row"><div>Change: '+esc(c.description)+'</div><div style="font-weight:600">'+fmt(c.cost)+'</div></div>'});
+html+='<div style="border-top:2px solid #2C3E2D;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:#2C3E2D"><span>Total</span><span>'+fmt(grandTotal)+'</span></div>';
+if(collected>0)html+='<div class="item-row"><div style="color:#4A7C59">Collected</div><div style="color:#4A7C59;font-weight:600">-'+fmt(collected)+'</div></div>';
+if(balance>0)html+='<div class="item-row" style="font-weight:700"><div>Balance due</div><div>'+fmt(balance)+'</div></div>';
+html+='<button class="btn-primary" onclick="generateInvoicePDF()" style="margin-top:12px">Generate Invoice PDF</button></div>';
+el.innerHTML=html
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function getLastTouch(p){
+var dates=[];
+if(p.kickoff)dates.push(p.kickoff);
+(p.comms||[]).forEach(function(c){if(c.date)dates.push(c.date)});
+dates.sort();return dates.length?dates[dates.length-1]:null
+}
+function getCollected(p){
+return(p.payments||[]).reduce(function(s,pay){return s+(pay.amount||0)},0)
+}
+function toggleFeeFields(){
+var t=document.getElementById('f-fee-type').value;
+document.getElementById('fee-fixed-field').style.display=t==='fixed'?'':'none';
+document.getElementById('fee-hourly-rate').style.display=t==='hourly'?'':'none';
+document.getElementById('fee-hourly-est').style.display=t==='hourly'?'':'none'
+}
+function updateStatus(s){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+p.status=s;p.updatedAt=new Date().toISOString();saveLocal();renderDetail()
+}
+function closeAllModals(){document.querySelectorAll('.modal-overlay').forEach(function(m){m.classList.remove('open')})}
+
+// ══════════════════════════════════════
+//  SAVE — PROJECTS
+// ══════════════════════════════════════
+function openProjectModal(id){
+editingProjectId=id||null;
+if(id){
+var p=projects.find(function(x){return x.id===id});if(!p)return;
+document.getElementById('f-client').value=p.clientName||'';
+document.getElementById('f-client-email').value=p.clientEmail||'';
+document.getElementById('f-project').value=p.projectName||'';
+document.getElementById('f-brief').value=p.brief||'';
+document.getElementById('f-fee-type').value=p.feeType||'fixed';
+document.getElementById('f-fee').value=p.fee||'';
+document.getElementById('f-rate').value=p.rate||'';
+document.getElementById('f-est-hours').value=p.estHours||'';
+document.getElementById('f-kickoff').value=p.kickoff||'';
+document.getElementById('f-delivery').value=p.delivery||'';
+document.getElementById('f-terms').value=p.payTerms||'50/50';
+document.getElementById('f-notes').value=p.notes||'';
+document.getElementById('delete-project-btn').style.display='';
+document.getElementById('pm-title').textContent='Edit Project';
+}else{
+['f-client','f-client-email','f-project','f-brief','f-fee','f-rate','f-est-hours','f-notes'].forEach(function(id){document.getElementById(id).value=''});
+document.getElementById('f-fee-type').value='fixed';
+document.getElementById('f-kickoff').value=todayISO();
+document.getElementById('f-delivery').value='';
+document.getElementById('f-terms').value='50/50';
+document.getElementById('delete-project-btn').style.display='none';
+document.getElementById('pm-title').textContent='Start a Project';
+}
+toggleFeeFields();
+document.getElementById('project-modal').classList.add('open')
+}
+function saveProject(){
+var clientName=document.getElementById('f-client').value.trim();
+var projectName=document.getElementById('f-project').value.trim();
+if(!clientName||!projectName){alert('Client and project name required.');return}
+var data={
+clientName:clientName,clientEmail:document.getElementById('f-client-email').value.trim(),
+projectName:projectName,brief:document.getElementById('f-brief').value.trim(),
+feeType:document.getElementById('f-fee-type').value,
+fee:parseFloat(document.getElementById('f-fee').value)||0,
+rate:parseFloat(document.getElementById('f-rate').value)||0,
+estHours:parseFloat(document.getElementById('f-est-hours').value)||0,
+kickoff:document.getElementById('f-kickoff').value,delivery:document.getElementById('f-delivery').value,
+payTerms:document.getElementById('f-terms').value,notes:document.getElementById('f-notes').value.trim(),
+updatedAt:new Date().toISOString()
+};
+// Auto-fill email from CRM
+if(!data.clientEmail){var sel=document.getElementById('f-client');var opt=sel.options[sel.selectedIndex];if(opt&&opt.dataset.email)data.clientEmail=opt.dataset.email}
+if(editingProjectId){
+var i=projects.findIndex(function(x){return x.id===editingProjectId});
+if(i>-1)Object.assign(projects[i],data)
+}else{
+projects.push(Object.assign({id:genId(),status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString()},data))
+}
+saveLocal();closeAllModals();renderProjects();
+if(viewingProjectId)renderDetail();
+// Agent result
+var rd=document.getElementById('terrapin-result')||document.createElement('div');
+rd.id='terrapin-result';rd.style.display='none';
+rd.textContent=JSON.stringify({status:'success',tool:'freelance-project-tracker',output:'Project saved: '+projectName,timestamp:new Date().toISOString()});
+document.body.appendChild(rd);
+if(window.parent!==window)window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:'success',output:'Project saved: '+projectName},'*')
+}
+function deleteProject(){
+if(!editingProjectId)return;
+if(!confirm('Delete this project?'))return;
+projects=projects.filter(function(x){return x.id!==editingProjectId});
+saveLocal();closeAllModals();viewingProjectId=null;backToList()
+}
+
+// ══════════════════════════════════════
+//  SAVE — MILESTONES, CHANGES, COMMS
+// ══════════════════════════════════════
+function openMilestoneModal(){document.getElementById('f-ms-desc').value='';document.getElementById('f-ms-amount').value='';document.getElementById('f-ms-due').value='';document.getElementById('milestone-modal').classList.add('open')}
+function saveMilestone(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+if(!p.milestones)p.milestones=[];
+p.milestones.push({id:genId(),description:document.getElementById('f-ms-desc').value.trim(),amount:parseFloat(document.getElementById('f-ms-amount').value)||0,due:document.getElementById('f-ms-due').value,done:false});
+p.updatedAt=new Date().toISOString();saveLocal();closeAllModals();renderDetail()
+}
+function toggleMilestone(i){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p||!p.milestones[i])return;
+p.milestones[i].done=!p.milestones[i].done;
+if(p.milestones[i].done)p.milestones[i].completedAt=todayISO();
+p.updatedAt=new Date().toISOString();saveLocal();renderDetail()
+}
+function openChangeModal(){document.getElementById('f-ch-desc').value='';document.getElementById('f-ch-cost').value='';document.getElementById('change-modal').classList.add('open')}
+function saveChange(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+if(!p.changes)p.changes=[];
+p.changes.push({id:genId(),description:document.getElementById('f-ch-desc').value.trim(),cost:parseFloat(document.getElementById('f-ch-cost').value)||0,status:'pending',createdAt:todayISO()});
+p.updatedAt=new Date().toISOString();saveLocal();closeAllModals();renderDetail()
+}
+function updateChange(chId,status){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+var ch=(p.changes||[]).find(function(c){return c.id===chId});if(ch)ch.status=status;
+p.updatedAt=new Date().toISOString();saveLocal();renderDetail()
+}
+function openCommModal(){document.getElementById('f-cm-date').value=todayISO();document.getElementById('f-cm-notes').value='';document.getElementById('comm-modal').classList.add('open')}
+function saveComm(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+if(!p.comms)p.comms=[];
+p.comms.push({id:genId(),type:document.getElementById('f-cm-type').value,date:document.getElementById('f-cm-date').value,notes:document.getElementById('f-cm-notes').value.trim()});
+p.updatedAt=new Date().toISOString();saveLocal();closeAllModals();renderDetail()
+}
+
+// ══════════════════════════════════════
+//  WORK LOG
+// ══════════════════════════════════════
+function openWorkLogModal(){document.getElementById('f-wl-date').value=todayISO();document.getElementById('f-wl-hours').value='';document.getElementById('f-wl-desc').value='';
+// Pre-fill rate from profile
+try{var pr=JSON.parse(localStorage.getItem('terrapin_business_profile'));if(pr&&pr.defaultRate)document.getElementById('f-wl-rate').value=pr.defaultRate}catch(e){}
+document.getElementById('worklog-modal').classList.add('open')
+}
+function saveWorkLog(){
+var hours=parseFloat(document.getElementById('f-wl-hours').value)||0;
+var desc=document.getElementById('f-wl-desc').value.trim();
+if(!hours||!desc){alert('Hours and description required.');return}
+workLogs.push({id:genId(),date:document.getElementById('f-wl-date').value,hours:hours,rate:parseFloat(document.getElementById('f-wl-rate').value)||0,description:desc,createdAt:new Date().toISOString()});
+saveLocal();closeAllModals();renderWorkLog()
+}
+function renderWorkLog(){
+var list=document.getElementById('worklog-list');
+var sorted=workLogs.slice().sort(function(a,b){return(b.date||'').localeCompare(a.date||'')});
+if(!sorted.length){list.innerHTML='<div class="empty">No work sessions logged yet.</div>';document.getElementById('worklog-summary').innerHTML='';return}
+var html='';
+sorted.forEach(function(w){
+html+='<div class="item-row"><div><div style="font-weight:500;font-size:13px">'+w.date+' &middot; '+w.hours+'h'+(w.rate?' × '+fmt(w.rate)+' = '+fmt(w.hours*w.rate):'')+'</div><div style="font-size:12px;color:#6B6B6B">'+esc(w.description)+'</div></div></div>'
+});
+list.innerHTML=html;
+var totalH=workLogs.reduce(function(s,w){return s+w.hours},0);
+var totalE=workLogs.reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
+// This week
+var now=new Date();var weekStart=new Date(now);weekStart.setDate(now.getDate()-now.getDay());
+var weekStr=weekStart.getFullYear()+'-'+String(weekStart.getMonth()+1).padStart(2,'0')+'-'+String(weekStart.getDate()).padStart(2,'0');
+var weekH=workLogs.filter(function(w){return w.date>=weekStr}).reduce(function(s,w){return s+w.hours},0);
+var weekE=workLogs.filter(function(w){return w.date>=weekStr}).reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
+document.getElementById('worklog-summary').innerHTML=
+'<div class="summary-card"><div class="s-label">Total Hours</div><div class="s-value">'+totalH+'</div></div>'+
+'<div class="summary-card"><div class="s-label">Total Earned</div><div class="s-value">'+fmt(totalE)+'</div></div>'+
+'<div class="summary-card"><div class="s-label">This Week</div><div class="s-value">'+weekH+'h</div></div>'+
+'<div class="summary-card"><div class="s-label">Week Earned</div><div class="s-value">'+fmt(weekE)+'</div></div>'
+}
+
+// ══════════════════════════════════════
+//  PDF — INVOICE
+// ══════════════════════════════════════
+function generateInvoicePDF(){
+var p=projects.find(function(x){return x.id===viewingProjectId});if(!p)return;
+var{jsPDF}=window.jspdf;var doc=new jsPDF({unit:'mm',format:'letter'});
+var W=doc.internal.pageSize.getWidth(),m=20,cw=W-m*2;var y=20;
+var biz={};try{biz=JSON.parse(localStorage.getItem('terrapin_business_profile'))||{}}catch(e){}
+// Header
+doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(44,62,45);
+doc.text(biz.businessName||'',m,y);y+=6;
+doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(107,107,107);
+if(biz.address){doc.text(biz.address,m,y);y+=4}
+if(biz.phone||biz.email){doc.text([biz.phone,biz.email].filter(Boolean).join('  |  '),m,y);y+=4}
+y+=8;
+doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(44,62,45);
+doc.text('INVOICE',m,y);y+=10;
+doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(107,107,107);
+doc.text('Date: '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),m,y);y+=5;
+doc.text('Invoice #: INV-'+p.id.slice(-6).toUpperCase(),m,y);y+=8;
+doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(107,107,107);
+doc.text('BILL TO',m,y);y+=5;
+doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(26,26,26);
+doc.text(p.clientName,m,y);y+=5;
+if(p.clientEmail){doc.setFontSize(9);doc.setTextColor(107,107,107);doc.text(p.clientEmail,m,y);y+=5}
+y+=4;
+doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(107,107,107);
+doc.text('PROJECT',m,y);y+=5;
+doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(26,26,26);
+doc.text(p.projectName,m,y);y+=8;
+// Line items
+var baseFee=p.feeType==='hourly'?(p.rate||0)*(p.estHours||0):(p.fee||0);
+doc.setDrawColor(200,200,200);
+doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(107,107,107);
+doc.text('Description',m,y);doc.text('Amount',m+cw-4,y,{align:'right'});y+=5;
+doc.line(m,y-1,m+cw,y-1);
+doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(26,26,26);
+doc.text(p.feeType==='hourly'?'Professional services ('+p.estHours+'h × $'+p.rate+')':'Professional services — '+p.projectName,m,y+4);
+doc.text('$'+baseFee.toFixed(2),m+cw-4,y+4,{align:'right'});y+=8;
+var ch=(p.changes||[]).filter(function(c){return c.status==='approved'});
+ch.forEach(function(c){
+doc.text('Change order: '+c.description,m,y+4);
+doc.text('$'+(c.cost||0).toFixed(2),m+cw-4,y+4,{align:'right'});y+=7
+});
+var totalChanges=ch.reduce(function(s,c){return s+(c.cost||0)},0);
+var grandTotal=baseFee+totalChanges;var collected=getCollected(p);var balance=grandTotal-collected;
+y+=4;doc.line(m+cw*.5,y,m+cw,y);y+=6;
+doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(107,107,107);
+if(totalChanges>0){doc.text('Change orders:',m+cw*.5,y);doc.text('$'+totalChanges.toFixed(2),m+cw-4,y,{align:'right'});y+=5}
+doc.text('Subtotal:',m+cw*.5,y);doc.text('$'+grandTotal.toFixed(2),m+cw-4,y,{align:'right'});y+=5;
+if(collected>0){doc.setTextColor(74,124,89);doc.text('Paid:',m+cw*.5,y);doc.text('-$'+collected.toFixed(2),m+cw-4,y,{align:'right'});y+=5}
+y+=2;doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(44,62,45);
+doc.text('Balance Due:',m+cw*.5,y);doc.text('$'+balance.toFixed(2),m+cw-4,y,{align:'right'});y+=12;
+// Payment methods
+var pm=biz.payment_methods;
+if(pm){
+var methods=[];
+if(pm.zelle)methods.push({l:'Zelle',v:pm.zelle});
+if(pm.venmo)methods.push({l:'Venmo',v:pm.venmo});
+if(pm.cashapp)methods.push({l:'Cash App',v:pm.cashapp});
+if(pm.stripe)methods.push({l:'Pay online',v:pm.stripe});
+if(pm.check)methods.push({l:'Check',v:'Make check payable to: '+pm.check});
+if(methods.length){
+doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(44,62,45);
+doc.text('How to Pay',m,y);y+=6;
+doc.setFont('helvetica','normal');doc.setFontSize(9);
+methods.forEach(function(mt){doc.setTextColor(107,107,107);doc.text(mt.l+':',m,y);doc.setTextColor(26,26,26);doc.text(mt.v,m+25,y);y+=5})
+}}
+// Footer
+doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,180,180);
+doc.text('Generated by Terrapin Tools — terrapin.tools',W/2,doc.internal.pageSize.getHeight()-10,{align:'center'});
+doc.save('invoice-'+p.projectName.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.pdf')
+}
+
+// ══════════════════════════════════════
+//  PDF — WORK LOG
+// ══════════════════════════════════════
+function exportWorkLogPDF(){
+if(!workLogs.length){alert('No work sessions to export.');return}
+var{jsPDF}=window.jspdf;var doc=new jsPDF({unit:'mm',format:'letter'});
+var W=doc.internal.pageSize.getWidth(),m=20,cw=W-m*2;var y=20;
+var biz={};try{biz=JSON.parse(localStorage.getItem('terrapin_business_profile'))||{}}catch(e){}
+doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(44,62,45);
+doc.text('Work Log'+(biz.businessName?' — '+biz.businessName:''),m,y);y+=8;
+doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(107,107,107);
+doc.text('Generated '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),m,y);y+=10;
+var sorted=workLogs.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'')});
+doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(107,107,107);
+doc.text('Date',m,y);doc.text('Hours',m+30,y);doc.text('Rate',m+50,y);doc.text('Amount',m+70,y);doc.text('Description',m+95,y);y+=5;
+doc.setDrawColor(200,200,200);doc.line(m,y-1,m+cw,y-1);
+doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(26,26,26);
+sorted.forEach(function(w){
+if(y>260){doc.addPage();y=20}
+doc.text(w.date||'',m,y+3);doc.text(String(w.hours),m+30,y+3);doc.text(w.rate?'$'+w.rate:'',m+50,y+3);
+doc.text(w.rate?'$'+(w.hours*w.rate).toFixed(2):'',m+70,y+3);
+var lines=doc.splitTextToSize(w.description||'',cw-95);
+doc.text(lines[0]||'',m+95,y+3);y+=6
+});
+y+=6;var totalH=workLogs.reduce(function(s,w){return s+w.hours},0);
+var totalE=workLogs.reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
+doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(44,62,45);
+doc.text('Total: '+totalH+' hours — $'+totalE.toFixed(2),m,y);
+doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,180,180);
+doc.text('Generated by Terrapin Tools — terrapin.tools',W/2,doc.internal.pageSize.getHeight()-10,{align:'center'});
+doc.save('work-log-'+todayISO()+'.pdf')
+}
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+window.projectTracker={
+getProjects:function(){return structuredClone(projects)},
+addProject:function(d){if(!d.clientName||!d.projectName)throw new Error('clientName and projectName required');var p=Object.assign({id:genId(),status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},d);projects.push(p);saveLocal();renderProjects();return structuredClone(p)},
+getWorkLogs:function(){return structuredClone(workLogs)},
+addWorkLog:function(d){if(!d.hours)throw new Error('hours required');workLogs.push(Object.assign({id:genId(),createdAt:new Date().toISOString()},d));saveLocal();renderWorkLog();return true}
+};
+
+// ══════════════════════════════════════
+//  TRANSLATIONS
+// ══════════════════════════════════════
+const T={
+en:{back:'\u2190 Back to Terrapin Tools',h1:'Freelance Project Tracker',sub:'Kickoff to final invoice. Everything in one place.',
+tab_projects:'My Projects',tab_worklog:'My Contractor Work Log',new_project:'+ Start a Project',active_projects:'Active Projects',
+worklog_title:'My Contractor Work Log',worklog_sub:'Track your work when you\'re the hired gun.',
+log_session:'+ Log Work Session',export_worklog:'Export Work Log PDF',back_list:'\u2190 Back to Projects',
+tab_deliverables:'Deliverables',tab_changes:'Change Orders',tab_comms:'Communication',tab_invoice:'Invoice',
+new_project_title:'Start a Project',lbl_client:'Client',lbl_client_email:'Client email',lbl_project:'Project name',
+lbl_brief:'Brief',lbl_fee_type:'Fee type',lbl_fee:'Agreed fee',lbl_rate:'Hourly rate',lbl_est_hours:'Estimated hours',
+lbl_kickoff:'Kickoff date',lbl_delivery:'Target delivery',lbl_terms:'Payment terms',lbl_notes:'Internal notes',
+save_project:'Save Project',delete_project:'Delete Project',add_deliverable:'Add Deliverable',
+lbl_deliverable:'Description',lbl_amount:'Amount',lbl_due:'Due date',save_deliverable:'Save Deliverable',
+log_change:'Log Change Order',lbl_change_desc:'What the client is asking for',lbl_add_cost:'Additional cost',save_change:'Save Change Order',
+log_comm:'Log Touchpoint',lbl_comm_type:'Type',lbl_comm_date:'Date',lbl_comm_notes:'Notes',save_comm:'Save Touchpoint',
+log_work_session:'Log Work Session',lbl_wl_date:'Date',lbl_wl_hours:'Hours worked',lbl_wl_rate:'Hourly rate',lbl_wl_desc:'Work completed',save_session:'Save Session',
+footer:'A Terrapin Tool \u2014 terrapin.tools'},
+es:{back:'\u2190 Volver a Terrapin Tools',h1:'Rastreador de Proyectos Freelance',sub:'Del inicio a la factura final. Todo en un lugar.',
+tab_projects:'Mis Proyectos',tab_worklog:'Mi Registro de Trabajo',new_project:'+ Iniciar un Proyecto',active_projects:'Proyectos Activos',
+worklog_title:'Mi Registro de Trabajo',worklog_sub:'Rastrea tu trabajo cuando eres el contratista.',
+log_session:'+ Registrar Sesi\u00f3n',export_worklog:'Exportar PDF del Registro',back_list:'\u2190 Volver a Proyectos',
+tab_deliverables:'Entregables',tab_changes:'\u00d3rdenes de Cambio',tab_comms:'Comunicaci\u00f3n',tab_invoice:'Factura',
+new_project_title:'Iniciar un Proyecto',lbl_client:'Cliente',lbl_client_email:'Email del cliente',lbl_project:'Nombre del proyecto',
+lbl_brief:'Brief',lbl_fee_type:'Tipo de tarifa',lbl_fee:'Tarifa acordada',lbl_rate:'Tarifa por hora',lbl_est_hours:'Horas estimadas',
+lbl_kickoff:'Fecha de inicio',lbl_delivery:'Entrega objetivo',lbl_terms:'T\u00e9rminos de pago',lbl_notes:'Notas internas',
+save_project:'Guardar Proyecto',delete_project:'Eliminar Proyecto',add_deliverable:'Agregar Entregable',
+lbl_deliverable:'Descripci\u00f3n',lbl_amount:'Monto',lbl_due:'Fecha l\u00edmite',save_deliverable:'Guardar Entregable',
+log_change:'Registrar Orden de Cambio',lbl_change_desc:'Qu\u00e9 est\u00e1 pidiendo el cliente',lbl_add_cost:'Costo adicional',save_change:'Guardar Orden de Cambio',
+log_comm:'Registrar Contacto',lbl_comm_type:'Tipo',lbl_comm_date:'Fecha',lbl_comm_notes:'Notas',save_comm:'Guardar Contacto',
+log_work_session:'Registrar Sesi\u00f3n de Trabajo',lbl_wl_date:'Fecha',lbl_wl_hours:'Horas trabajadas',lbl_wl_rate:'Tarifa por hora',lbl_wl_desc:'Trabajo completado',save_session:'Guardar Sesi\u00f3n',
+footer:'Una Herramienta Terrapin \u2014 terrapin.tools'}
+};
+function setLang(lang){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(T[lang]&&T[lang][k]){if(el.tagName==='INPUT'||el.tagName==='TEXTAREA')el.placeholder=T[lang][k];else el.innerHTML=T[lang][k]}});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-es').classList.toggle('active',lang==='es');localStorage.setItem('terrapin-language',lang)}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es')})();
+
+// ══════════════════════════════════════
+//  URL PARAMS
+// ══════════════════════════════════════
+function handleURLParams(){
+var params=new URLSearchParams(window.location.search);
+var action=params.get('action');
+console.log('ProjectTracker URL params:',Object.fromEntries(params));
+if(action==='add'||params.get('project_name')){
+var autorun=params.get('autorun')==='true';
+if(autorun&&params.get('project_name')){
+console.log('ProjectTracker autorun: saving project');
+projects.push({id:genId(),clientName:params.get('client_name')||'',clientEmail:params.get('client_email')||'',projectName:params.get('project_name'),brief:params.get('brief')||'',feeType:params.get('fee_type')||'fixed',fee:parseFloat(params.get('fee'))||0,rate:parseFloat(params.get('rate'))||0,estHours:parseFloat(params.get('est_hours'))||0,kickoff:params.get('kickoff')||todayISO(),delivery:params.get('delivery')||'',payTerms:params.get('terms')||'50/50',notes:'',status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+saveLocal();renderProjects();
+if(window.parent!==window)setTimeout(function(){window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:'success',output:'Project saved: '+params.get('project_name')},'*')},200)
+}else{
+setTimeout(function(){openProjectModal();
+if(params.get('client_name'))document.getElementById('f-client').value=params.get('client_name');
+if(params.get('project_name'))document.getElementById('f-project').value=params.get('project_name');
+if(params.get('fee'))document.getElementById('f-fee').value=params.get('fee')},300)
+}
+}else if(action==='log_work'){switchMain('worklog')}
+}
+
+// ══════════════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════════════
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeAllModals()});
+document.getElementById('f-client').addEventListener('change',function(){var o=this.options[this.selectedIndex];if(o&&o.dataset.email)document.getElementById('f-client-email').value=o.dataset.email});
+
+// ══════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════
+(async function(){
+console.log('ProjectTracker boot: loading data...');
+await loadData();await loadCRM();
+console.log('ProjectTracker boot: loaded',projects.length,'projects,',workLogs.length,'work logs');
+renderProjects();renderWorkLog();handleURLParams()
+})();
+</script>
+</body>
+</html>
