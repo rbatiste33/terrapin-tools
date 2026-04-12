@@ -128,11 +128,42 @@ cat > ~/Library/LaunchAgents/tools.terrapin.agent.plist << PLIST
 PLIST
 
 launchctl load ~/Library/LaunchAgents/tools.terrapin.agent.plist 2>/dev/null
-echo "✓ Auto-start configured"
+echo "✓ Agent auto-start configured"
+
+# Mail server launchd plist
+cat > ~/Library/LaunchAgents/tools.terrapin.mail.plist << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>tools.terrapin.mail</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${NODE_PATH}</string>
+        <string>${HOME}/terrapin/mail-server.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${HOME}/terrapin</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>${HOME}/.terrapin/mail.log</string>
+    <key>StandardErrorPath</key>
+    <string>${HOME}/.terrapin/mail-error.log</string>
+</dict>
+</plist>
+PLIST
+
+launchctl load ~/Library/LaunchAgents/tools.terrapin.mail.plist 2>/dev/null
+echo "✓ Mail server configured for auto-start"
 
 # Show early errors from launchd
 sleep 2
-cat ~/.terrapin/agent-error.log 2>/dev/null || echo "No errors logged yet"
+cat ~/.terrapin/agent-error.log 2>/dev/null || echo "No agent errors logged yet"
+cat ~/.terrapin/mail-error.log 2>/dev/null || echo "No mail errors logged yet"
 
 # Wait for agent to start
 echo "Waiting for agent to start..."
@@ -151,17 +182,34 @@ if curl -s http://localhost:7777/health > /dev/null 2>&1; then
     echo "✓ Terrapin agent is running"
 fi
 
+# Wait for mail server (up to 15 extra seconds)
+echo "Waiting for mail server..."
+MAIL_WAIT=15
+MAIL_COUNT=0
+while ! curl -s http://localhost:3001/health > /dev/null 2>&1; do
+    sleep 1
+    MAIL_COUNT=$((MAIL_COUNT + 1))
+    if [ $MAIL_COUNT -ge $MAIL_WAIT ]; then
+        echo "Mail server not responding yet. It will start automatically on next login."
+        break
+    fi
+done
+
+if curl -s http://localhost:3001/health > /dev/null 2>&1; then
+    echo "✓ Mail server is running"
+fi
+
 # Done
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "  ✓ Gemma AI installed"
 echo "  ✓ Terrapin agent running"
-echo "  ✓ Starts automatically on login"
+echo "  ✓ Mail server running"
+echo "  ✓ Both start automatically on login"
 echo "  ✓ Your data stays on this machine"
 echo ""
 echo "  Open: http://localhost:7777/agent.html"
-echo "  Or visit: terrapin.tools/agent"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
