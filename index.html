@@ -82,6 +82,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .nav-brand {
@@ -572,6 +580,22 @@
     }
 
     @media (max-width: 768px) {
+      nav .container {
+        justify-content: center;
+      }
+
+      .nav-brand {
+        flex: 1 1 100%;
+        justify-content: center;
+        margin-bottom: 4px;
+      }
+
+      .nav-right {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
       .hero {
         padding: 48px 0;
       }
@@ -666,9 +690,11 @@
         <img src="turtle-optimized.png" alt="Terrapin Tools mascot">
         <span>Terrapin Tools</span>
       </a>
-      <a href="agent.html" data-i18n="nav_agent" style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C9A84C;text-decoration:none;margin-right:16px;transition:opacity 0.15s;">Agent &#9889;</a>
-      <a href="#tools" class="btn-primary" data-i18n="nav_browse">Browse Tools</a>
-      <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
+      <div class="nav-right">
+        <a href="agent.html" data-i18n="nav_agent" style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C9A84C;text-decoration:none;transition:opacity 0.15s;">Agent &#9889;</a>
+        <a href="#tools" class="btn-primary" data-i18n="nav_browse">Browse Tools</a>
+        <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
+      </div>
     </div>
   </nav>
 
