@@ -7,7 +7,8 @@
     "setup-mail": "node mail-setup.js",
     "mail": "node mail-server.js",
     "agent": "node agent-server.js",
-    "serve": "npx serve . -p 8080"
+    "serve": "npx serve . -p 8080",
+    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json"
   },
   "dependencies": {
     "express": "^4.21.0",
