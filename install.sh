@@ -81,9 +81,9 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "Want Terrapin to send invoices and quotes by email?"
 echo "(You can always set this up later with: cd ~/terrapin && npm run setup-mail)"
 echo ""
-read -p "Set up email now? (y/n): " setup_email
+read -p "Set up email now? (y/n): " setup_email < /dev/tty
 if [[ "$setup_email" == "y" || "$setup_email" == "Y" ]]; then
-    node mail-setup.js
+    node mail-setup.js < /dev/tty
 fi
 
 # Find node path for launchd
