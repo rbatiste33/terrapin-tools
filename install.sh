@@ -65,7 +65,7 @@ echo ""
 echo "Setting up Terrapin agent..."
 mkdir -p ~/terrapin
 cd ~/terrapin
-curl -fsSL https://terrapin.tools/agent-package.tar.gz | tar -xz
+curl -fsSL https://www.terrapin.tools/agent-package.tar.gz | tar -xz
 npm install --silent 2>/dev/null
 
 # Verify dependencies installed correctly
