@@ -7,7 +7,7 @@
     "setup-mail": "node mail-setup.js",
     "mail": "node mail-server.js",
     "agent": "node agent-server.js",
-    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ index.html agent.html agent-setup.html privacy.html"
+    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ index.html agent.html agent-setup.html privacy.html turtle-optimized.png"
   },
   "dependencies": {
     "express": "^4.21.0",
