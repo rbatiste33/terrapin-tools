@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Syncing — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #2C3E2D;
+    color: #F5F0E8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sync-container {
+    text-align: center;
+    max-width: 420px;
+    padding: 40px 24px;
+  }
+  .turtle-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.85; }
+  }
+  @keyframes done-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  .turtle-img.done { animation: done-pop 0.4s ease-out; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .status {
+    font-size: 15px;
+    color: rgba(245, 240, 232, 0.7);
+    margin-bottom: 24px;
+    min-height: 24px;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(245, 240, 232, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #C9A84C;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .sync-items {
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: rgba(245, 240, 232, 0.5);
+    line-height: 2;
+  }
+  .sync-items .done { color: #C9A84C; }
+  .sync-items .active { color: #F5F0E8; }
+  .done-msg {
+    display: none;
+    font-size: 16px;
+    color: #C9A84C;
+    margin-top: 16px;
+  }
+  .done-msg.show { display: block; }
+  .no-data {
+    font-size: 14px;
+    color: rgba(245, 240, 232, 0.5);
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="sync-container">
+  <img src="https://terrapin.tools/turtle-optimized.png" alt="Terrapin" class="turtle-img" id="turtle">
+  <h1 id="heading">Syncing your data...</h1>
+  <p class="status" id="status">Connecting to your local agent</p>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="sync-items" id="items">
+    <div id="item-profile">Business Profile</div>
+    <div id="item-crm">CRM Contacts</div>
+    <div id="item-calendar">Calendar Events</div>
+    <div id="item-projects">Projects</div>
+    <div id="item-logs">Job Site Logs</div>
+    <div id="item-vendor">Vendor Orders</div>
+  </div>
+  <p class="done-msg" id="done-msg">All set! Opening your agent...</p>
+  <p class="no-data" id="no-data" style="display:none"></p>
+</div>
+
+<script>
+const AGENT_URL = 'http://localhost:7777';
+
+// IndexedDB databases and their corresponding agent endpoints
+const SYNC_MAP = [
+  { db: 'terrapin-profile',  store: 'data', key: 'main', endpoint: '/data/profile',   itemId: 'item-profile',  label: 'Business Profile', isEmpty: d => !d || !d.businessName },
+  { db: 'terrapin-crm',      store: 'data', key: 'main', endpoint: '/data/crm',       itemId: 'item-crm',      label: 'CRM Contacts',     isEmpty: d => !d || !Array.isArray(d) || d.length === 0 },
+  { db: 'terrapin-calendar',  store: 'data', key: 'main', endpoint: '/data/calendar',  itemId: 'item-calendar', label: 'Calendar Events',  isEmpty: d => !d || !Array.isArray(d) || d.length === 0 },
+  { db: 'terrapin-projects',  store: 'data', key: 'main', endpoint: '/data/projects',  itemId: 'item-projects', label: 'Projects',         isEmpty: d => !d || ((!d.projects || d.projects.length === 0) && (!d.workLogs || d.workLogs.length === 0)) },
+  { db: 'terrapin-joblog',    store: 'data', key: 'main', endpoint: '/data/logs',      itemId: 'item-logs',     label: 'Job Site Logs',    isEmpty: d => !d || (Array.isArray(d) && d.length === 0) || (typeof d === 'object' && Object.keys(d).length === 0) },
+  { db: 'terrapin-vendor',    store: 'data', key: 'main', endpoint: '/data/vendor',    itemId: 'item-vendor',   label: 'Vendor Orders',    isEmpty: d => !d || (Array.isArray(d) && d.length === 0) || (typeof d === 'object' && Object.keys(d).length === 0) }
+];
+
+function readIDB(dbName, storeName, key) {
+  return new Promise(function(resolve) {
+    try {
+      var req = indexedDB.open(dbName, 1);
+      req.onupgradeneeded = function() { req.result.createObjectStore(storeName); };
+      req.onsuccess = function() {
+        try {
+          var db = req.result;
+          var tx = db.transaction(storeName, 'readonly');
+          var get = tx.objectStore(storeName).get(key);
+          get.onsuccess = function() { resolve(get.result || null); };
+          get.onerror = function() { resolve(null); };
+        } catch(e) { resolve(null); }
+      };
+      req.onerror = function() { resolve(null); };
+    } catch(e) { resolve(null); }
+  });
+}
+
+async function postToAgent(endpoint, data) {
+  var res = await fetch(AGENT_URL + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(5000)
+  });
+  return res.ok;
+}
+
+async function waitForAgent() {
+  var maxWait = 30;
+  var count = 0;
+  while (count < maxWait) {
+    try {
+      var res = await fetch(AGENT_URL + '/health', { signal: AbortSignal.timeout(2000) });
+      if (res.ok) return true;
+    } catch(e) {}
+    count++;
+    await new Promise(function(r) { setTimeout(r, 1000); });
+    document.getElementById('status').textContent = 'Waiting for agent... (' + count + 's)';
+  }
+  return false;
+}
+
+async function runSync() {
+  // Wait for agent to be available
+  var agentReady = await waitForAgent();
+  if (!agentReady) {
+    document.getElementById('heading').textContent = 'Agent not detected';
+    document.getElementById('status').textContent = 'Start your agent with: npm run agent';
+    return;
+  }
+
+  document.getElementById('status').textContent = 'Reading your saved data...';
+  var progress = document.getElementById('progress');
+  var total = SYNC_MAP.length;
+  var synced = 0;
+  var skipped = 0;
+
+  for (var i = 0; i < SYNC_MAP.length; i++) {
+    var item = SYNC_MAP[i];
+    var el = document.getElementById(item.itemId);
+    el.className = 'active';
+    document.getElementById('status').textContent = 'Syncing ' + item.label + '...';
+
+    // Read from IndexedDB
+    var data = await readIDB(item.db, item.store, item.key);
+
+    if (item.isEmpty(data)) {
+      el.textContent = item.label + ' — no data';
+      el.className = '';
+      skipped++;
+    } else {
+      // POST to agent
+      try {
+        var ok = await postToAgent(item.endpoint, data);
+        if (ok) {
+          el.textContent = '\u2713 ' + item.label;
+          el.className = 'done';
+          synced++;
+        } else {
+          el.textContent = item.label + ' — failed';
+          el.className = '';
+        }
+      } catch(e) {
+        el.textContent = item.label + ' — error';
+        el.className = '';
+      }
+    }
+
+    progress.style.width = Math.round(((i + 1) / total) * 100) + '%';
+    await new Promise(function(r) { setTimeout(r, 300); });
+  }
+
+  // Done
+  var turtle = document.getElementById('turtle');
+  turtle.className = 'turtle-img done';
+
+  if (synced === 0) {
+    document.getElementById('heading').textContent = 'No data to sync';
+    document.getElementById('status').textContent = 'Your tools haven\'t saved any data yet.';
+    document.getElementById('no-data').textContent = 'Start using tools at terrapin.tools — your data will sync automatically.';
+    document.getElementById('no-data').style.display = 'block';
+    // Still redirect to agent after a moment
+    setTimeout(function() {
+      window.location.href = AGENT_URL + '/agent.html';
+    }, 3000);
+  } else {
+    document.getElementById('heading').textContent = 'All synced!';
+    document.getElementById('status').textContent = synced + ' data source' + (synced > 1 ? 's' : '') + ' synced to your local agent.';
+    var doneMsg = document.getElementById('done-msg');
+    doneMsg.className = 'done-msg show';
+    setTimeout(function() {
+      window.location.href = AGENT_URL + '/agent.html';
+    }, 2000);
+  }
+}
+
+// Only run sync if ?agent=ready is in the URL
+if (window.location.search.includes('agent=ready')) {
+  runSync();
+} else {
+  document.getElementById('heading').textContent = 'Terrapin Sync';
+  document.getElementById('status').textContent = 'This page syncs your browser data to your local agent.';
+}
+</script>
+</body>
+</html>

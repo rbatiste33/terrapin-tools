@@ -804,6 +804,59 @@ await loadData();await loadCRM();
 console.log('ProjectTracker boot: loaded',projects.length,'projects,',workLogs.length,'work logs');
 renderProjects();renderWorkLog();handleURLParams()
 })();
+
+// ══════════════════════════════════════
+//  AGENT SYNC — auto-flush IndexedDB when agent comes online
+// ══════════════════════════════════════
+(function() {
+  var SYNC_URL = 'http://localhost:7777';
+  var agentOnline = false;
+  var bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('terrapin') : null;
+
+  function flushToAgent() {
+    Promise.all([
+      new Promise(function(resolve) {
+        openIDB().then(function(db) {
+          var tx = db.transaction(IDB_STORE, 'readonly');
+          var req = tx.objectStore(IDB_STORE).get('projects');
+          req.onsuccess = function() { resolve(req.result || []); };
+          req.onerror = function() { resolve([]); };
+        }).catch(function() { resolve([]); });
+      }),
+      new Promise(function(resolve) {
+        openIDB().then(function(db) {
+          var tx = db.transaction(IDB_STORE, 'readonly');
+          var req = tx.objectStore(IDB_STORE).get('worklog');
+          req.onsuccess = function() { resolve(req.result || []); };
+          req.onerror = function() { resolve([]); };
+        }).catch(function() { resolve([]); });
+      })
+    ]).then(function(results) {
+      var p = results[0], w = results[1];
+      if ((!p || p.length === 0) && (!w || w.length === 0)) return;
+      fetch(SYNC_URL + '/data/projects', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projects: p, workLogs: w }), signal: AbortSignal.timeout(3000)
+      }).then(function() { console.log('Sync: projects flushed to agent'); }).catch(function() {});
+    });
+  }
+
+  function checkAgent() {
+    fetch(SYNC_URL + '/health', { signal: AbortSignal.timeout(1500) })
+      .then(function(r) {
+        if (r.ok && !agentOnline) {
+          agentOnline = true;
+          flushToAgent();
+          if (bc) bc.postMessage({ type: 'agent-online' });
+        } else if (!r.ok) { agentOnline = false; }
+      }).catch(function() { agentOnline = false; });
+  }
+
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) checkAgent(); });
+  window.addEventListener('focus', checkAgent);
+  if (bc) bc.onmessage = function(e) { if (e.data.type === 'agent-online') { agentOnline = true; flushToAgent(); } };
+  checkAgent();
+})();
 </script>
 </body>
 </html>

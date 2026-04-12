@@ -422,12 +422,12 @@ function parseAgentResponse(raw, businessProfile, crmContacts) {
 // ══════════════════════════════════════
 const app = express();
 
-// CORS — localhost and file:// only
+// CORS — localhost, file://, and terrapin.tools (user's own browser tabs only)
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
-  const isLocal = !origin || origin === 'null' || origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/);
-  if (!isLocal) {
-    return res.status(403).json({ success: false, error: 'Forbidden — localhost only' });
+  const isAllowed = !origin || origin === 'null' || origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/) || origin === 'https://terrapin.tools';
+  if (!isAllowed) {
+    return res.status(403).json({ success: false, error: 'Forbidden — localhost and terrapin.tools only' });
   }
   res.header('Access-Control-Allow-Origin', origin || '*');
   res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
@@ -692,4 +692,19 @@ app.listen(PORT, '127.0.0.1', async () => {
   console.log('           Your data never leaves this machine.');
   console.log('');
   console.log('\n  \ud83d\udc22 Open your Terrapin agent: http://localhost:7777/agent.html\n');
+
+  // First-run detection — if data files are empty, open sync page to pull from browser IndexedDB
+  try {
+    const profile = JSON.parse(fs.readFileSync(DATA_FILES.profile, 'utf8'));
+    const crm = JSON.parse(fs.readFileSync(DATA_FILES.crm, 'utf8'));
+    const calendar = JSON.parse(fs.readFileSync(DATA_FILES.calendar, 'utf8'));
+    const hasData = (profile && profile.businessName) || (Array.isArray(crm) && crm.length > 0) || (Array.isArray(calendar) && calendar.length > 0);
+    if (!hasData) {
+      console.log('  No existing data found — opening sync page to import from browser...');
+      const { exec } = require('child_process');
+      exec('open "https://terrapin.tools/sync?agent=ready"');
+    }
+  } catch(e) {
+    // Data files don't exist or can't be read — skip sync
+  }
 });

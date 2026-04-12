@@ -934,6 +934,50 @@ function setLang(lang) {
   localStorage.setItem('terrapin-language', lang);
 }
 (function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
+
+// ══════════════════════════════════════
+//  AGENT SYNC — auto-flush IndexedDB when agent comes online
+// ══════════════════════════════════════
+(function() {
+  var SYNC_URL = 'http://localhost:7777';
+  var agentOnline = false;
+  var bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('terrapin') : null;
+
+  function flushToAgent() {
+    openIDB().then(function(db) {
+      var tx = db.transaction(IDB_STORE, 'readonly');
+      var req = tx.objectStore(IDB_STORE).get('main');
+      req.onsuccess = function() {
+        var data = req.result;
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+        // POST each log entry individually (agent expects single entries)
+        data.forEach(function(entry) {
+          fetch(SYNC_URL + '/data/logs', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry), signal: AbortSignal.timeout(3000)
+          }).catch(function() {});
+        });
+        console.log('Sync: job logs flushed to agent (' + data.length + ' entries)');
+      };
+    }).catch(function() {});
+  }
+
+  function checkAgent() {
+    fetch(SYNC_URL + '/health', { signal: AbortSignal.timeout(1500) })
+      .then(function(r) {
+        if (r.ok && !agentOnline) {
+          agentOnline = true;
+          flushToAgent();
+          if (bc) bc.postMessage({ type: 'agent-online' });
+        } else if (!r.ok) { agentOnline = false; }
+      }).catch(function() { agentOnline = false; });
+  }
+
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) checkAgent(); });
+  window.addEventListener('focus', checkAgent);
+  if (bc) bc.onmessage = function(e) { if (e.data.type === 'agent-online') { agentOnline = true; flushToAgent(); } };
+  checkAgent();
+})();
 </script>
 </body>
 </html>
