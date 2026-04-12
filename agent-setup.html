@@ -119,16 +119,23 @@
   <div class="step">
     <div class="step-label" data-i18n="s3_label">Step 3</div>
     <h2 data-i18n="s3_h2">Start Terrapin</h2>
-    <p data-i18n="s3_p1">Open Terminal and run these two commands &mdash; one in each tab:</p>
+    <p data-i18n="s3_p1">Open Terminal and run one command:</p>
     <div class="cmd-block">
       <code>npm run agent</code>
       <button class="copy-btn" onclick="copyCmd(this, 'npm run agent')">Copy</button>
     </div>
+    <p data-i18n="s3_p2">Open this in your browser and bookmark it: <a href="http://localhost:7777/agent.html" style="color:#2C3E2D;font-weight:600;">http://localhost:7777/agent.html</a></p>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-label" data-i18n="s4_label">Step 4 (Optional)</div>
+    <h2 data-i18n="s4_h2">Set up email sending</h2>
+    <p data-i18n="s4_p">Want Terrapin to send invoices and quotes by email? Run this once:</p>
     <div class="cmd-block">
-      <code>npm run serve</code>
-      <button class="copy-btn" onclick="copyCmd(this, 'npm run serve')">Copy</button>
+      <code>npm run setup-mail</code>
+      <button class="copy-btn" onclick="copyCmd(this, 'npm run setup-mail')">Copy</button>
     </div>
-    <p data-i18n="s3_p2">Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.</p>
   </div>
 
   <div class="reassurance">
@@ -151,8 +158,9 @@ const T = {
     s1_btn: 'Download Ollama \u2192',
     s2_label: 'Step 2', s2_h2: 'Open Terminal and run one command', s2_p1: 'Terminal is an app already on your Mac. Press <strong>Command + Space</strong>, type <strong>Terminal</strong>, hit Enter.',
     s2_p2: 'This downloads your AI brain \u2014 about 5GB, like downloading a movie. Takes a few minutes.',
-    s3_label: 'Step 3', s3_h2: 'Start Terrapin', s3_p1: 'Open Terminal and run these two commands \u2014 one in each tab:',
-    s3_p2: 'Then go to <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> and both dots will be green.',
+    s3_label: 'Step 3', s3_h2: 'Start Terrapin', s3_p1: 'Open Terminal and run one command:',
+    s3_p2: 'Open this in your browser and bookmark it: <a href="http://localhost:7777/agent.html" style="color:#2C3E2D;font-weight:600;">http://localhost:7777/agent.html</a>',
+    s4_label: 'Step 4 (Optional)', s4_h2: 'Set up email sending', s4_p: 'Want Terrapin to send invoices and quotes by email? Run this once:',
     reassure: 'Everything runs on your computer. Nothing goes to the cloud. Your data never leaves your machine.',
     req: 'Requires a Mac with 8GB RAM or more. Windows support coming soon.',
     auto_label: 'One command setup', auto_h2: 'Paste this into Terminal',
@@ -165,8 +173,9 @@ const T = {
     s1_btn: 'Descargar Ollama \u2192',
     s2_label: 'Paso 2', s2_h2: 'Abre Terminal y ejecuta un comando', s2_p1: 'Terminal es una app que ya tienes en tu Mac. Presiona <strong>Command + Espacio</strong>, escribe <strong>Terminal</strong>, presiona Enter.',
     s2_p2: 'Esto descarga tu cerebro de IA \u2014 unos 5GB, como descargar una pel\u00edcula. Toma unos minutos.',
-    s3_label: 'Paso 3', s3_h2: 'Inicia Terrapin', s3_p1: 'Abre Terminal y ejecuta estos dos comandos \u2014 uno en cada pesta\u00f1a:',
-    s3_p2: 'Luego ve a <a href="http://localhost:8080/agent.html" style="color:#2C3E2D;font-weight:600;">localhost:8080/agent.html</a> y los dos puntos estar\u00e1n verdes.',
+    s3_label: 'Paso 3', s3_h2: 'Inicia Terrapin', s3_p1: 'Abre Terminal y ejecuta un comando:',
+    s3_p2: 'Abre esto en tu navegador y gu\u00e1rdalo: <a href="http://localhost:7777/agent.html" style="color:#2C3E2D;font-weight:600;">http://localhost:7777/agent.html</a>',
+    s4_label: 'Paso 4 (Opcional)', s4_h2: 'Configurar env\u00edo de email', s4_p: '\u00bfQuieres que Terrapin env\u00ede facturas y cotizaciones por email? Ejecuta esto una vez:',
     reassure: 'Todo funciona en tu computadora. Nada va a la nube. Tus datos nunca salen de tu m\u00e1quina.',
     req: 'Requiere una Mac con 8GB de RAM o m\u00e1s. Soporte para Windows pr\u00f3ximamente.',
     auto_label: 'Configuraci\u00f3n con un comando', auto_h2: 'Pega esto en Terminal',

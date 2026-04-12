@@ -364,7 +364,7 @@
 
   <!-- FILE:// NOTICE -->
   <div class="file-notice" id="file-notice">
-    &#9888;&#65039; For full functionality open via Terminal: <code>npm run serve</code> — then visit <a href="http://localhost:8080/agent.html">http://localhost:8080/agent.html</a>
+    &#9888;&#65039; For full functionality run <code>npm run agent</code> in Terminal — then visit <a href="http://localhost:7777/agent.html">http://localhost:7777/agent.html</a>
   </div>
 
   <!-- CHAT -->
@@ -415,20 +415,17 @@
       </div>
       <div class="setup-step">
         <span class="step-num">3</span>
-        <span>Start Terrapin servers &mdash; one command in each Terminal tab:
+        <span>Start Terrapin &mdash; one command:
           <span style="display:flex;align-items:center;gap:6px;margin-top:4px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
             <code style="flex:1;">npm run agent</code>
             <button onclick="copySetup(this,'npm run agent')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
           </span>
-          <span style="display:flex;align-items:center;gap:6px;margin-top:4px;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px;">
-            <code style="flex:1;">npm run serve</code>
-            <button onclick="copySetup(this,'npm run serve')" style="background:rgba(201,168,76,0.15);border:none;color:var(--gold);border-radius:4px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Copy</button>
-          </span>
+          <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">Then open <a href="http://localhost:7777/agent.html" style="color:var(--gold);text-decoration:none;">localhost:7777/agent.html</a></span>
         </span>
       </div>
       <div class="setup-step">
         <span class="step-num">4</span>
-        <span>Refresh this page &mdash; both status dots should turn green.</span>
+        <span>Both status dots should turn green.</span>
       </div>
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:var(--text-muted);">
         Everything runs on your computer. Nothing goes to the cloud.
