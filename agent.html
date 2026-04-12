@@ -769,6 +769,8 @@ async function sendMessage() {
 //  HANDLE AGENT RESPONSE
 // ══════════════════════════════════════
 async function handleAgentResponse(data) {
+  console.log('Agent response:', JSON.stringify(data).substring(0, 500));
+
   if (!data.success) {
     addMessage('agent', data.error || 'Something went wrong.');
     return;
@@ -788,16 +790,38 @@ async function handleAgentResponse(data) {
     case 'respond':
       // Safety net: if the message looks like a JSON tool call that wasn't parsed, try to handle it
       try {
-        var jsonMatch = (data.message || '').match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          var parsed = JSON.parse(jsonMatch[0]);
+        var msg = data.message || '';
+        // Try markdown code block first
+        var codeBlock = msg.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        var jsonStr = codeBlock ? codeBlock[1] : null;
+        if (!jsonStr) {
+          var jsonMatch = msg.match(/\{[\s\S]*\}/);
+          if (jsonMatch) jsonStr = jsonMatch[0];
+        }
+        if (jsonStr) {
+          var parsed = JSON.parse(jsonStr);
           if (parsed.tool_id) {
-            var toolUrl = parsed.params ? Object.entries(parsed.params).filter(function(e) { return e[1] != null && e[1] !== ''; }).map(function(e) { return encodeURIComponent(e[0]) + '=' + encodeURIComponent(e[1]); }).join('&') : '';
+            // Re-process through the server's /call-tool endpoint to get a proper URL
+            var reRes = await fetch(AGENT_URL + '/call-tool', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tool_id: parsed.tool_id, params: parsed.params || {} })
+            });
+            if (reRes.ok) {
+              var reData = await reRes.json();
+              if (reData.success) {
+                await handleToolCall({ tool_id: reData.tool_id, params: parsed.params || {}, url: reData.url, action: 'call_tool' });
+                break;
+              }
+            }
+            // Fallback: handle without URL
             await handleToolCall({ tool_id: parsed.tool_id, params: parsed.params || {}, url: '', action: 'call_tool' });
             break;
           }
+          if (parsed.question) { addMessage('agent', parsed.question); break; }
+          if (parsed.response) { addMessage('agent', parsed.response); break; }
         }
-      } catch(e) { /* not JSON, show as text */ }
+      } catch(e) { console.log('Safety net parse error:', e.message); }
       addMessage('agent', data.message);
       break;
     default:

@@ -220,19 +220,23 @@ function resolveClientEmail(nameQuery, profile) {
 // ══════════════════════════════════════
 function parseAgentResponse(raw, businessProfile, crmContacts) {
   const text = raw.trim();
+  console.log('  → Raw Gemma response:', text.substring(0, 300));
 
   // Try to extract JSON from the response
   let json = null;
   try {
     json = JSON.parse(text);
   } catch (e) {
-    // Try to find JSON within the text
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        json = JSON.parse(jsonMatch[0]);
-      } catch (e2) {
-        // Not valid JSON at all
+    // Try markdown code block first: ```json {...} ```
+    const codeBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (codeBlock) {
+      try { json = JSON.parse(codeBlock[1]); } catch (e2) {}
+    }
+    // Try to find JSON object within the text
+    if (!json) {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { json = JSON.parse(jsonMatch[0]); } catch (e2) {}
       }
     }
   }
