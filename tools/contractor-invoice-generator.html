@@ -772,6 +772,44 @@ function buildPDF(data) {
     doc.text(noteLines, ML, y);
   }
 
+  // ── HOW TO PAY ──
+  var profile = null;
+  try { profile = JSON.parse(localStorage.getItem('terrapin_business_profile')); } catch(e) {}
+  var pm = profile && profile.payment_methods;
+  if (pm) {
+    var methods = [];
+    if (pm.zelle) methods.push({ label: 'Zelle', value: pm.zelle });
+    if (pm.venmo) methods.push({ label: 'Venmo', value: pm.venmo });
+    if (pm.cashapp) methods.push({ label: 'Cash App', value: pm.cashapp });
+    if (pm.stripe) methods.push({ label: 'Stripe', value: pm.stripe });
+    if (pm.paypal) methods.push({ label: 'PayPal', value: pm.paypal });
+    if (pm.check) methods.push({ label: 'Check', value: 'Make check payable to: ' + pm.check });
+
+    if (methods.length > 0) {
+      if (y > 230) { doc.addPage(); y = MT; }
+      y += 8;
+      doc.setDrawColor(LINE_COLOR);
+      doc.line(ML, y, ML + PW, y);
+      y += 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(ACCENT);
+      doc.text('How to Pay', ML, y);
+      y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      methods.forEach(function(m) {
+        if (y > 260) { doc.addPage(); y = MT; }
+        doc.setTextColor(GRAY);
+        doc.text(m.label + ':', ML, y);
+        doc.setTextColor(DARK);
+        doc.text(m.value, ML + 25, y);
+        y += 5;
+      });
+    }
+  }
+
   return doc;
 }
 
@@ -1100,6 +1138,11 @@ function setLang(lang) {
       }
     }
     recalc();
+    // Auto-fill check payable from biz name
+    if (profile.payment_methods && profile.payment_methods.check) {
+      // Payment methods are available for PDF generation
+      window._paymentMethods = profile.payment_methods;
+    }
   } catch(e) {}
 })();
 </script>

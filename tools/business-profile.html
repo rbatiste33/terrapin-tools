@@ -255,6 +255,23 @@ Output: business.md file and localStorage profile (terrapin_business_profile)
       </div>
     </div>
 
+    <!-- Payment Methods -->
+    <div class="card">
+      <div class="card-title" data-i18n="payment_title">How Clients Pay You</div>
+      <div class="row">
+        <div class="field"><label data-i18n="pm_zelle">Zelle (phone or email)</label><input type="text" id="f-pm-zelle" placeholder="you@email.com or (555) 123-4567"></div>
+        <div class="field"><label data-i18n="pm_venmo">Venmo handle</label><input type="text" id="f-pm-venmo" placeholder="@yourbusiness"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label data-i18n="pm_cashapp">Cash App</label><input type="text" id="f-pm-cashapp" placeholder="$yourbusiness"></div>
+        <div class="field"><label data-i18n="pm_stripe">Stripe payment link</label><input type="url" id="f-pm-stripe" placeholder="https://buy.stripe.com/..."></div>
+      </div>
+      <div class="row">
+        <div class="field"><label data-i18n="pm_paypal">PayPal email (optional)</label><input type="email" id="f-pm-paypal" placeholder="paypal@yourbusiness.com"></div>
+        <div class="field"><label data-i18n="pm_check">Check payable to</label><input type="text" id="f-pm-check" placeholder="Your Business Name LLC"></div>
+      </div>
+    </div>
+
     <!-- Staff -->
     <div class="card">
       <div class="card-title" data-i18n="staff_title">Staff Members (Optional)</div>
@@ -450,6 +467,14 @@ function readForm() {
     staff: staffData.filter(s => s.name),
     clients: clientData.filter(c => c.name),
     tagline: document.getElementById('f-tagline').value.trim(),
+    payment_methods: {
+      zelle: document.getElementById('f-pm-zelle').value.trim(),
+      venmo: document.getElementById('f-pm-venmo').value.trim(),
+      cashapp: document.getElementById('f-pm-cashapp').value.trim(),
+      stripe: document.getElementById('f-pm-stripe').value.trim(),
+      paypal: document.getElementById('f-pm-paypal').value.trim(),
+      check: document.getElementById('f-pm-check').value.trim()
+    },
     savedAt: new Date().toISOString()
   };
 }
@@ -516,6 +541,15 @@ function generateMD() {
   md += `Tax Rate: ${d.taxRate || '0'}%\n`;
   md += `Payment Terms: ${d.paymentTerms || 'Net 30'}\n`;
   if (d.defaultRate) md += `Default Rate: $${d.defaultRate}/hr\n`;
+  if (d.payment_methods) {
+    md += '\n## Payment Methods\n\n';
+    if (d.payment_methods.zelle) md += '- Zelle: ' + d.payment_methods.zelle + '\n';
+    if (d.payment_methods.venmo) md += '- Venmo: ' + d.payment_methods.venmo + '\n';
+    if (d.payment_methods.cashapp) md += '- Cash App: ' + d.payment_methods.cashapp + '\n';
+    if (d.payment_methods.stripe) md += '- Stripe: ' + d.payment_methods.stripe + '\n';
+    if (d.payment_methods.paypal) md += '- PayPal: ' + d.payment_methods.paypal + '\n';
+    if (d.payment_methods.check) md += '- Check payable to: ' + d.payment_methods.check + '\n';
+  }
   if (d.staff && d.staff.length) {
     md += `Staff: ${d.staff.map(s => s.name + ' — ' + s.role).join(', ')}\n`;
   }
@@ -628,6 +662,20 @@ function applyProfile(d) {
     logoBase64 = d.logo;
     document.getElementById('logo-preview').innerHTML = '<img src="' + logoBase64 + '" alt="Logo"><br><button class="logo-remove" onclick="removeLogo(); event.stopPropagation();">Remove logo</button>';
     document.getElementById('logo-placeholder').style.display = 'none';
+  }
+
+  // Payment methods
+  if (d.payment_methods) {
+    if (d.payment_methods.zelle) document.getElementById('f-pm-zelle').value = d.payment_methods.zelle;
+    if (d.payment_methods.venmo) document.getElementById('f-pm-venmo').value = d.payment_methods.venmo;
+    if (d.payment_methods.cashapp) document.getElementById('f-pm-cashapp').value = d.payment_methods.cashapp;
+    if (d.payment_methods.stripe) document.getElementById('f-pm-stripe').value = d.payment_methods.stripe;
+    if (d.payment_methods.paypal) document.getElementById('f-pm-paypal').value = d.payment_methods.paypal;
+    if (d.payment_methods.check) document.getElementById('f-pm-check').value = d.payment_methods.check;
+  }
+  // Auto-fill check payable to from business name
+  if (!document.getElementById('f-pm-check').value && d.businessName) {
+    document.getElementById('f-pm-check').value = d.businessName;
   }
 
   // Staff
@@ -817,7 +865,10 @@ const T = {
     note: 'Save your business.md file somewhere easy to find. The Terrapin agent will need to read it.',
     success_h2: 'Your business profile is ready.', success_p: 'Every Terrapin tool will now know who you are.',
     dl_md: 'Download business.md', dl_json: 'Download business-profile.json', edit_btn: 'Edit Profile',
-    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.'
+    footer: 'A Terrapin Tool \u2014 terrapin.tools', storage: 'Your data saves in this browser on this device.',
+    payment_title: 'How Clients Pay You',
+    pm_zelle: 'Zelle (phone or email)', pm_venmo: 'Venmo handle', pm_cashapp: 'Cash App',
+    pm_stripe: 'Stripe payment link', pm_paypal: 'PayPal email (optional)', pm_check: 'Check payable to'
   },
   es: {
     back: '\u2190 Volver a Terrapin Tools', h1: 'Perfil del Negocio', sub: 'Configura una vez \u2014 cada herramienta Terrapin lo lee',
@@ -829,7 +880,10 @@ const T = {
     note: 'Guarda tu archivo business.md en un lugar f\u00e1cil de encontrar. El agente Terrapin lo necesitar\u00e1.',
     success_h2: 'Tu perfil de negocio est\u00e1 listo.', success_p: 'Cada herramienta Terrapin ahora sabe qui\u00e9n eres.',
     dl_md: 'Descargar business.md', dl_json: 'Descargar business-profile.json', edit_btn: 'Editar Perfil',
-    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.'
+    footer: 'Una Herramienta Terrapin \u2014 terrapin.tools', storage: 'Tus datos se guardan en este navegador en este dispositivo.',
+    payment_title: 'C\u00f3mo Te Pagan Tus Clientes',
+    pm_zelle: 'Zelle (tel\u00e9fono o email)', pm_venmo: 'Venmo', pm_cashapp: 'Cash App',
+    pm_stripe: 'Link de pago Stripe', pm_paypal: 'Email de PayPal (opcional)', pm_check: 'Cheque a nombre de'
   }
 };
 
