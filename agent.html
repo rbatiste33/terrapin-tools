@@ -308,25 +308,26 @@
   .chat-area::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
   @media (max-width: 520px) {
+    .top-bar { flex-wrap: wrap; gap: 8px; }
+    .status-group { width: 100%; justify-content: space-between; }
     .top-bar-title { font-size: 16px; }
     .message { max-width: 92%; }
     .input-bar { padding: 12px 12px; }
   }
-  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden}
-  .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:rgba(255,255,255,0.4);transition:all .15s}
+  .lang-toggle{display:flex;font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;flex-shrink:0;margin-left:12px}
+  .lang-toggle button{padding:4px 8px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:rgba(255,255,255,0.4);transition:all .15s}
   .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
 
 <div class="app">
-<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 
   <!-- TOP BAR -->
   <div class="top-bar">
     <img src="Handyman turtle ready for work.png" alt="Terrapin">
     <span class="top-bar-title" data-i18n="title">Terrapin Agent</span>
-    <a href="https://ai.google.dev/gemma" target="_blank" style="font-family:'DM Mono',monospace;font-size:10px;color:#C9A84C;background:#2C3E2D;border:1px solid #C9A84C;border-radius:6px;padding:4px 10px;text-decoration:none;margin-left:10px;white-space:nowrap;">Powered by Gemma 4</a>
+    <a href="https://ai.google.dev/gemma" target="_blank" style="font-family:'DM Mono',monospace;font-size:10px;color:#C9A84C;background:#2C3E2D;border:1px solid #C9A84C;border-radius:6px;padding:4px 10px;text-decoration:none;margin-left:8px;margin-right:auto;white-space:nowrap;">Powered by Gemma 4</a>
     <div class="status-group">
       <div class="status">
         <span class="status-dot" id="status-dot"></span>
@@ -336,6 +337,7 @@
         <span class="status-dot" id="mail-dot"></span>
         <span id="mail-text">Mail offline</span>
       </div>
+      <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
     </div>
   </div>
 

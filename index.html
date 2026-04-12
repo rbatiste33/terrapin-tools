@@ -652,13 +652,12 @@
         align-items: center;
       }
     }
-    .lang-toggle { position: fixed; top: 16px; right: 16px; z-index: 200; display: flex; gap: 0; font-family: 'DM Mono', monospace; font-size: 12px; background: #fff; border: 1px solid #E8E0D0; border-radius: 6px; overflow: hidden; }
-    .lang-toggle button { padding: 6px 12px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: #6B6B6B; transition: all 0.15s; }
+    .lang-toggle { display: flex; font-family: 'DM Mono', monospace; font-size: 12px; background: #fff; border: 1px solid #E8E0D0; border-radius: 6px; overflow: hidden; margin-left: 12px; flex-shrink: 0; }
+    .lang-toggle button { padding: 5px 10px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: #6B6B6B; transition: all 0.15s; }
     .lang-toggle button.active { background: #2C3E2D; color: #C9A84C; }
   </style>
 </head>
 <body>
-<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 
   <!-- NAV -->
   <nav>
@@ -669,6 +668,7 @@
       </a>
       <a href="agent.html" data-i18n="nav_agent" style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C9A84C;text-decoration:none;margin-right:16px;transition:opacity 0.15s;">Agent &#9889;</a>
       <a href="#tools" class="btn-primary" data-i18n="nav_browse">Browse Tools</a>
+      <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
     </div>
   </nav>
 

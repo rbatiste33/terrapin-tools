@@ -66,16 +66,18 @@
     .page-header p { font-size: 16px; }
     .step { padding: 20px; }
   }
-  .lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+  .lang-toggle{display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden;flex-shrink:0}
   .lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
   .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
 </style>
 </head>
 <body>
-<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
 <div class="container">
 
-  <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <a href="/" class="back-link">&#8592; Back to Terrapin Tools</a>
+    <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
+  </div>
 
   <div class="page-header">
     <h1 data-i18n="h1">Unlock the Terrapin Agent</h1>
