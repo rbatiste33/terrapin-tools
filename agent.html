@@ -317,11 +317,32 @@
   .lang-toggle{display:flex;font-family:'DM Mono',monospace;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;flex-shrink:0;margin-left:12px}
   .lang-toggle button{padding:4px 8px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:rgba(255,255,255,0.4);transition:all .15s}
   .lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+
+  /* Mobile gate */
+  .mobile-gate { display: none; min-height: 100vh; background: var(--bg); flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; }
+  .mobile-gate img { width: 140px; height: auto; margin-bottom: 24px; border-radius: 16px; }
+  .mobile-gate h2 { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: #F5F0E8; margin-bottom: 12px; line-height: 1.3; }
+  .mobile-gate p { font-size: 15px; color: rgba(255,255,255,0.6); max-width: 360px; margin-bottom: 24px; line-height: 1.5; }
+  .mobile-gate .gate-btn { display: inline-block; background: var(--gold); color: #1A1A1A; padding: 14px 28px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; margin-bottom: 16px; }
+  .mobile-gate .gate-small { font-size: 13px; color: rgba(255,255,255,0.35); max-width: 300px; }
+  .mobile-gate .gate-toggle { margin-top: 20px; display: flex; font-family: 'DM Mono', monospace; font-size: 11px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; overflow: hidden; }
+  .mobile-gate .gate-toggle button { padding: 4px 8px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: rgba(255,255,255,0.4); }
+  .mobile-gate .gate-toggle button.active { background: #2C3E2D; color: #C9A84C; }
 </style>
 </head>
 <body>
 
-<div class="app">
+<!-- MOBILE GATE -->
+<div class="mobile-gate" id="mobile-gate">
+  <img src="turtle-optimized.png" alt="Terrapin">
+  <h2 id="gate-h2">Terrapin Agent works best on desktop</h2>
+  <p id="gate-p">The agent requires a local AI model running on your computer. Open this page on your Mac or PC to get started.</p>
+  <a href="https://terrapin.tools" class="gate-btn" id="gate-btn">Use Free Tools &rarr;</a>
+  <p class="gate-small" id="gate-small">All 9 tools work great on your phone. No setup needed.</p>
+  <div class="gate-toggle"><button id="gate-en" class="active" onclick="setGateLang('en')">EN</button><button id="gate-es" onclick="setGateLang('es')">ES</button></div>
+</div>
+
+<div class="app" id="desktop-app">
 
   <!-- TOP BAR -->
   <div class="top-bar">
@@ -440,6 +461,37 @@
 </div>
 
 <script>
+// ══════════════════════════════════════
+//  MOBILE GATE
+// ══════════════════════════════════════
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+const gateText = {
+  en: { h2: 'Terrapin Agent works best on desktop', p: 'The agent requires a local AI model running on your computer. Open this page on your Mac or PC to get started.', btn: 'Use Free Tools \u2192', small: 'All 9 tools work great on your phone. No setup needed.' },
+  es: { h2: 'El Agente Terrapin funciona mejor en escritorio', p: 'El agente requiere un modelo de IA local en tu computadora. \u00c1brelo en tu Mac o PC para comenzar.', btn: 'Usar Herramientas Gratis \u2192', small: 'Las 9 herramientas funcionan perfecto en tu tel\u00e9fono. Sin configuraci\u00f3n.' }
+};
+
+function setGateLang(lang) {
+  var t = gateText[lang];
+  if (!t) return;
+  document.getElementById('gate-h2').textContent = t.h2;
+  document.getElementById('gate-p').textContent = t.p;
+  document.getElementById('gate-btn').textContent = t.btn;
+  document.getElementById('gate-small').textContent = t.small;
+  document.getElementById('gate-en').classList.toggle('active', lang === 'en');
+  document.getElementById('gate-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+}
+
+if (isMobile) {
+  document.getElementById('mobile-gate').style.display = 'flex';
+  document.getElementById('desktop-app').style.display = 'none';
+  // Apply saved language
+  var savedLang = localStorage.getItem('terrapin-language');
+  if (!savedLang) { var nav = (navigator.language || '').toLowerCase(); savedLang = nav.startsWith('es') ? 'es' : 'en'; }
+  if (savedLang === 'es') setGateLang('es');
+}
+
 // ══════════════════════════════════════
 //  TRANSLATIONS
 // ══════════════════════════════════════
