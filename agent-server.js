@@ -764,18 +764,7 @@ app.listen(PORT, '127.0.0.1', async () => {
   console.log('');
   console.log('\n  \ud83d\udc22 Open your Terrapin agent: http://localhost:7777/agent.html\n');
 
-  // First-run detection — if data files are empty, open sync page to pull from browser IndexedDB
-  try {
-    const profile = JSON.parse(fs.readFileSync(DATA_FILES.profile, 'utf8'));
-    const crm = JSON.parse(fs.readFileSync(DATA_FILES.crm, 'utf8'));
-    const calendar = JSON.parse(fs.readFileSync(DATA_FILES.calendar, 'utf8'));
-    const hasData = (profile && profile.businessName) || (Array.isArray(crm) && crm.length > 0) || (Array.isArray(calendar) && calendar.length > 0);
-    if (!hasData) {
-      console.log('  No existing data found — opening sync page to import from browser...');
-      const { exec } = require('child_process');
-      exec('open "https://terrapin.tools/sync?agent=ready"');
-    }
-  } catch(e) {
-    // Data files don't exist or can't be read — skip sync
-  }
+  // Data sync happens automatically via visibility-based sync in each tool.
+  // When a user opens any tool on terrapin.tools and the agent is running,
+  // the tool detects the agent and flushes IndexedDB data automatically.
 });
