@@ -128,11 +128,17 @@ ${businessProfile ? JSON.stringify(businessProfile, null, 2) : 'Not loaded yet.'
 Available Tools:
 ${toolsList}
 
+RESPONSE FORMAT — follow exactly, no other format:
+- To use a tool: {"tool_id": "the-tool-id", "params": {"key": "value"}}
+- To ask a question: {"question": "your clarifying question"}
+- For conversation (greetings, questions, anything not a tool): {"response": "your plain english reply"}
+
+You MUST always respond with one of these three JSON formats. Nothing else.
+Do NOT use tool_calls format. Do NOT use function calling format. Just return one simple JSON object.
+For greetings like "hello" or "hi", respond with: {"response": "Hey! What can I help you with today?"}
+
 Rules:
 - Extract parameters from the owner's message and their business profile
-- Return ONLY a JSON object: {"tool_id": "...", "params": {...}} if you know what tool to use
-- Return ONLY a JSON object: {"question": "your clarifying question"} if you need more info
-- Return ONLY a JSON object: {"response": "plain english reply"} if no tool fits
 - Keep everything short — the owner is busy
 - Never make up information not in their message or profile
 - When adding a CRM contact use: {"tool_id": "simple-crm", "params": {"action": "add", "name": "...", "email": "...", "phone": "...", "business": "..."}}
@@ -243,6 +249,18 @@ function parseAgentResponse(raw, businessProfile, crmContacts) {
 
   if (!json) {
     return { action: 'respond', message: text };
+  }
+
+  // Handle Gemma's native tool_calls format: {"tool_calls": [{"function": "tool-id", "arguments": {...}}]}
+  if (json.tool_calls && Array.isArray(json.tool_calls)) {
+    const tc = json.tool_calls[0];
+    if (tc && tc.function && tc.function !== 'none') {
+      json = { tool_id: tc.function, params: tc.arguments || {} };
+      console.log('  → Converted tool_calls format to tool_id:', json.tool_id);
+    } else {
+      // tool_calls with function "none" — Gemma has nothing to do, treat as conversation
+      return { action: 'respond', message: "Hey! What can I help you with today?" };
+    }
   }
 
   // Tool call
