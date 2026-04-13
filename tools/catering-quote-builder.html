@@ -1061,44 +1061,124 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Boot
-init();
-
 // ══════════════════════════════════════
-//  URL PARAMETER PRE-FILL
+//  AGENT AUTORUN — skip onboarding, fill from profile, generate quote
 // ══════════════════════════════════════
 (function() {
-  const params = new URLSearchParams(window.location.search);
-  // These tools have varied field IDs — try common patterns
-  const vals = {
-    client_name: params.get('client_name'),
-    event_date: params.get('event_date'),
-    guest_count: params.get('guest_count')
-  };
-  // Try to find and fill matching inputs by placeholder or label text
-  if (vals.client_name) {
-    const el = document.querySelector('input[placeholder*="client"], input[placeholder*="Client"], input[placeholder*="name"], input[placeholder*="Name"]');
-    if (el) el.value = vals.client_name;
-  }
-  if (vals.guest_count) {
-    const el = document.querySelector('input[placeholder*="guest"], input[placeholder*="Guest"], input[type="number"]');
-    if (el) el.value = vals.guest_count;
-  }
-  if (vals.event_date) {
-    const el = document.querySelector('input[type="date"]');
-    if (el) el.value = vals.event_date;
-  }
-})();
+  var params = new URLSearchParams(window.location.search);
+  var isAutorun = params.get('autorun') === 'true';
 
-// ══════════════════════════════════════
-//  BUSINESS PROFILE PRE-FILL
-// ══════════════════════════════════════
-(function() {
+  // Pre-fill business info from Terrapin business profile
   try {
-    const profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
-    if (!profile) return;
-    window._terrapinProfile = profile;
+    var profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (profile) {
+      window._terrapinProfile = profile;
+      if (!localStorage.getItem(STORAGE_BUSINESS) || isAutorun) {
+        BIZ = {
+          name: profile.businessName || '',
+          yourName: profile.ownerName || '',
+          email: profile.email || '',
+          phone: profile.phone || ''
+        };
+        localStorage.setItem(STORAGE_BUSINESS, JSON.stringify(BIZ));
+      }
+    }
   } catch(e) {}
+
+  // Accept menu_items param: "Grilled chicken:18,Caesar salad:8,Garlic bread:5"
+  var menuParam = params.get('menu_items');
+  if (menuParam) {
+    var items = menuParam.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    var menuObj = { 'Menu': [] };
+    var prices = {};
+    items.forEach(function(item) {
+      var parts = item.split(':');
+      var name = parts[0].trim();
+      var price = parts[1] ? parseFloat(parts[1].trim()) : 0;
+      menuObj['Menu'].push(name);
+      if (price) prices[name] = price;
+    });
+    MENU = menuObj;
+    CATS = Object.keys(MENU);
+    localStorage.setItem(STORAGE_MENU, JSON.stringify(MENU));
+    window._menuPrices = prices;
+  }
+
+  // Set default fees if not already configured
+  if (!localStorage.getItem(STORAGE_FEES)) {
+    localStorage.setItem(STORAGE_FEES, JSON.stringify({
+      sc: 20, tax: 9.75, cc: 4, del: 100, svr: 35, svrMin: 4,
+      scOn: true, taxOn: true, ccOn: true, delOn: true, svrOn: true
+    }));
+    loadFees();
+  }
+
+  // Boot
+  init();
+
+  // Pre-fill quote fields from URL params
+  var clientName = params.get('client_name');
+  var eventDate = params.get('event_date');
+  var guestCount = params.get('guest_count');
+  var pricePerHead = params.get('price_per_head');
+  var eventLabel = params.get('event_type') || params.get('event_label');
+
+  if (clientName) {
+    var recipEl = document.getElementById('recipient');
+    if (recipEl) recipEl.value = clientName;
+  }
+  if (events.length > 0) {
+    var eid = events[0].id;
+    if (eventDate) { var el = document.getElementById('date-' + eid); if (el) el.value = eventDate; }
+    if (guestCount) { var el2 = document.getElementById('hc-' + eid); if (el2) el2.value = guestCount; }
+    if (pricePerHead) { var el3 = document.getElementById('pph-' + eid); if (el3) el3.value = pricePerHead; }
+    if (eventLabel) { var el4 = document.getElementById('label-' + eid); if (el4) el4.value = eventLabel; }
+
+    // Auto-select all menu items if menu was provided via params
+    if (menuParam && CATS.length > 0) {
+      CATS.forEach(function(cat) {
+        (MENU[cat] || []).forEach(function(item) {
+          if (!events[0].selectedItems.includes(item)) {
+            events[0].selectedItems.push(item);
+          }
+        });
+      });
+      var chipsEl = document.getElementById('chips-' + eid);
+      if (chipsEl) {
+        chipsEl.innerHTML = events[0].selectedItems.map(function(item) {
+          return '<span class="chip">' + esc(item) + '</span>';
+        }).join('');
+      }
+    }
+
+    // Calculate price per head from menu items if not explicitly provided
+    if (!pricePerHead && window._menuPrices) {
+      var totalPrice = 0;
+      events[0].selectedItems.forEach(function(item) {
+        if (window._menuPrices[item]) totalPrice += window._menuPrices[item];
+      });
+      if (totalPrice > 0) {
+        var pphEl = document.getElementById('pph-' + eid);
+        if (pphEl) pphEl.value = totalPrice.toFixed(2);
+      }
+    }
+  }
+
+  // Autorun — generate email and send back to agent
+  if (isAutorun && clientName) {
+    setTimeout(function() {
+      generateEmail();
+      var emailText = document.getElementById('email-text').textContent || '';
+      if (emailText && window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'terrapin-tool-result',
+          tool: 'catering-quote-builder',
+          success: true,
+          data: { quote_text: emailText, client: clientName }
+        }, '*');
+      }
+    }, 300);
+  }
 })();
 
 const T = {

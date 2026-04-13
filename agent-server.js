@@ -174,14 +174,32 @@ PERSONALITY:
 USING TOOLS:
 - Pull client info from the CRM contacts and business profile above — don't ask for info you already have
 - Use conversation history to resolve pronouns like "him", "her", "them", "that client"
-- For invoices, use flat params — the server restructures them:
-  {"tool_id": "contractor-invoice-generator", "params": {"client_name": "Mike Johnson", "job_desc": "Deck repair", "labor_description": "Deck repair", "labor_hours": 6, "labor_rate": 85, "materials_description": "Materials", "materials_cost": 240}}
-- For calendar events, always use action "add" and put the event name in title:
-  {"tool_id": "simple-calendar", "params": {"action": "add", "title": "Meeting with Mike", "date": "2026-04-14", "time": "2pm", "type": "appointment"}}
-- For adding CRM contacts:
-  {"tool_id": "simple-crm", "params": {"action": "add", "name": "...", "email": "...", "phone": "...", "business": "..."}}
+- If a message asks for two things (e.g. "add Jake and send him an invoice"), do the first one. The system will automatically follow up for the second.
 - Use the owner's default rate if they don't specify one
-- Calculate dates from today: ${today}. Return dates as YYYY-MM-DD.`;
+- Calculate dates from today: ${today}. Return dates as YYYY-MM-DD.
+
+TOOL EXAMPLES:
+
+Invoices — use flat params, the server restructures them:
+  {"tool_id": "contractor-invoice-generator", "params": {"client_name": "Mike Johnson", "job_desc": "Deck repair", "labor_description": "Deck repair", "labor_hours": 6, "labor_rate": 85, "materials_description": "Materials", "materials_cost": 240}}
+
+Calendar — always use action "add" and put the event name in title:
+  {"tool_id": "simple-calendar", "params": {"action": "add", "title": "Meeting with Mike", "date": "2026-04-14", "time": "2pm", "type": "appointment"}}
+
+CRM — add contacts:
+  {"tool_id": "simple-crm", "params": {"action": "add", "name": "Sarah Kim", "email": "sarah@test.com", "phone": "555-0199", "business": "Kim Design Studio"}}
+
+Catering quotes — include menu items with prices:
+  {"tool_id": "catering-quote-builder", "params": {"client_name": "Sarah Kim", "event_date": "2026-04-20", "guest_count": 50, "event_type": "Wedding Reception", "menu_items": "Grilled chicken:18,Caesar salad:8,Garlic bread:5,Lemonade:3"}}
+
+Job site logs — log daily work:
+  {"tool_id": "job-site-daily-log", "params": {"job_name": "Henderson Kitchen", "date": "2026-04-13", "job_address": "456 Oak St", "weather": "Clear", "work": "Framing complete, electrical rough-in started", "notes": "Inspector coming tomorrow"}}
+
+QR codes — include colors if requested:
+  {"tool_id": "qr-code-generator", "params": {"type": "url", "data": "https://terrapin.tools", "fg_color": "#2C3E2D", "bg_color": "#ffffff"}}
+
+Tip calculator:
+  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}`;
 }
 
 // ══════════════════════════════════════

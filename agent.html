@@ -699,6 +699,7 @@ async function sendMessage() {
 
   addMessage('user', text);
   input.value = '';
+  window._lastUserMessage = text;
 
   // Check if user is replying with an email for a pending tool request
   if (window._pendingTool) {
@@ -1012,6 +1013,37 @@ async function executeToolCall(data, toolUrl, paramList) {
     cardHTML += '</div>';
     addCard(cardHTML);
 
+    // Multi-action chain: if the original message likely had more intent, re-send to Gemma
+    if (window._lastUserMessage && window._lastUserMessage.length > 40) {
+      var keywords = ['send', 'invoice', 'quote', 'schedule', 'email', 'make', 'create', 'enviar', 'factura', 'cotización'];
+      var remaining = window._lastUserMessage.toLowerCase();
+      var toolAction = (data.tool_id === 'simple-crm') ? 'add' : (data.tool_id === 'simple-calendar') ? 'schedule' : '';
+      var hasMoreIntent = keywords.some(function(kw) { return remaining.includes(kw) && kw !== toolAction; });
+      if (hasMoreIntent) {
+        window._lastUserMessage = null; // prevent infinite loops
+        setTimeout(async function() {
+          showTyping();
+          try {
+            var chainRes = await fetch(AGENT_URL + '/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: remaining,
+                history: conversationHistory.slice(-20),
+                business_profile: businessProfileObj,
+                crm_contacts: JSON.parse(localStorage.getItem('scrm_contacts') || '[]')
+              })
+            });
+            hideTyping();
+            if (chainRes.ok) {
+              var chainData = await chainRes.json();
+              handleAgentResponse(chainData);
+            }
+          } catch(e) { hideTyping(); }
+        }, 500);
+      }
+    }
+
   // ── UTILITY TOOLS — Result summary + Open ──
   } else {
     // Launch iframe to get calculated result
@@ -1060,6 +1092,24 @@ window.addEventListener('message', function(event) {
         call.pdf_dataurl = event.data.pdf_dataurl;
         call.filename = event.data.filename;
         console.log('Captured PDF for', callId, ':', event.data.filename);
+      }
+
+      // QR code results — show preview + download in chat
+      if (event.data.tool === 'qr-code-generator' && event.data.data && event.data.data.qr_image) {
+        const qrData = event.data.data;
+        const detailEl = document.getElementById('util-detail-' + callId);
+        const cardEl = document.getElementById('util-result-' + callId);
+        if (detailEl && cardEl) {
+          const label = cardEl.querySelector('.card-label');
+          if (label) label.textContent = 'QR Code Ready';
+          let html = '<div style="text-align:center;padding:8px 0;">';
+          html += '<img src="' + qrData.qr_image + '" alt="QR Code" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;">';
+          html += '<div style="margin-top:8px;font-size:12px;opacity:0.6;">' + escapeHTML(qrData.content || '') + '</div>';
+          html += '<a download="terrapin-qr.png" href="' + qrData.qr_image + '" class="card-btn primary" style="display:inline-block;margin-top:8px;text-decoration:none;">Download QR</a>';
+          html += '</div>';
+          detailEl.innerHTML = html;
+          console.log('QR code preview rendered in chat');
+        }
       }
 
       // Tip calculator results (utility tools)

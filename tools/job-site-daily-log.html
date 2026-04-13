@@ -882,6 +882,19 @@ window.jobLogReady = Promise.resolve(true);
         selectedWeather = weather;
       }
     }
+    // Autorun — save immediately without user interaction
+    if (params.get('autorun') === 'true') {
+      // Set date to today if not provided
+      if (!params.get('date')) document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+      var saved = saveEntry();
+      if (saved) {
+        var result = { status: 'success', tool: 'job-site-daily-log', output: 'Log saved' };
+        try { result = JSON.parse(document.getElementById('terrapin-result').textContent); } catch(e) {}
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'job-site-daily-log', success: true, data: result }, '*');
+        }
+      }
+    }
   } else {
     renderList();
     loadFromIDB();

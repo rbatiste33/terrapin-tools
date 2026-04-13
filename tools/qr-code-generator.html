@@ -699,7 +699,26 @@ window.qrGenReady = Promise.resolve(true);
   const bizName = params.get('biz_name');
   if (bizName) document.getElementById('input-bizname').value = bizName;
 
-  if (params.toString()) generate();
+  if (params.toString()) {
+    generate();
+    // Autorun — send QR image back to agent
+    if (params.get('autorun') === 'true') {
+      setTimeout(function() {
+        var canvas = document.querySelector('#preview canvas');
+        if (canvas) {
+          var dataUrl = canvas.toDataURL('image/png');
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'terrapin-tool-result',
+              tool: 'qr-code-generator',
+              success: true,
+              data: { qr_image: dataUrl, content: currentData || '' }
+            }, '*');
+          }
+        }
+      }, 500);
+    }
+  }
 })();
 
 // ══════════════════════════════════════
