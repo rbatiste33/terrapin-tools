@@ -94,14 +94,38 @@ async function checkMail() {
 // ══════════════════════════════════════
 function buildSystemPrompt(businessProfile, crmContacts) {
   const bizName = businessProfile?.businessName || 'your business';
+  const ownerName = businessProfile?.ownerName || '';
 
   const toolsList = toolsManifest.tools.filter(t => t.agent_ready !== false).map(t => {
-    const req = t.required_params.length ? `required: ${t.required_params.join(', ')}` : 'no required params';
-    const opt = t.optional_params.length ? `optional: ${t.optional_params.join(', ')}` : '';
-    return `- ${t.id} [${t.type}]: ${t.description} (${req}${opt ? '; ' + opt : ''}) → ${t.output}`;
+    return `- ${t.id}: ${t.description} (params: ${t.required_params.join(', ') || 'none'})`;
   }).join('\n');
 
-  // Build CRM contacts summary — compact format to save tokens
+  // Build lean profile — only what Gemma needs for conversation
+  let profileSection = 'No business profile set up yet.';
+  if (businessProfile) {
+    const parts = [];
+    if (businessProfile.businessName) parts.push('Business: ' + businessProfile.businessName);
+    if (businessProfile.ownerName) parts.push('Owner: ' + businessProfile.ownerName);
+    if (businessProfile.businessType) parts.push('Type: ' + businessProfile.businessType);
+    if (businessProfile.email) parts.push('Email: ' + businessProfile.email);
+    if (businessProfile.phone) parts.push('Phone: ' + businessProfile.phone);
+    if (businessProfile.address) parts.push('Address: ' + businessProfile.address);
+    if (businessProfile.defaultRate) parts.push('Default rate: $' + businessProfile.defaultRate + '/hr');
+    // Include client list from profile
+    const clients = businessProfile.clients || businessProfile.regular_clients || [];
+    if (clients.length) {
+      parts.push('Clients: ' + clients.map(c => {
+        const cp = [c.name];
+        if (c.email) cp.push(c.email);
+        if (c.phone) cp.push(c.phone);
+        return cp.join(', ');
+      }).join(' | '));
+    }
+    if (businessProfile.paymentMethods) parts.push('Payment: ' + businessProfile.paymentMethods);
+    profileSection = parts.join('\n');
+  }
+
+  // Build CRM contacts summary
   let crmSection = '';
   if (crmContacts && crmContacts.length) {
     const contactList = crmContacts.map(c => {
@@ -111,48 +135,53 @@ function buildSystemPrompt(businessProfile, crmContacts) {
       if (c.business) parts.push('(' + c.business + ')');
       return parts.join(', ');
     }).join('\n');
-    crmSection = `\n\nCRM Contacts (${crmContacts.length}):\n${contactList}\n\nWhen the user asks about a contact, look them up here first. Use their email and phone from this list.`;
+    crmSection = `\nCRM Contacts (${crmContacts.length}):\n${contactList}`;
   }
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  return `Today is ${today}. Use this to calculate relative dates like "next Tuesday", "tomorrow", "this Friday". Always return dates in YYYY-MM-DD format.
+  return `You are Terrapin, a friendly business assistant for ${ownerName || bizName}. Today is ${today}.
 
-You are the Terrapin business assistant for ${bizName}.
-You help small business owners use their local tools with plain English.
-You only use local tools — never cloud APIs, never external services with business data.
+You talk like a helpful coworker — warm, brief, and practical. The person you're helping is a busy small business owner. They don't have an IT department. Keep it simple.
 
-Business Profile:
-${businessProfile ? JSON.stringify(businessProfile, null, 2) : 'Not loaded yet.'}${crmSection}
+ABOUT THE OWNER:
+${profileSection}
+${crmSection}
 
-Available Tools:
+YOU CAN USE THESE TOOLS:
 ${toolsList}
 
-RESPONSE FORMAT — follow exactly, no other format:
-- To use a tool: {"tool_id": "the-tool-id", "params": {"key": "value"}}
-- To ask a question: {"question": "your clarifying question"}
-- For conversation (greetings, questions, anything not a tool): {"response": "your plain english reply"}
+HOW TO RESPOND — you must ALWAYS reply with exactly one JSON object, nothing else:
 
-You MUST always respond with one of these three JSON formats. Nothing else.
-Do NOT use tool_calls format. Do NOT use function calling format. Just return one simple JSON object.
-For greetings like "hello" or "hi", respond with: {"response": "Hey! What can I help you with today?"}
+1. To have a conversation (greetings, questions, info, anything that's not a tool):
+   {"response": "your friendly reply here"}
 
-Rules:
-- Extract parameters from the owner's message and their business profile
-- Keep everything short — the owner is busy
-- Never make up information not in their message or profile
-- When adding a CRM contact use: {"tool_id": "simple-crm", "params": {"action": "add", "name": "...", "email": "...", "phone": "...", "business": "..."}}
-- When the user asks about a contact, check the CRM Contacts list above and respond with their info
+2. To use a tool (you have all the info you need):
+   {"tool_id": "the-tool-id", "params": {"key": "value"}}
 
-IMPORTANT for contractor-invoice-generator — use flat params, the server restructures them:
-Example: "Send Mike Johnson an invoice for deck repair. 6 hours at $85. Materials were $240."
-Return: {"tool_id": "contractor-invoice-generator", "params": {"client_name": "Mike Johnson", "job_desc": "Deck repair", "labor_description": "Deck repair", "labor_hours": 6, "labor_rate": 85, "materials_description": "Materials", "materials_cost": 240}}
-The server handles structuring and base64 encoding. Just extract the values.
+3. To ask for missing info before using a tool:
+   {"question": "what you need to know"}
 
-IMPORTANT for simple-calendar — always use action: "add" and put the event name in title:
-Example: "Schedule a meeting with Mike next Tuesday at 2pm"
-Return: {"tool_id": "simple-calendar", "params": {"action": "add", "title": "Meeting with Mike", "date": "2026-04-14", "time": "2pm", "type": "appointment"}}
-Never put the event name in the action field. Action is always "add" or "view".`;
+NEVER return any other format. No markdown. No tool_calls. No function calls. Just one JSON object.
+
+PERSONALITY:
+- Be warm and use the owner's first name when natural
+- Reply in whatever language the user writes in — if they write Spanish, reply in Spanish
+- Keep answers to 1-2 sentences unless they ask for detail
+- When you look up a contact, just tell them naturally: "Tom's email is tom@example.com"
+- When you can't help, be honest: "I can't do that yet, but here's what I can help with..."
+
+USING TOOLS:
+- Pull client info from the CRM contacts and business profile above — don't ask for info you already have
+- Use conversation history to resolve pronouns like "him", "her", "them", "that client"
+- For invoices, use flat params — the server restructures them:
+  {"tool_id": "contractor-invoice-generator", "params": {"client_name": "Mike Johnson", "job_desc": "Deck repair", "labor_description": "Deck repair", "labor_hours": 6, "labor_rate": 85, "materials_description": "Materials", "materials_cost": 240}}
+- For calendar events, always use action "add" and put the event name in title:
+  {"tool_id": "simple-calendar", "params": {"action": "add", "title": "Meeting with Mike", "date": "2026-04-14", "time": "2pm", "type": "appointment"}}
+- For adding CRM contacts:
+  {"tool_id": "simple-crm", "params": {"action": "add", "name": "...", "email": "...", "phone": "...", "business": "..."}}
+- Use the owner's default rate if they don't specify one
+- Calculate dates from today: ${today}. Return dates as YYYY-MM-DD.`;
 }
 
 // ══════════════════════════════════════
@@ -477,7 +506,7 @@ app.get('/health', async (req, res) => {
 
 // ── CHAT ──
 app.post('/chat', async (req, res) => {
-  const { message, business_profile, crm_contacts } = req.body;
+  const { message, history, business_profile, crm_contacts } = req.body;
 
   if (!message) {
     return res.status(400).json({ success: false, error: 'Missing required field: message' });
@@ -514,23 +543,36 @@ app.post('/chat', async (req, res) => {
 
   const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts);
 
+  // Build messages array with conversation history
+  const ollamaMessages = [{ role: 'system', content: systemPrompt }];
+  if (history && Array.isArray(history)) {
+    // Convert chat history to Ollama format (last 20 messages, skip the current one which is last)
+    for (const h of history) {
+      if (h.role === 'user') {
+        ollamaMessages.push({ role: 'user', content: h.text });
+      } else if (h.role === 'agent') {
+        ollamaMessages.push({ role: 'assistant', content: h.text });
+      }
+    }
+  }
+  ollamaMessages.push({ role: 'user', content: message });
+  console.log(`  → Sending ${ollamaMessages.length} messages to Gemma (${ollamaMessages.length - 2} history)`);
+
   try {
     const ollamaRes = await fetch(OLLAMA_URL + '/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gemma4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
+        messages: ollamaMessages,
         stream: false
       })
     });
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      return res.status(502).json({ success: false, error: 'Ollama returned ' + ollamaRes.status, detail: errText });
+      console.error('  → Ollama error:', ollamaRes.status, errText);
+      return res.status(502).json({ success: false, error: "I'm having trouble thinking right now. Make sure Gemma is running." });
     }
 
     const data = await ollamaRes.json();
@@ -541,7 +583,7 @@ app.post('/chat', async (req, res) => {
   } catch (e) {
     res.status(502).json({
       success: false,
-      error: 'Could not reach Ollama at ' + OLLAMA_URL,
+      error: "I can't think right now \u2014 the AI model isn't responding. Give it a moment and try again.",
       detail: e.message
     });
   }

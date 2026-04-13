@@ -730,7 +730,7 @@ async function sendMessage() {
 
   if (!agentReady) {
     setTimeout(function() {
-      addMessage('agent', "Agent server isn't running. Start it with: `npm run agent` in your terminal. That connects me to Gemma on your machine.");
+      addMessage('agent', "I'm not connected yet. Make sure the Terrapin agent is running on your computer. Check the setup guide at terrapin.tools/agent-setup");
     }, 300);
     return;
   }
@@ -743,6 +743,7 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
+        history: conversationHistory.slice(-20),
         business_profile: businessProfileObj,
         crm_contacts: JSON.parse(localStorage.getItem('scrm_contacts') || '[]')
       })
@@ -752,7 +753,7 @@ async function sendMessage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      addMessage('agent', "Couldn't reach the agent. " + (err.error || 'Check that Ollama is running.'));
+      addMessage('agent', "I'm having trouble thinking right now. Give me a moment and try again.");
       return;
     }
 
@@ -761,7 +762,7 @@ async function sendMessage() {
 
   } catch(e) {
     hideTyping();
-    addMessage('agent', "Agent server not responding. Start it with: `npm run agent` in your terminal.");
+    addMessage('agent', "I can't connect right now. Make sure the Terrapin agent is running on your computer.");
   }
 }
 
@@ -772,7 +773,7 @@ async function handleAgentResponse(data) {
   console.log('Agent response:', JSON.stringify(data).substring(0, 500));
 
   if (!data.success) {
-    addMessage('agent', data.error || 'Something went wrong.');
+    addMessage('agent', "Something didn't work on my end. Try again in a moment.");
     return;
   }
 
@@ -822,51 +823,110 @@ async function handleAgentResponse(data) {
           if (parsed.response) { addMessage('agent', parsed.response); break; }
         }
       } catch(e) { console.log('Safety net parse error:', e.message); }
-      addMessage('agent', data.message);
+      // Never show raw JSON to the user
+      var respondMsg = data.message || '';
+      if (respondMsg.trim().startsWith('{') || respondMsg.trim().startsWith('[') || respondMsg.includes('"tool_calls"') || respondMsg.includes('"function"')) {
+        addMessage('agent', "I'm not sure how to handle that. Can you try rephrasing?");
+      } else {
+        addMessage('agent', respondMsg);
+      }
       break;
     default:
-      addMessage('agent', data.message || data.raw || 'Got a response but not sure what to do with it.');
+      // Never show raw JSON to the user
+      var fallbackMsg = data.message || '';
+      if (fallbackMsg.startsWith('{') || fallbackMsg.startsWith('[')) {
+        fallbackMsg = "I'm not sure how to handle that. Can you try rephrasing?";
+      }
+      addMessage('agent', fallbackMsg || "I'm not sure how to handle that. Can you try rephrasing?");
   }
 }
 
 // ══════════════════════════════════════
-//  TOOL CALL HANDLER — STEP BY STEP
+//  TOOL CALL HANDLER — CONFIRMATION FIRST
 // ══════════════════════════════════════
-async function handleToolCall(data) {
-  const toolName = data.tool_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  const params = data.params || {};
-
-  // Build human-readable summary — handle nested data objects
-  let paramList = '';
+function buildParamSummary(params) {
   if (params.data && typeof params.data === 'object') {
     const d = params.data;
     const parts = [];
     if (d.client?.name) parts.push('Client: ' + d.client.name);
     if (d.jobDescription) parts.push('Job: ' + d.jobDescription);
-    if (d.labor?.length) parts.push('Labor: ' + d.labor.map(l => l.description + ' (' + l.quantity + 'h × $' + l.rate + ')').join(', '));
+    if (d.labor?.length) parts.push('Labor: ' + d.labor.map(l => l.description + ' (' + l.quantity + 'h \u00d7 $' + l.rate + ')').join(', '));
     if (d.materials?.length) parts.push('Materials: ' + d.materials.map(m => m.description + ' ($' + m.rate + ')').join(', '));
-    paramList = parts.join(' | ');
-  } else {
-    paramList = Object.entries(params).filter(([k,v]) => v && k !== 'client_email').map(([k,v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ');
+    return parts.join(' | ');
   }
+  return Object.entries(params).filter(([k,v]) => v && k !== 'client_email' && k !== 'autorun' && k !== 'action').map(([k,v]) => {
+    const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return label + ': ' + (typeof v === 'object' ? JSON.stringify(v) : v);
+  }).join('\n');
+}
 
-  // Step 1: Understanding
-  addMessage('agent', '\ud83d\udd0d Understanding your request...');
-  await delay(400);
-
-  // Step 2: Tool selection
-  const step2 = addProgress('\ud83d\udccb Using: ' + toolName);
-  await delay(400);
-
-  // Step 3: Profile fill
-  if (businessProfileObj) {
-    const step3 = addProgress('\u26a1 Filling in details from your business profile...');
-    await delay(300);
+function buildConfirmMessage(toolId, params) {
+  const p = params;
+  switch (toolId) {
+    case 'contractor-invoice-generator': {
+      const client = p.client_name || p.name || 'client';
+      const job = p.job_desc || p.job_description || 'work';
+      const parts = ['\u{1f4cb} I\'ll create an invoice for ' + client + ' for ' + job + '.'];
+      if (p.labor_hours && p.labor_rate) parts.push('Labor: ' + p.labor_hours + 'h \u00d7 $' + p.labor_rate + '/hr = $' + (p.labor_hours * p.labor_rate));
+      if (p.materials_cost) parts.push('Materials: $' + p.materials_cost);
+      if (p.labor_hours && p.labor_rate) {
+        const total = (p.labor_hours * p.labor_rate) + (parseFloat(p.materials_cost) || 0);
+        parts.push('Total: $' + total);
+      }
+      return parts.join('\n');
+    }
+    case 'catering-quote-builder':
+      return '\u{1f4cb} I\'ll create a catering quote' + (p.client_name ? ' for ' + p.client_name : '') + '.';
+    case 'simple-calendar':
+      return '\u{1f4c5} I\'ll add "' + (p.title || 'event') + '" to your calendar' + (p.date ? ' on ' + p.date : '') + (p.time ? ' at ' + p.time : '') + '.';
+    case 'simple-crm':
+      return '\u{1f4c7} I\'ll add ' + (p.name || 'a contact') + ' to your CRM' + (p.email ? ' (' + p.email + ')' : '') + '.';
+    case 'job-site-daily-log':
+      return '\u{1f477} I\'ll log a daily entry' + (p.job_name ? ' for ' + p.job_name : '') + '.';
+    default:
+      return '\u{1f527} I\'ll open ' + toolId.replace(/-/g, ' ') + ' with your details.';
   }
+}
 
-  // Step 4: Generating
-  const step4 = addProgress('\ud83d\udcc4 Generating output...');
-  await delay(300);
+async function handleToolCall(data) {
+  const toolName = data.tool_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const params = data.params || {};
+  const paramList = buildParamSummary(params);
+
+  // Show confirmation message
+  const confirmMsg = buildConfirmMessage(data.tool_id, params);
+  const confirmId = 'confirm-' + Date.now();
+
+  let cardHTML = '<div class="action-card" id="' + confirmId + '">';
+  cardHTML += '<div class="card-label">' + escapeHTML(toolName) + '</div>';
+  cardHTML += '<div class="card-title" style="white-space:pre-line;font-size:14px;line-height:1.6;">' + escapeHTML(confirmMsg) + '</div>';
+  cardHTML += '<div style="display:flex;gap:8px;margin-top:12px;">';
+  cardHTML += '<button class="card-btn primary" id="' + confirmId + '-go">Go ahead</button>';
+  cardHTML += '<button class="card-btn secondary" id="' + confirmId + '-open">Let me edit first</button>';
+  cardHTML += '</div></div>';
+  addCard(cardHTML);
+
+  // Store data for execution
+  window['_pending_' + confirmId] = data;
+
+  const toolUrl = data.url || ('tools/' + data.tool_id + '.html');
+
+  // Wait for user to click
+  document.getElementById(confirmId + '-go').addEventListener('click', async function() {
+    this.disabled = true;
+    this.textContent = 'Working...';
+    document.getElementById(confirmId + '-open').style.display = 'none';
+    await executeToolCall(data, toolUrl, paramList);
+  });
+
+  document.getElementById(confirmId + '-open').addEventListener('click', function() {
+    window.open(toolUrl, '_blank');
+  });
+}
+
+async function executeToolCall(data, toolUrl, paramList) {
+  const toolName = data.tool_id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const params = data.params || {};
 
   // Determine tool type
   const toolTypes = {
@@ -1334,9 +1394,9 @@ async function confirmSendDraft(draftId) {
   const draft = draftStore[draftId];
   const card = document.getElementById(draftId);
   console.log('confirmSendDraft:', draftId, 'draft:', draft, 'card:', card);
-  if (!draft) { addMessage('agent', 'Error: draft data not found. Try sending again.'); return; }
-  if (!card) { addMessage('agent', 'Error: draft card not found in page. Try sending again.'); return; }
-  if (!draft.to) { addMessage('agent', 'Error: no recipient email. Use "Edit Before Sending" to add one.'); return; }
+  if (!draft) { addMessage('agent', "I lost track of that email draft. Can you try again?"); return; }
+  if (!card) { addMessage('agent', "I lost track of that email draft. Can you try again?"); return; }
+  if (!draft.to) { addMessage('agent', "I don't have an email address to send to. Click 'Edit Before Sending' to add one."); return; }
 
   card.querySelectorAll('.card-btn').forEach(b => b.disabled = true);
   const statusEl = card.querySelector('.card-status');
@@ -1388,7 +1448,7 @@ async function confirmSendDraft(draftId) {
     statusEl.textContent = 'Could not reach mail server';
     statusEl.className = 'card-status error';
     card.querySelectorAll('.card-btn').forEach(b => b.disabled = false);
-    addMessage('agent', 'Mail server not responding. Start it with: `npm run mail` in your terminal.');
+    addMessage('agent', "Email isn't set up yet. You can set it up anytime \u2014 check terrapin.tools/agent-setup");
   }
 }
 
@@ -1442,7 +1502,7 @@ async function sendEditedEmail() {
 
 async function sendEmailDirect(to, subject, body) {
   if (!mailReady) {
-    addMessage('agent', 'Mail server isn\'t running. Start it with: `npm run mail` in your terminal.');
+    addMessage('agent', "Email isn't set up on this machine yet. You can set it up anytime \u2014 check terrapin.tools/agent-setup");
     mailtoFallback(to, subject, body);
     return;
   }
@@ -1456,10 +1516,10 @@ async function sendEmailDirect(to, subject, body) {
     if (data.success) {
       addCard('<div class="action-card"><div class="card-label">Email Sent</div><div class="card-title">Sent to ' + escapeHTML(to) + '</div><div class="card-status sent">Sent \u2713 — ' + new Date().toLocaleTimeString() + '</div></div>');
     } else {
-      addMessage('agent', 'Email failed: ' + data.error);
+      addMessage('agent', "That email didn't go through. Want to try again?");
     }
   } catch(e) {
-    addMessage('agent', 'Could not reach mail server.');
+    addMessage('agent', "I couldn't send that email. The mail service isn't responding right now.");
     mailtoFallback(to, subject, body);
   }
 }
@@ -1802,7 +1862,73 @@ if (IS_FILE) {
   checkStatus();
 })();
 
-addMessage('agent', T[currentLang].welcome);
+// Build personalized welcome
+(function() {
+  const lang = currentLang;
+  const profile = businessProfileObj;
+  let name = profile?.ownerName || profile?.businessName || '';
+  let welcome = '';
+
+  if (name && ollamaReady) {
+    const firstName = name.split(' ')[0];
+    if (lang === 'es') {
+      welcome = '\u00a1Hola ' + firstName + '! ';
+      if (profile?.businessName && profile.businessName !== name) welcome += profile.businessName + ' est\u00e1 listo. ';
+      welcome += '\u00bfEn qu\u00e9 puedo ayudarte hoy?';
+    } else {
+      welcome = 'Hey ' + firstName + '! ';
+      if (profile?.businessName && profile.businessName !== name) welcome += profile.businessName + ' is all set up. ';
+      const crmCount = JSON.parse(localStorage.getItem('scrm_contacts') || '[]').length;
+      if (crmCount > 0) welcome += 'I can see ' + crmCount + ' client' + (crmCount > 1 ? 's' : '') + ' in your CRM. ';
+      welcome += 'What do you need?';
+    }
+  } else if (name) {
+    welcome = lang === 'es'
+      ? 'Hola ' + name.split(' ')[0] + '. Estoy esperando que Gemma se conecte \u2014 aseg\u00farate de que Ollama est\u00e9 corriendo.'
+      : 'Hey ' + name.split(' ')[0] + '. I\'m waiting for Gemma to connect \u2014 make sure Ollama is running.';
+  } else {
+    welcome = T[lang].welcome;
+  }
+
+  addMessage('agent', welcome);
+
+  // Add suggested prompts
+  const suggestions = lang === 'es'
+    ? [
+        { label: 'Crear una factura', text: 'Crea una factura para' },
+        { label: 'Agregar evento', text: 'Agenda una reuni\u00f3n para' },
+        { label: 'Buscar cliente', text: '\u00bfCu\u00e1l es el email de' },
+        { label: 'Crear cotizaci\u00f3n', text: 'Haz una cotizaci\u00f3n para' }
+      ]
+    : [
+        { label: 'Send an invoice', text: 'Send an invoice to' },
+        { label: 'Schedule event', text: 'Schedule a meeting with' },
+        { label: 'Look up a client', text: 'What\'s the email for' },
+        { label: 'Create a quote', text: 'Create a catering quote for' }
+      ];
+
+  const thread = document.getElementById('chat-thread');
+  const sugDiv = document.createElement('div');
+  sugDiv.className = 'message agent';
+  sugDiv.id = 'suggestions';
+  let sugHTML = '<div class="msg-bubble" style="padding:8px 12px;">';
+  sugHTML += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+  suggestions.forEach(function(s) {
+    sugHTML += '<button class="card-btn secondary" style="font-size:13px;padding:6px 12px;border-radius:20px;cursor:pointer;" onclick="fillSuggestion(\'' + s.text.replace(/'/g, "\\'") + '\')">' + s.label + '</button>';
+  });
+  sugHTML += '</div></div>';
+  sugDiv.innerHTML = '<img src="' + TURTLE_DATAURL + '" alt="Terrapin" class="msg-avatar">' + sugHTML;
+  thread.appendChild(sugDiv);
+  scrollChat();
+})();
+
+function fillSuggestion(text) {
+  var el = document.getElementById('suggestions');
+  if (el) el.remove();
+  var input = document.getElementById('msg-input');
+  input.value = text + ' ';
+  input.focus();
+}
 </script>
 </body>
 </html>
