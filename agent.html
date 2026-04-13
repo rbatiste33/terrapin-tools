@@ -942,7 +942,6 @@ async function executeToolCall(data, toolUrl, paramList) {
   };
   const toolType = toolTypes[data.tool_id] || 'utility';
 
-  const toolUrl = data.url || ('tools/' + data.tool_id + '.html');
   const callId = 'call-' + Date.now();
   toolCallStore[callId] = { toolId: data.tool_id, toolName, params, pdf_base64: null, pdf_dataurl: null, filename: null };
 
@@ -1859,11 +1858,9 @@ if (IS_FILE) {
     }
   } catch(e) { console.log('Agent server not available for CRM, using localStorage'); }
 
-  checkStatus();
-})();
+  await checkStatus();
 
 // Build personalized welcome
-(function() {
   const lang = currentLang;
   const profile = businessProfileObj;
   let name = profile?.ownerName || profile?.businessName || '';
