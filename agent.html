@@ -558,6 +558,81 @@ let businessProfile = null;
 let businessProfileObj = null;
 let conversationHistory = [];
 let pendingEmail = null;
+
+// ══════════════════════════════════════
+//  AGENT UI TRANSLATIONS
+// ══════════════════════════════════════
+const A = {
+  en: {
+    understanding: 'Understanding your request...',
+    doc_ready: 'Document Ready',
+    data_saved: 'Data Saved',
+    calculating: 'Calculating...',
+    ready_review: 'Ready to review',
+    open_tool: 'Open Tool',
+    go_ahead: 'Go ahead',
+    let_me_edit: 'Let me edit first',
+    working: 'Working...',
+    send_to: 'Send to',
+    send_email: 'Send via Email',
+    found_contact: 'Found {name} in your contacts: {email}',
+    not_connected: "I'm not connected yet. Make sure the Terrapin agent is running on your computer.",
+    trouble_thinking: "I'm having trouble thinking right now. Give me a moment and try again.",
+    cant_connect: "I can't connect right now. Make sure the Terrapin agent is running on your computer.",
+    something_wrong: "Something didn't work on my end. Try again in a moment.",
+    rephrase: "I'm not sure how to handle that. Can you try rephrasing?",
+    lost_draft: "I lost track of that email draft. Can you try again?",
+    no_email_addr: "I don't have an email address to send to. Click 'Edit Before Sending' to add one.",
+    email_not_setup: "Email isn't set up yet. You can set it up anytime — check terrapin.tools/agent-setup",
+    email_failed: "That email didn't go through. Want to try again?",
+    email_no_respond: "I couldn't send that email. The mail service isn't responding right now.",
+    qr_ready: 'QR Code Ready',
+    download_qr: 'Download QR',
+    result: 'Result'
+  },
+  es: {
+    understanding: 'Entendiendo tu solicitud...',
+    doc_ready: 'Documento Listo',
+    data_saved: 'Datos Guardados',
+    calculating: 'Calculando...',
+    ready_review: 'Listo para revisar',
+    open_tool: 'Abrir Herramienta',
+    go_ahead: 'Adelante',
+    let_me_edit: 'Déjame editarlo primero',
+    working: 'Trabajando...',
+    send_to: 'Enviar a',
+    send_email: 'Enviar por Email',
+    found_contact: 'Encontré a {name} en tus contactos: {email}',
+    not_connected: 'No estoy conectado. Asegúrate de que el agente Terrapin esté corriendo en tu computadora.',
+    trouble_thinking: 'Estoy teniendo problemas para pensar ahora. Dame un momento e inténtalo de nuevo.',
+    cant_connect: 'No puedo conectarme ahora. Asegúrate de que el agente Terrapin esté corriendo.',
+    something_wrong: 'Algo no funcionó de mi lado. Inténtalo de nuevo en un momento.',
+    rephrase: 'No estoy seguro de cómo manejar eso. ¿Puedes reformularlo?',
+    lost_draft: 'Perdí el borrador de ese email. ¿Puedes intentar de nuevo?',
+    no_email_addr: "No tengo una dirección de email. Haz clic en 'Editar antes de enviar' para agregar una.",
+    email_not_setup: 'El email no está configurado. Puedes configurarlo en terrapin.tools/agent-setup',
+    email_failed: 'Ese email no se envió. ¿Quieres intentar de nuevo?',
+    email_no_respond: 'No pude enviar ese email. El servicio de correo no responde.',
+    qr_ready: 'Código QR Listo',
+    download_qr: 'Descargar QR',
+    result: 'Resultado'
+  }
+};
+
+function L(key) { return (A[currentLang] && A[currentLang][key]) || A.en[key] || key; }
+
+// Auto-detect Spanish from user input
+function detectLanguage(text) {
+  var esWords = ['hola','crear','crea','factura','enviar','para','quiero','necesito','hacer','agregar','buscar','cliente','cotización','trabajo','materiales','calendario','reunión','cita','por favor','gracias','manda','dame','dime','cuál','qué','cómo'];
+  var lower = text.toLowerCase();
+  var matches = esWords.filter(function(w) { return lower.includes(w); }).length;
+  if (matches >= 2 || (matches >= 1 && /[áéíóúñ¿¡]/.test(lower))) {
+    if (currentLang !== 'es') {
+      currentLang = 'es';
+      setLang('es');
+    }
+  }
+}
 const draftStore = {}; // draftId → {to, subject, body, attachment_base64, attachment_name, attachment_dataurl}
 const toolCallStore = {}; // callId → {toolId, toolName, params}
 
@@ -700,6 +775,7 @@ async function sendMessage() {
   addMessage('user', text);
   input.value = '';
   window._lastUserMessage = text;
+  detectLanguage(text);
 
   // Check if user is replying with an email for a pending tool request
   if (window._pendingTool) {
@@ -731,7 +807,7 @@ async function sendMessage() {
 
   if (!agentReady) {
     setTimeout(function() {
-      addMessage('agent', "I'm not connected yet. Make sure the Terrapin agent is running on your computer. Check the setup guide at terrapin.tools/agent-setup");
+      addMessage('agent', L('not_connected'));
     }, 300);
     return;
   }
@@ -754,7 +830,7 @@ async function sendMessage() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      addMessage('agent', "I'm having trouble thinking right now. Give me a moment and try again.");
+      addMessage('agent', L('trouble_thinking'));
       return;
     }
 
@@ -763,7 +839,7 @@ async function sendMessage() {
 
   } catch(e) {
     hideTyping();
-    addMessage('agent', "I can't connect right now. Make sure the Terrapin agent is running on your computer.");
+    addMessage('agent', L('cant_connect'));
   }
 }
 
@@ -774,7 +850,7 @@ async function handleAgentResponse(data) {
   console.log('Agent response:', JSON.stringify(data).substring(0, 500));
 
   if (!data.success) {
-    addMessage('agent', "Something didn't work on my end. Try again in a moment.");
+    addMessage('agent', L('something_wrong'));
     return;
   }
 
@@ -827,7 +903,7 @@ async function handleAgentResponse(data) {
       // Never show raw JSON to the user
       var respondMsg = data.message || '';
       if (respondMsg.trim().startsWith('{') || respondMsg.trim().startsWith('[') || respondMsg.includes('"tool_calls"') || respondMsg.includes('"function"')) {
-        addMessage('agent', "I'm not sure how to handle that. Can you try rephrasing?");
+        addMessage('agent', L('rephrase'));
       } else {
         addMessage('agent', respondMsg);
       }
@@ -836,9 +912,9 @@ async function handleAgentResponse(data) {
       // Never show raw JSON to the user
       var fallbackMsg = data.message || '';
       if (fallbackMsg.startsWith('{') || fallbackMsg.startsWith('[')) {
-        fallbackMsg = "I'm not sure how to handle that. Can you try rephrasing?";
+        fallbackMsg = L('rephrase');
       }
-      addMessage('agent', fallbackMsg || "I'm not sure how to handle that. Can you try rephrasing?");
+      addMessage('agent', fallbackMsg || L('rephrase'));
   }
 }
 
@@ -862,30 +938,31 @@ function buildParamSummary(params) {
 }
 
 function buildConfirmMessage(toolId, params) {
-  const p = params;
+  var p = params;
+  var es = currentLang === 'es';
   switch (toolId) {
     case 'contractor-invoice-generator': {
-      const client = p.client_name || p.name || 'client';
-      const job = p.job_desc || p.job_description || 'work';
-      const parts = ['\u{1f4cb} I\'ll create an invoice for ' + client + ' for ' + job + '.'];
-      if (p.labor_hours && p.labor_rate) parts.push('Labor: ' + p.labor_hours + 'h \u00d7 $' + p.labor_rate + '/hr = $' + (p.labor_hours * p.labor_rate));
-      if (p.materials_cost) parts.push('Materials: $' + p.materials_cost);
+      var client = p.client_name || p.name || (es ? 'cliente' : 'client');
+      var job = p.job_desc || p.job_description || (es ? 'trabajo' : 'work');
+      var parts = ['\u{1f4cb} ' + (es ? 'Crearé una factura para ' + client + ' por ' + job + '.' : 'I\'ll create an invoice for ' + client + ' for ' + job + '.')];
+      if (p.labor_hours && p.labor_rate) parts.push((es ? 'Mano de obra: ' : 'Labor: ') + p.labor_hours + 'h \u00d7 $' + p.labor_rate + '/hr = $' + (p.labor_hours * p.labor_rate));
+      if (p.materials_cost) parts.push((es ? 'Materiales: $' : 'Materials: $') + p.materials_cost);
       if (p.labor_hours && p.labor_rate) {
-        const total = (p.labor_hours * p.labor_rate) + (parseFloat(p.materials_cost) || 0);
+        var total = (p.labor_hours * p.labor_rate) + (parseFloat(p.materials_cost) || 0);
         parts.push('Total: $' + total);
       }
       return parts.join('\n');
     }
     case 'catering-quote-builder':
-      return '\u{1f4cb} I\'ll create a catering quote' + (p.client_name ? ' for ' + p.client_name : '') + '.';
+      return '\u{1f4cb} ' + (es ? 'Crearé una cotización' : 'I\'ll create a catering quote') + (p.client_name ? (es ? ' para ' : ' for ') + p.client_name : '') + '.';
     case 'simple-calendar':
-      return '\u{1f4c5} I\'ll add "' + (p.title || 'event') + '" to your calendar' + (p.date ? ' on ' + p.date : '') + (p.time ? ' at ' + p.time : '') + '.';
+      return '\u{1f4c5} ' + (es ? 'Agregaré "' + (p.title || 'evento') + '" a tu calendario' : 'I\'ll add "' + (p.title || 'event') + '" to your calendar') + (p.date ? (es ? ' el ' : ' on ') + p.date : '') + (p.time ? (es ? ' a las ' : ' at ') + p.time : '') + '.';
     case 'simple-crm':
-      return '\u{1f4c7} I\'ll add ' + (p.name || 'a contact') + ' to your CRM' + (p.email ? ' (' + p.email + ')' : '') + '.';
+      return '\u{1f4c7} ' + (es ? 'Agregaré a ' + (p.name || 'un contacto') + ' a tu CRM' : 'I\'ll add ' + (p.name || 'a contact') + ' to your CRM') + (p.email ? ' (' + p.email + ')' : '') + '.';
     case 'job-site-daily-log':
-      return '\u{1f477} I\'ll log a daily entry' + (p.job_name ? ' for ' + p.job_name : '') + '.';
+      return '\u{1f477} ' + (es ? 'Registraré una entrada' : 'I\'ll log a daily entry') + (p.job_name ? (es ? ' para ' : ' for ') + p.job_name : '') + '.';
     default:
-      return '\u{1f527} I\'ll open ' + toolId.replace(/-/g, ' ') + ' with your details.';
+      return '\u{1f527} ' + (es ? 'Abriré ' : 'I\'ll open ') + toolId.replace(/-/g, ' ') + (es ? ' con tus datos.' : ' with your details.');
   }
 }
 
@@ -902,8 +979,8 @@ async function handleToolCall(data) {
   cardHTML += '<div class="card-label">' + escapeHTML(toolName) + '</div>';
   cardHTML += '<div class="card-title" style="white-space:pre-line;font-size:14px;line-height:1.6;">' + escapeHTML(confirmMsg) + '</div>';
   cardHTML += '<div style="display:flex;gap:8px;margin-top:12px;">';
-  cardHTML += '<button class="card-btn primary" id="' + confirmId + '-go">Go ahead</button>';
-  cardHTML += '<button class="card-btn secondary" id="' + confirmId + '-open">Let me edit first</button>';
+  cardHTML += '<button class="card-btn primary" id="' + confirmId + '-go">' + L('go_ahead') + '</button>';
+  cardHTML += '<button class="card-btn secondary" id="' + confirmId + '-open">' + L('let_me_edit') + '</button>';
   cardHTML += '</div></div>';
   addCard(cardHTML);
 
@@ -915,7 +992,7 @@ async function handleToolCall(data) {
   // Wait for user to click
   document.getElementById(confirmId + '-go').addEventListener('click', async function() {
     this.disabled = true;
-    this.textContent = 'Working...';
+    this.textContent = L('working');
     document.getElementById(confirmId + '-open').style.display = 'none';
     await executeToolCall(data, toolUrl, paramList);
   });
@@ -962,35 +1039,36 @@ async function executeToolCall(data, toolUrl, paramList) {
     loadToolInIframe(toolUrl, callId);
 
     let cardHTML = '<div class="action-card">';
-    cardHTML += '<div class="card-label">Document Ready</div>';
+    cardHTML += '<div class="card-label">' + L('doc_ready') + '</div>';
     cardHTML += '<div class="card-title">' + escapeHTML(toolName) + '</div>';
     if (paramList) cardHTML += '<div class="card-detail">' + escapeHTML(paramList) + '</div>';
-    cardHTML += '<div class="card-status ready">Ready to review</div>';
-    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+    cardHTML += '<div class="card-status ready">' + L('ready_review') + '</div>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">' + L('open_tool') + '</button>';
 
     if (mailReady && data.tool_id !== 'catering-quote-builder') {
       if (emailTo) {
-        cardHTML += '<button class="card-btn secondary" onclick="initEmailDraft(\'' + escapeAttr(emailTo) + '\', \'' + callId + '\')">Send to ' + escapeHTML(emailTo) + '</button>';
+        cardHTML += '<button class="card-btn secondary" onclick="initEmailDraft(\'' + escapeAttr(emailTo) + '\', \'' + callId + '\')">' + L('send_to') + ' ' + escapeHTML(emailTo) + '</button>';
       } else {
-        cardHTML += '<button class="card-btn secondary" onclick="askForEmail(\'' + callId + '\')">Send via Email</button>';
+        cardHTML += '<button class="card-btn secondary" onclick="askForEmail(\'' + callId + '\')">' + L('send_email') + '</button>';
       }
     }
     cardHTML += '</div>';
     addCard(cardHTML);
 
     if (emailTo && clientNameForLookup) {
-      addProgress('\u2709\ufe0f Found ' + clientNameForLookup + ' in your contacts: ' + emailTo);
+      addProgress('\u2709\ufe0f ' + L('found_contact').replace('{name}', clientNameForLookup).replace('{email}', emailTo));
     }
 
   // ── DATA TOOLS — Confirmation + Open ──
   } else if (toolType === 'data') {
     // Build a confirmation message based on the tool
+    var es = currentLang === 'es';
     const confirmMessages = {
-      'simple-crm': (params.name || params.client_name || 'Contact') + ' added to your CRM \u2713',
-      'job-site-daily-log': 'Daily log saved for ' + (params.job_name || params.date || 'today') + ' \u2713',
-      'street-vendor-order-log': 'Order logged \u2713',
-      'business-profile': 'Business profile updated \u2713',
-      'simple-calendar': (params.title || 'Event') + ' added to calendar for ' + (params.date || 'today') + ' \u2713'
+      'simple-crm': (params.name || params.client_name || (es ? 'Contacto' : 'Contact')) + (es ? ' agregado a tu CRM \u2713' : ' added to your CRM \u2713'),
+      'job-site-daily-log': (es ? 'Bitácora guardada para ' : 'Daily log saved for ') + (params.job_name || params.date || (es ? 'hoy' : 'today')) + ' \u2713',
+      'street-vendor-order-log': (es ? 'Orden registrada \u2713' : 'Order logged \u2713'),
+      'business-profile': (es ? 'Perfil del negocio actualizado \u2713' : 'Business profile updated \u2713'),
+      'simple-calendar': (params.title || (es ? 'Evento' : 'Event')) + (es ? ' agregado al calendario para ' : ' added to calendar for ') + (params.date || (es ? 'hoy' : 'today')) + ' \u2713'
     };
     const confirmMsg = confirmMessages[data.tool_id] || 'Data saved \u2713';
 
@@ -1005,11 +1083,11 @@ async function executeToolCall(data, toolUrl, paramList) {
     }
 
     let cardHTML = '<div class="action-card">';
-    cardHTML += '<div class="card-label">Data Saved</div>';
+    cardHTML += '<div class="card-label">' + L('data_saved') + '</div>';
     cardHTML += '<div class="card-title" style="color:var(--green);">' + escapeHTML(confirmMsg) + '</div>';
     if (paramList) cardHTML += '<div class="card-detail">' + escapeHTML(paramList) + '</div>';
     cardHTML += '<div class="card-status sent">' + new Date().toLocaleTimeString() + '</div>';
-    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">' + L('open_tool') + '</button>';
     cardHTML += '</div>';
     addCard(cardHTML);
 
@@ -1054,10 +1132,10 @@ async function executeToolCall(data, toolUrl, paramList) {
 
     const resultCardId = 'util-result-' + callId;
     let cardHTML = '<div class="action-card" id="' + resultCardId + '">';
-    cardHTML += '<div class="card-label">Calculating...</div>';
+    cardHTML += '<div class="card-label">' + L('calculating') + '</div>';
     cardHTML += '<div class="card-title">' + escapeHTML(toolName) + '</div>';
     cardHTML += '<div class="card-detail" id="util-detail-' + callId + '">' + escapeHTML(paramList) + '</div>';
-    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
+    cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">' + L('open_tool') + '</button>';
     cardHTML += '</div>';
     addCard(cardHTML);
   }
@@ -1104,11 +1182,11 @@ window.addEventListener('message', function(event) {
         const cardEl = document.getElementById('util-result-' + callId);
         if (detailEl && cardEl) {
           const label = cardEl.querySelector('.card-label');
-          if (label) label.textContent = 'QR Code Ready';
+          if (label) label.textContent = L('qr_ready');
           let html = '<div style="text-align:center;padding:8px 0;">';
           html += '<img src="' + qrData.qr_image + '" alt="QR Code" style="width:180px;height:180px;border-radius:8px;background:#fff;padding:8px;">';
           html += '<div style="margin-top:8px;font-size:12px;opacity:0.6;">' + escapeHTML(qrData.content || '') + '</div>';
-          html += '<a download="terrapin-qr.png" href="' + qrData.qr_image + '" class="card-btn primary" style="display:inline-block;margin-top:8px;text-decoration:none;">Download QR</a>';
+          html += '<a download="terrapin-qr.png" href="' + qrData.qr_image + '" class="card-btn primary" style="display:inline-block;margin-top:8px;text-decoration:none;">' + L('download_qr') + '</a>';
           html += '</div>';
           detailEl.innerHTML = html;
           console.log('QR code preview rendered in chat');
@@ -1123,7 +1201,7 @@ window.addEventListener('message', function(event) {
         if (detailEl && cardEl) {
           // Update label
           const label = cardEl.querySelector('.card-label');
-          if (label) label.textContent = 'Result';
+          if (label) label.textContent = L('result');
 
           // Build breakdown
           let html = '<div style="margin-bottom:4px;">Bill: ' + fmt(d.bill) + ' + Tip (' + d.tipPercent + '%): ' + fmt(d.tip) + ' = <strong>' + fmt(d.total) + '</strong></div>';
@@ -1446,9 +1524,9 @@ async function confirmSendDraft(draftId) {
   const draft = draftStore[draftId];
   const card = document.getElementById(draftId);
   console.log('confirmSendDraft:', draftId, 'draft:', draft, 'card:', card);
-  if (!draft) { addMessage('agent', "I lost track of that email draft. Can you try again?"); return; }
-  if (!card) { addMessage('agent', "I lost track of that email draft. Can you try again?"); return; }
-  if (!draft.to) { addMessage('agent', "I don't have an email address to send to. Click 'Edit Before Sending' to add one."); return; }
+  if (!draft) { addMessage('agent', L('lost_draft')); return; }
+  if (!card) { addMessage('agent', L('lost_draft')); return; }
+  if (!draft.to) { addMessage('agent', L('no_email_addr')); return; }
 
   card.querySelectorAll('.card-btn').forEach(b => b.disabled = true);
   const statusEl = card.querySelector('.card-status');
@@ -1500,7 +1578,7 @@ async function confirmSendDraft(draftId) {
     statusEl.textContent = 'Could not reach mail server';
     statusEl.className = 'card-status error';
     card.querySelectorAll('.card-btn').forEach(b => b.disabled = false);
-    addMessage('agent', "Email isn't set up yet. You can set it up anytime \u2014 check terrapin.tools/agent-setup");
+    addMessage('agent', L('email_not_setup'));
   }
 }
 
@@ -1554,7 +1632,7 @@ async function sendEditedEmail() {
 
 async function sendEmailDirect(to, subject, body) {
   if (!mailReady) {
-    addMessage('agent', "Email isn't set up on this machine yet. You can set it up anytime \u2014 check terrapin.tools/agent-setup");
+    addMessage('agent', L('email_not_setup'));
     mailtoFallback(to, subject, body);
     return;
   }
@@ -1568,10 +1646,10 @@ async function sendEmailDirect(to, subject, body) {
     if (data.success) {
       addCard('<div class="action-card"><div class="card-label">Email Sent</div><div class="card-title">Sent to ' + escapeHTML(to) + '</div><div class="card-status sent">Sent \u2713 — ' + new Date().toLocaleTimeString() + '</div></div>');
     } else {
-      addMessage('agent', "That email didn't go through. Want to try again?");
+      addMessage('agent', L('email_failed'));
     }
   } catch(e) {
-    addMessage('agent', "I couldn't send that email. The mail service isn't responding right now.");
+    addMessage('agent', L('email_no_respond'));
     mailtoFallback(to, subject, body);
   }
 }
