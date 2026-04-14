@@ -1044,7 +1044,7 @@ async function executeToolCall(data, toolUrl, paramList) {
   // Determine tool type
   const toolTypes = {
     'contractor-invoice-generator': 'document',
-    'catering-quote-builder': 'document',
+    'catering-quote-builder': 'quote',
     'simple-crm': 'data',
     'job-site-daily-log': 'data',
     'street-vendor-order-log': 'data',
@@ -1093,6 +1093,75 @@ async function executeToolCall(data, toolUrl, paramList) {
     if (emailTo && clientNameForLookup) {
       addProgress('\u2709\ufe0f ' + L('found_contact').replace('{name}', clientNameForLookup).replace('{email}', emailTo));
     }
+
+  // ── QUOTE TOOLS — Show email text with Copy + Send ──
+  } else if (toolType === 'quote') {
+    var quoteCardId = 'quote-' + callId;
+    var esQ = currentLang === 'es';
+
+    // Launch iframe to generate the quote
+    loadToolInIframe(toolUrl, callId);
+
+    let cardHTML = '<div class="action-card" id="' + quoteCardId + '">';
+    cardHTML += '<div class="card-label">' + (esQ ? 'Generando cotización...' : 'Generating quote...') + '</div>';
+    cardHTML += '<div class="card-title">' + escapeHTML(toolName) + '</div>';
+    cardHTML += '<div class="card-detail" id="quote-text-' + callId + '" style="white-space:pre-wrap;font-size:13px;max-height:300px;overflow-y:auto;">' + (esQ ? 'Esperando...' : 'Waiting...') + '</div>';
+    cardHTML += '<div style="display:flex;gap:8px;margin-top:12px;">';
+    cardHTML += '<button class="card-btn primary" id="quote-copy-' + callId + '">' + (esQ ? 'Copiar al Portapapeles' : 'Copy to Clipboard') + '</button>';
+    cardHTML += '<button class="card-btn secondary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">' + L('open_tool') + '</button>';
+    cardHTML += '</div></div>';
+    addCard(cardHTML);
+
+    // Listen for the quote text from the iframe
+    var quoteListener = function(event) {
+      if (!event.data || event.data.type !== 'terrapin-tool-result') return;
+      if (event.data.tool !== 'catering-quote-builder') return;
+      window.removeEventListener('message', quoteListener);
+
+      var quoteText = event.data.data?.quote_text || '';
+      var textEl = document.getElementById('quote-text-' + callId);
+      var cardEl = document.getElementById(quoteCardId);
+      if (textEl && quoteText) {
+        textEl.textContent = quoteText;
+        var labelEl = cardEl.querySelector('.card-label');
+        if (labelEl) labelEl.textContent = esQ ? 'Cotización Lista' : 'Quote Ready';
+      }
+
+      document.getElementById('quote-copy-' + callId).addEventListener('click', function() {
+        navigator.clipboard.writeText(quoteText).then(function() {
+          var btn = document.getElementById('quote-copy-' + callId);
+          btn.textContent = esQ ? '¡Copiado!' : 'Copied!';
+          setTimeout(function() { btn.textContent = esQ ? 'Copiar al Portapapeles' : 'Copy to Clipboard'; }, 2000);
+        });
+      });
+
+      // Add email button if mail is ready and we have a client email
+      if (mailReady) {
+        var clientEmail = params.client_email || '';
+        if (!clientEmail && params.client_name) {
+          var resolved = resolveClientFromProfile(params.client_name);
+          if (resolved) clientEmail = resolved.email;
+        }
+        if (clientEmail) {
+          var emailBtnId = 'quote-email-' + callId;
+          var btnContainer = cardEl.querySelector('div[style*="display:flex"]');
+          if (btnContainer) {
+            var emailBtn = document.createElement('button');
+            emailBtn.className = 'card-btn secondary';
+            emailBtn.id = emailBtnId;
+            emailBtn.textContent = L('send_to') + ' ' + clientEmail;
+            emailBtn.addEventListener('click', function() {
+              sendQuoteEmail(clientEmail, params.client_name || '', quoteText);
+            });
+            btnContainer.appendChild(emailBtn);
+          }
+        }
+      }
+    };
+    window.addEventListener('message', quoteListener);
+
+    // Timeout fallback
+    setTimeout(function() { window.removeEventListener('message', quoteListener); }, 15000);
 
   // ── DATA TOOLS — Confirmation + Open ──
   } else if (toolType === 'data') {
@@ -1669,6 +1738,15 @@ async function sendEditedEmail() {
   } else {
     await sendEmailDirect(to, subject, body);
   }
+}
+
+function sendQuoteEmail(to, clientName, quoteText) {
+  var esQ = currentLang === 'es';
+  var bizName = businessProfileObj?.businessName || 'Terrapin Tools';
+  var ownerName = businessProfileObj?.ownerName || bizName;
+  var subject = (esQ ? 'Cotización' : 'Catering Quote') + (clientName ? (esQ ? ' para ' : ' for ') + clientName : '') + ' — ' + bizName;
+  var body = (esQ ? 'Hola' : 'Hi') + (clientName ? ' ' + clientName.split(' ')[0] : '') + ',\n\n' + quoteText + '\n\n' + (esQ ? 'Saludos cordiales,\n' : 'Best regards,\n') + ownerName;
+  sendEmailDirect(to, subject, body);
 }
 
 async function sendEmailDirect(to, subject, body) {
