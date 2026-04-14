@@ -199,7 +199,14 @@ QR codes — include colors if requested:
   {"tool_id": "qr-code-generator", "params": {"type": "url", "data": "https://terrapin.tools", "fg_color": "#2C3E2D", "bg_color": "#ffffff"}}
 
 Tip calculator:
-  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}`;
+  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}
+
+Freelance project tracker — log hours on a project:
+  {"tool_id": "freelance-project-tracker", "params": {"action": "log_hours", "project_name": "Kim Design", "hours": 3, "description": "Homepage mockups"}}
+
+Freelance project tracker — create a new project:
+  {"tool_id": "freelance-project-tracker", "params": {"action": "add", "client_name": "Sarah Kim", "project_name": "Logo Design", "fee": 1200, "fee_type": "fixed"}}
+  For hourly: {"tool_id": "freelance-project-tracker", "params": {"action": "add", "client_name": "Sarah Kim", "project_name": "Website Redesign", "rate": 125, "est_hours": 20, "fee_type": "hourly"}}`;
 }
 
 // ══════════════════════════════════════

@@ -961,6 +961,11 @@ function buildConfirmMessage(toolId, params) {
       return '\u{1f4c7} ' + (es ? 'Agregaré a ' + (p.name || 'un contacto') + ' a tu CRM' : 'I\'ll add ' + (p.name || 'a contact') + ' to your CRM') + (p.email ? ' (' + p.email + ')' : '') + '.';
     case 'job-site-daily-log':
       return '\u{1f477} ' + (es ? 'Registraré una entrada' : 'I\'ll log a daily entry') + (p.job_name ? (es ? ' para ' : ' for ') + p.job_name : '') + '.';
+    case 'freelance-project-tracker':
+      if (p.action === 'log_hours') {
+        return '\u{23f1}\u{fe0f} ' + (es ? 'Registraré ' + (p.hours || 0) + 'h en ' + (p.project_name || 'proyecto') : 'I\'ll log ' + (p.hours || 0) + 'h on ' + (p.project_name || 'project')) + (p.description ? ' — ' + p.description : '') + '.';
+      }
+      return '\u{1f4c1} ' + (es ? 'Crearé el proyecto ' : 'I\'ll create project ') + (p.project_name || '') + (p.client_name ? (es ? ' para ' : ' for ') + p.client_name : '') + (p.fee ? ' — $' + p.fee : '') + '.';
     default:
       return '\u{1f527} ' + (es ? 'Abriré ' : 'I\'ll open ') + toolId.replace(/-/g, ' ') + (es ? ' con tus datos.' : ' with your details.');
   }
@@ -1051,7 +1056,8 @@ async function executeToolCall(data, toolUrl, paramList) {
     'business-profile': 'data',
     'tip-calculator': 'utility',
     'qr-code-generator': 'utility',
-    'simple-calendar': 'data'
+    'simple-calendar': 'data',
+    'freelance-project-tracker': 'data'
   };
   const toolType = toolTypes[data.tool_id] || 'utility';
 
@@ -1184,6 +1190,15 @@ async function executeToolCall(data, toolUrl, paramList) {
     // For Calendar add action, save directly via agent server + localStorage
     if (data.tool_id === 'simple-calendar' && (params.action === 'add' || params.title)) {
       saveCalendarEvent(params);
+    }
+
+    // For Project Tracker — log hours or add project directly
+    if (data.tool_id === 'freelance-project-tracker') {
+      var ptResult = saveProjectData(params);
+      if (ptResult && ptResult.message) {
+        // Override the confirm message with the actual result
+        confirmMsg = ptResult.message + (ptResult.success ? ' \u2713' : ' \u2717');
+      }
     }
 
     let cardHTML = '<div class="action-card">';
@@ -2026,6 +2041,66 @@ function saveCalendarEvent(params) {
       body: JSON.stringify(events)
     }).then(r => console.log('Calendar saved to ~/.terrapin/', r.ok));
   } catch(e) {}
+}
+
+function saveProjectData(params) {
+  // Load existing projects
+  var LS_KEY = 'terrapin-projects';
+  var projects = [];
+  try { projects = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) {}
+
+  var action = params.action || 'add';
+
+  if (action === 'log_hours') {
+    // Find project by name
+    var q = (params.project_name || '').toLowerCase().trim();
+    var p = projects.find(function(x) { return x.projectName.toLowerCase().includes(q) || x.clientName.toLowerCase().includes(q); });
+    if (!p) return { error: true, message: 'Project not found: ' + (params.project_name || '') };
+    if (!p.timeLog) p.timeLog = [];
+    var rate = p.rate || (p.fee / (p.estHours || 1)) || 0;
+    p.timeLog.push({
+      id: 'tl_' + Date.now().toString(36),
+      date: new Date().toISOString().split('T')[0],
+      hours: parseFloat(params.hours) || 0,
+      description: params.description || '',
+      rate: rate,
+      createdAt: new Date().toISOString()
+    });
+    p.updatedAt = new Date().toISOString();
+    localStorage.setItem(LS_KEY, JSON.stringify(projects));
+    var totalH = p.timeLog.reduce(function(s, e) { return s + e.hours; }, 0);
+    var totalE = totalH * rate;
+    // Persist to agent server
+    try { fetch(AGENT_URL + '/data/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projects: projects }) }).catch(function() {}); } catch(e) {}
+    var es = currentLang === 'es';
+    return { success: true, message: (es ? 'Registradas ' : 'Logged ') + params.hours + 'h' + (es ? ' en ' : ' on ') + p.projectName + '. Total: ' + totalH + 'h, $' + totalE.toFixed(2) };
+  }
+
+  if (action === 'add') {
+    var np = {
+      id: 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      clientName: params.client_name || '',
+      clientEmail: params.client_email || '',
+      projectName: params.project_name || '',
+      brief: params.brief || '',
+      feeType: params.fee_type || 'fixed',
+      fee: parseFloat(params.fee) || 0,
+      rate: parseFloat(params.rate) || 0,
+      estHours: parseFloat(params.est_hours) || 0,
+      kickoff: new Date().toISOString().split('T')[0],
+      delivery: params.delivery || '',
+      payTerms: params.terms || '50/50',
+      notes: '', status: 'kickoff', milestones: [], changes: [], comms: [], payments: [], timeLog: [],
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    projects.push(np);
+    localStorage.setItem(LS_KEY, JSON.stringify(projects));
+    try { fetch(AGENT_URL + '/data/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projects: projects }) }).catch(function() {}); } catch(e) {}
+    var es2 = currentLang === 'es';
+    return { success: true, message: (es2 ? 'Proyecto creado: ' : 'Project created: ') + np.projectName + (np.fee ? ' — $' + np.fee : '') };
+  }
+
+  return { error: true, message: 'Unknown project action' };
 }
 
 function escapeAttr(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }

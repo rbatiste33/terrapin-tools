@@ -132,8 +132,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 
 <!-- MAIN TABS -->
 <div class="tabs" id="main-tabs">
-<button class="tab active" onclick="switchMain('projects')" data-i18n="tab_projects">My Projects</button>
-<button class="tab" onclick="switchMain('worklog')" data-i18n="tab_worklog">My Contractor Work Log</button>
+<button class="tab active" data-i18n="tab_projects">My Projects</button>
 </div>
 
 <!-- ═══════ PROJECTS PANE ═══════ -->
@@ -146,17 +145,6 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 </div>
 </div>
 
-<!-- ═══════ WORK LOG PANE ═══════ -->
-<div class="pane" id="pane-worklog">
-<div class="card">
-<div class="card-title" data-i18n="worklog_title">My Contractor Work Log</div>
-<p style="font-size:13px;color:#6B6B6B;margin-bottom:14px" data-i18n="worklog_sub">Track your work when you're the hired gun.</p>
-<button class="btn-secondary btn-sm" onclick="openWorkLogModal()" data-i18n="log_session">+ Log Work Session</button>
-<div id="worklog-list" style="margin-top:12px"></div>
-</div>
-<div class="summary-row" id="worklog-summary" style="margin-top:12px"></div>
-<button class="btn-secondary" onclick="exportWorkLogPDF()" style="width:100%;margin-top:8px" data-i18n="export_worklog">Export Work Log PDF</button>
-</div>
 
 <!-- ═══════ PROJECT DETAIL (hidden by default) ═══════ -->
 <div class="pane" id="pane-detail">
@@ -225,15 +213,6 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 <button class="btn-primary" onclick="saveComm()" data-i18n="save_comm">Save Touchpoint</button>
 </div></div>
 
-<div class="modal-overlay" id="worklog-modal" onclick="if(event.target===this)closeAllModals()">
-<div class="modal">
-<div class="modal-title"><span data-i18n="log_work_session">Log Work Session</span><button class="modal-close" onclick="closeAllModals()">&times;</button></div>
-<div class="row"><div class="field"><label data-i18n="lbl_wl_date">Date</label><input type="date" id="f-wl-date"></div>
-<div class="field"><label data-i18n="lbl_wl_hours">Hours worked</label><input type="number" id="f-wl-hours" placeholder="4" min="0" step=".25"></div></div>
-<div class="field"><label data-i18n="lbl_wl_rate">Hourly rate</label><input type="number" id="f-wl-rate" placeholder="125" min="0"></div>
-<div class="field"><label data-i18n="lbl_wl_desc">Work completed</label><textarea id="f-wl-desc" rows="3" placeholder="What you delivered..."></textarea></div>
-<button class="btn-primary" onclick="saveWorkLog()" data-i18n="save_session">Save Session</button>
-</div></div>
 
 <script>
 // ══════════════════════════════════════
@@ -241,9 +220,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.5}
 // ══════════════════════════════════════
 const AGENT_URL='http://localhost:7777';
 const LS_KEY='terrapin-projects';
-const WL_KEY='terrapin-worklog';
 let projects=[];
-let workLogs=[];
 let crmContacts=[];
 let editingProjectId=null;
 let viewingProjectId=null;
@@ -267,18 +244,14 @@ function idbSet(k,v){return openIDB().then(function(db){return new Promise(funct
 // ══════════════════════════════════════
 async function loadData(){
 try{var r=localStorage.getItem(LS_KEY);if(r)projects=JSON.parse(r)}catch(e){projects=[]}
-try{var r2=localStorage.getItem(WL_KEY);if(r2)workLogs=JSON.parse(r2)}catch(e){workLogs=[]}
 try{var ip=await idbGet('projects');if(Array.isArray(ip)&&ip.length){ip.forEach(function(p){if(!projects.find(function(x){return x.id===p.id}))projects.push(p)})}}catch(e){}
-try{var iw=await idbGet('worklog');if(Array.isArray(iw)&&iw.length){iw.forEach(function(w){if(!workLogs.find(function(x){return x.id===w.id}))workLogs.push(w)})}}catch(e){}
-try{var res=await fetch(AGENT_URL+'/data/projects',{signal:AbortSignal.timeout(2000)});if(res.ok){var sd=await res.json();if(sd.projects)sd.projects.forEach(function(p){var i=projects.findIndex(function(x){return x.id===p.id});if(i>-1)projects[i]=p;else projects.push(p)});if(sd.workLogs)sd.workLogs.forEach(function(w){var i=workLogs.findIndex(function(x){return x.id===w.id});if(i>-1)workLogs[i]=w;else workLogs.push(w)})}}catch(e){console.log('Agent server not available for projects')}
+try{var res=await fetch(AGENT_URL+'/data/projects',{signal:AbortSignal.timeout(2000)});if(res.ok){var sd=await res.json();if(sd.projects)sd.projects.forEach(function(p){var i=projects.findIndex(function(x){return x.id===p.id});if(i>-1)projects[i]=p;else projects.push(p)})}}catch(e){console.log('Agent server not available for projects')}
 saveLocal()
 }
 function saveLocal(){
 localStorage.setItem(LS_KEY,JSON.stringify(projects));
-localStorage.setItem(WL_KEY,JSON.stringify(workLogs));
 idbSet('projects',projects).catch(function(){});
-idbSet('worklog',workLogs).catch(function(){});
-try{fetch(AGENT_URL+'/data/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projects:projects,workLogs:workLogs})}).catch(function(){})}catch(e){}
+try{fetch(AGENT_URL+'/data/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projects:projects})}).catch(function(){})}catch(e){}
 }
 
 // ══════════════════════════════════════
@@ -298,9 +271,7 @@ crmContacts.forEach(function(c){var o=document.createElement('option');o.value=c
 //  TAB SWITCHING
 // ══════════════════════════════════════
 function switchMain(id){
-document.querySelectorAll('#main-tabs .tab').forEach(function(t,i){t.classList.toggle('active',i===(id==='projects'?0:1))});
 document.getElementById('pane-projects').classList.toggle('active',id==='projects');
-document.getElementById('pane-worklog').classList.toggle('active',id==='worklog');
 document.getElementById('pane-detail').classList.remove('active')
 }
 function switchDetail(id){
@@ -575,43 +546,6 @@ p.comms.push({id:genId(),type:document.getElementById('f-cm-type').value,date:do
 p.updatedAt=new Date().toISOString();saveLocal();closeAllModals();renderDetail()
 }
 
-// ══════════════════════════════════════
-//  WORK LOG
-// ══════════════════════════════════════
-function openWorkLogModal(){document.getElementById('f-wl-date').value=todayISO();document.getElementById('f-wl-hours').value='';document.getElementById('f-wl-desc').value='';
-// Pre-fill rate from profile
-try{var pr=JSON.parse(localStorage.getItem('terrapin_business_profile'));if(pr&&pr.defaultRate)document.getElementById('f-wl-rate').value=pr.defaultRate}catch(e){}
-document.getElementById('worklog-modal').classList.add('open')
-}
-function saveWorkLog(){
-var hours=parseFloat(document.getElementById('f-wl-hours').value)||0;
-var desc=document.getElementById('f-wl-desc').value.trim();
-if(!hours||!desc){alert('Hours and description required.');return}
-workLogs.push({id:genId(),date:document.getElementById('f-wl-date').value,hours:hours,rate:parseFloat(document.getElementById('f-wl-rate').value)||0,description:desc,createdAt:new Date().toISOString()});
-saveLocal();closeAllModals();renderWorkLog()
-}
-function renderWorkLog(){
-var list=document.getElementById('worklog-list');
-var sorted=workLogs.slice().sort(function(a,b){return(b.date||'').localeCompare(a.date||'')});
-if(!sorted.length){list.innerHTML='<div class="empty">No work sessions logged yet.</div>';document.getElementById('worklog-summary').innerHTML='';return}
-var html='';
-sorted.forEach(function(w){
-html+='<div class="item-row"><div><div style="font-weight:500;font-size:13px">'+w.date+' &middot; '+w.hours+'h'+(w.rate?' × '+fmt(w.rate)+' = '+fmt(w.hours*w.rate):'')+'</div><div style="font-size:12px;color:#6B6B6B">'+esc(w.description)+'</div></div></div>'
-});
-list.innerHTML=html;
-var totalH=workLogs.reduce(function(s,w){return s+w.hours},0);
-var totalE=workLogs.reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
-// This week
-var now=new Date();var weekStart=new Date(now);weekStart.setDate(now.getDate()-now.getDay());
-var weekStr=weekStart.getFullYear()+'-'+String(weekStart.getMonth()+1).padStart(2,'0')+'-'+String(weekStart.getDate()).padStart(2,'0');
-var weekH=workLogs.filter(function(w){return w.date>=weekStr}).reduce(function(s,w){return s+w.hours},0);
-var weekE=workLogs.filter(function(w){return w.date>=weekStr}).reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
-document.getElementById('worklog-summary').innerHTML=
-'<div class="summary-card"><div class="s-label">Total Hours</div><div class="s-value">'+totalH+'</div></div>'+
-'<div class="summary-card"><div class="s-label">Total Earned</div><div class="s-value">'+fmt(totalE)+'</div></div>'+
-'<div class="summary-card"><div class="s-label">This Week</div><div class="s-value">'+weekH+'h</div></div>'+
-'<div class="summary-card"><div class="s-label">Week Earned</div><div class="s-value">'+fmt(weekE)+'</div></div>'
-}
 
 // ══════════════════════════════════════
 //  PDF — INVOICE
@@ -687,38 +621,6 @@ doc.text('Generated by Terrapin Tools — terrapin.tools',W/2,doc.internal.pageS
 doc.save('invoice-'+p.projectName.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.pdf')
 }
 
-// ══════════════════════════════════════
-//  PDF — WORK LOG
-// ══════════════════════════════════════
-function exportWorkLogPDF(){
-if(!workLogs.length){alert('No work sessions to export.');return}
-var{jsPDF}=window.jspdf;var doc=new jsPDF({unit:'mm',format:'letter'});
-var W=doc.internal.pageSize.getWidth(),m=20,cw=W-m*2;var y=20;
-var biz={};try{biz=JSON.parse(localStorage.getItem('terrapin_business_profile'))||{}}catch(e){}
-doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(44,62,45);
-doc.text('Work Log'+(biz.businessName?' — '+biz.businessName:''),m,y);y+=8;
-doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(107,107,107);
-doc.text('Generated '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),m,y);y+=10;
-var sorted=workLogs.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'')});
-doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(107,107,107);
-doc.text('Date',m,y);doc.text('Hours',m+30,y);doc.text('Rate',m+50,y);doc.text('Amount',m+70,y);doc.text('Description',m+95,y);y+=5;
-doc.setDrawColor(200,200,200);doc.line(m,y-1,m+cw,y-1);
-doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(26,26,26);
-sorted.forEach(function(w){
-if(y>260){doc.addPage();y=20}
-doc.text(w.date||'',m,y+3);doc.text(String(w.hours),m+30,y+3);doc.text(w.rate?'$'+w.rate:'',m+50,y+3);
-doc.text(w.rate?'$'+(w.hours*w.rate).toFixed(2):'',m+70,y+3);
-var lines=doc.splitTextToSize(w.description||'',cw-95);
-doc.text(lines[0]||'',m+95,y+3);y+=6
-});
-y+=6;var totalH=workLogs.reduce(function(s,w){return s+w.hours},0);
-var totalE=workLogs.reduce(function(s,w){return s+w.hours*(w.rate||0)},0);
-doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(44,62,45);
-doc.text('Total: '+totalH+' hours — $'+totalE.toFixed(2),m,y);
-doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,180,180);
-doc.text('Generated by Terrapin Tools — terrapin.tools',W/2,doc.internal.pageSize.getHeight()-10,{align:'center'});
-doc.save('work-log-'+todayISO()+'.pdf')
-}
 
 // ══════════════════════════════════════
 //  PROGRAMMATIC API
@@ -726,8 +628,27 @@ doc.save('work-log-'+todayISO()+'.pdf')
 window.projectTracker={
 getProjects:function(){return structuredClone(projects)},
 addProject:function(d){if(!d.clientName||!d.projectName)throw new Error('clientName and projectName required');var p=Object.assign({id:genId(),status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},d);projects.push(p);saveLocal();renderProjects();return structuredClone(p)},
-getWorkLogs:function(){return structuredClone(workLogs)},
-addWorkLog:function(d){if(!d.hours)throw new Error('hours required');workLogs.push(Object.assign({id:genId(),createdAt:new Date().toISOString()},d));saveLocal();renderWorkLog();return true}
+logHours:function(projectName,hours,description){
+  var q=projectName.toLowerCase().trim();
+  var p=projects.find(function(x){return x.projectName.toLowerCase().includes(q)||x.clientName.toLowerCase().includes(q)});
+  if(!p)return{error:'Project not found: '+projectName};
+  if(!p.timeLog)p.timeLog=[];
+  var rate=p.rate||p.fee/(p.estHours||1)||0;
+  var entry={id:genId(),date:todayISO(),hours:parseFloat(hours)||0,description:description||'',rate:rate,createdAt:new Date().toISOString()};
+  p.timeLog.push(entry);
+  p.updatedAt=new Date().toISOString();
+  saveLocal();renderProjects();
+  var totalH=p.timeLog.reduce(function(s,e){return s+e.hours},0);
+  var totalE=totalH*rate;
+  return{success:true,project:p.projectName,client:p.clientName,logged:entry.hours,totalHours:totalH,totalEarned:totalE,rate:rate};
+},
+getProjectSummary:function(){
+  return projects.map(function(p){
+    var totalH=(p.timeLog||[]).reduce(function(s,e){return s+e.hours},0);
+    var rate=p.rate||p.fee/(p.estHours||1)||0;
+    return{name:p.projectName,client:p.clientName,status:p.status,hours:totalH,earned:totalH*rate,rate:rate,fee:p.fee||0,feeType:p.feeType};
+  });
+}
 };
 
 // ══════════════════════════════════════
@@ -786,7 +707,11 @@ if(params.get('client_name'))document.getElementById('f-client').value=params.ge
 if(params.get('project_name'))document.getElementById('f-project').value=params.get('project_name');
 if(params.get('fee'))document.getElementById('f-fee').value=params.get('fee')},300)
 }
-}else if(action==='log_work'){switchMain('worklog')}
+// Log hours action
+} else if(action==='log_hours'&&params.get('autorun')==='true'){
+var result=window.projectTracker.logHours(params.get('project_name')||'',params.get('hours')||0,params.get('description')||'');
+if(window.parent!==window)setTimeout(function(){window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:result.success?'success':'error',data:result},'*')},200);
+}
 }
 
 // ══════════════════════════════════════
@@ -801,8 +726,8 @@ document.getElementById('f-client').addEventListener('change',function(){var o=t
 (async function(){
 console.log('ProjectTracker boot: loading data...');
 await loadData();await loadCRM();
-console.log('ProjectTracker boot: loaded',projects.length,'projects,',workLogs.length,'work logs');
-renderProjects();renderWorkLog();handleURLParams()
+console.log('ProjectTracker boot: loaded',projects.length,'projects');
+renderProjects();handleURLParams()
 })();
 
 // ══════════════════════════════════════
