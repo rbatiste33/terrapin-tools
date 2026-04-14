@@ -885,11 +885,28 @@ window.jobLogReady = Promise.resolve(true);
     // Autorun — save immediately without user interaction
     if (params.get('autorun') === 'true') {
       // Set date to today if not provided
-      if (!params.get('date')) document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-      var saved = saveEntry();
-      if (saved) {
-        var result = { status: 'success', tool: 'job-site-daily-log', output: 'Log saved' };
-        try { result = JSON.parse(document.getElementById('terrapin-result').textContent); } catch(e) {}
+      if (!document.getElementById('f-date').value) {
+        document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+      }
+      // Build entry directly instead of relying on saveEntry() which has alerts
+      var autoData = readForm();
+      if (autoData.jobName) {
+        entries.push({
+          id: 'log_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+          date: autoData.date || new Date().toISOString().split('T')[0],
+          jobName: autoData.jobName,
+          address: autoData.address,
+          weather: autoData.weather,
+          crew: autoData.crew,
+          workCompleted: autoData.workCompleted,
+          materials: autoData.materials,
+          issues: autoData.issues,
+          notes: autoData.notes,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        save();
+        var result = { status: 'success', tool: 'job-site-daily-log', output: 'Log saved for ' + autoData.date + ' — ' + autoData.jobName };
         if (window.parent && window.parent !== window) {
           window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'job-site-daily-log', success: true, data: result }, '*');
         }

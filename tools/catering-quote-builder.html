@@ -1167,6 +1167,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Autorun — generate email and send back to agent
   if (isAutorun && clientName) {
     setTimeout(function() {
+      // Ensure values are set in DOM before calculating
+      if (events.length > 0) {
+        var evId = events[0].id;
+        var pphCheck = document.getElementById('pph-' + evId);
+        var hcCheck = document.getElementById('hc-' + evId);
+        console.log('Autorun check — pph:', pphCheck?.value, 'hc:', hcCheck?.value, 'items:', events[0].selectedItems.length);
+      }
+      try { updateBreakdown(); } catch(e) {}
       generateEmail();
       var emailText = document.getElementById('email-text').textContent || '';
       if (emailText && window.parent && window.parent !== window) {
@@ -1177,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
           data: { quote_text: emailText, client: clientName }
         }, '*');
       }
-    }, 300);
+    }, 800);
   }
 })();
 

@@ -968,7 +968,7 @@ async function executeToolCall(data, toolUrl, paramList) {
     cardHTML += '<div class="card-status ready">Ready to review</div>';
     cardHTML += '<button class="card-btn primary" onclick="window.open(\'' + escapeAttr(toolUrl) + '\', \'_blank\')">Open Tool</button>';
 
-    if (mailReady) {
+    if (mailReady && data.tool_id !== 'catering-quote-builder') {
       if (emailTo) {
         cardHTML += '<button class="card-btn secondary" onclick="initEmailDraft(\'' + escapeAttr(emailTo) + '\', \'' + callId + '\')">Send to ' + escapeHTML(emailTo) + '</button>';
       } else {
@@ -1021,6 +1021,9 @@ async function executeToolCall(data, toolUrl, paramList) {
       var hasMoreIntent = keywords.some(function(kw) { return remaining.includes(kw) && kw !== toolAction; });
       if (hasMoreIntent) {
         window._lastUserMessage = null; // prevent infinite loops
+        // Build a follow-up message that tells Gemma the first action is done
+        var doneAction = data.tool_id === 'simple-crm' ? 'I already added the contact to CRM.' : 'I already saved that.';
+        var chainMessage = doneAction + ' Now handle the rest of this request: ' + remaining;
         setTimeout(async function() {
           showTyping();
           try {
@@ -1028,7 +1031,7 @@ async function executeToolCall(data, toolUrl, paramList) {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                message: remaining,
+                message: chainMessage,
                 history: conversationHistory.slice(-20),
                 business_profile: businessProfileObj,
                 crm_contacts: JSON.parse(localStorage.getItem('scrm_contacts') || '[]')
