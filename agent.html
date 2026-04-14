@@ -1180,7 +1180,7 @@ async function executeToolCall(data, toolUrl, paramList) {
       'business-profile': (es ? 'Perfil del negocio actualizado \u2713' : 'Business profile updated \u2713'),
       'simple-calendar': (params.title || (es ? 'Evento' : 'Event')) + (es ? ' agregado al calendario para ' : ' added to calendar for ') + (params.date || (es ? 'hoy' : 'today')) + ' \u2713'
     };
-    const confirmMsg = confirmMessages[data.tool_id] || 'Data saved \u2713';
+    let confirmMsg = confirmMessages[data.tool_id] || 'Data saved \u2713';
 
     // For CRM add action, save directly via localStorage
     if (data.tool_id === 'simple-crm' && (params.action === 'add' || params.name)) {

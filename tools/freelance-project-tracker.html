@@ -283,7 +283,6 @@ if(id==='invoice')renderInvoice()
 function showDetail(pid){
 viewingProjectId=pid;
 document.getElementById('pane-projects').classList.remove('active');
-document.getElementById('pane-worklog').classList.remove('active');
 document.getElementById('pane-detail').classList.add('active');
 renderDetail();switchDetail('milestones')
 }
