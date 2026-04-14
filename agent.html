@@ -990,11 +990,44 @@ async function handleToolCall(data) {
   const toolUrl = data.url || ('tools/' + data.tool_id + '.html');
 
   // Wait for user to click
+  // Check if this is a document tool that needs language choice
+  var isDocTool = ['contractor-invoice-generator', 'catering-quote-builder'].includes(data.tool_id);
+
   document.getElementById(confirmId + '-go').addEventListener('click', async function() {
     this.disabled = true;
-    this.textContent = L('working');
     document.getElementById(confirmId + '-open').style.display = 'none';
-    await executeToolCall(data, toolUrl, paramList);
+
+    // For document tools when user is in Spanish, ask which language for the document
+    if (isDocTool && currentLang === 'es') {
+      this.style.display = 'none';
+      var langPickId = 'langpick-' + Date.now();
+      var langHTML = '<div class="action-card" id="' + langPickId + '">';
+      langHTML += '<div class="card-label">Idioma del documento</div>';
+      langHTML += '<div class="card-title" style="font-size:14px;">\u00bfEn qu\u00e9 idioma quieres el documento?</div>';
+      langHTML += '<div style="display:flex;gap:8px;margin-top:12px;">';
+      langHTML += '<button class="card-btn primary" id="' + langPickId + '-es">Espa\u00f1ol</button>';
+      langHTML += '<button class="card-btn secondary" id="' + langPickId + '-en">English</button>';
+      langHTML += '</div></div>';
+      addCard(langHTML);
+
+      document.getElementById(langPickId + '-es').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = L('working');
+        document.getElementById(langPickId + '-en').style.display = 'none';
+        var langUrl = toolUrl + (toolUrl.includes('?') ? '&' : '?') + 'lang=es';
+        await executeToolCall(data, langUrl, paramList);
+      });
+      document.getElementById(langPickId + '-en').addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = L('working');
+        document.getElementById(langPickId + '-es').style.display = 'none';
+        var langUrl = toolUrl + (toolUrl.includes('?') ? '&' : '?') + 'lang=en';
+        await executeToolCall(data, langUrl, paramList);
+      });
+    } else {
+      this.textContent = L('working');
+      await executeToolCall(data, toolUrl, paramList);
+    }
   });
 
   document.getElementById(confirmId + '-open').addEventListener('click', function() {

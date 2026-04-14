@@ -1212,7 +1212,12 @@ function setLang(lang) {
   document.getElementById('btn-es').classList.toggle('active', lang === 'es');
   localStorage.setItem('terrapin-language', lang);
 }
-(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');})();
+(function(){
+  var urlLang = new URLSearchParams(window.location.search).get('lang');
+  if (urlLang === 'es' || urlLang === 'en') { setLang(urlLang); return; }
+  var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}
+  var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es');
+})();
 </script>
 </body>
 </html>
