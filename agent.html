@@ -1014,6 +1014,7 @@ async function handleToolCall(data) {
         this.disabled = true;
         this.textContent = L('working');
         document.getElementById(langPickId + '-en').style.display = 'none';
+        data._docLang = 'es';
         var langUrl = toolUrl + (toolUrl.includes('?') ? '&' : '?') + 'lang=es';
         await executeToolCall(data, langUrl, paramList);
       });
@@ -1021,6 +1022,7 @@ async function handleToolCall(data) {
         this.disabled = true;
         this.textContent = L('working');
         document.getElementById(langPickId + '-es').style.display = 'none';
+        data._docLang = 'en';
         var langUrl = toolUrl + (toolUrl.includes('?') ? '&' : '?') + 'lang=en';
         await executeToolCall(data, langUrl, paramList);
       });
@@ -1054,7 +1056,7 @@ async function executeToolCall(data, toolUrl, paramList) {
   const toolType = toolTypes[data.tool_id] || 'utility';
 
   const callId = 'call-' + Date.now();
-  toolCallStore[callId] = { toolId: data.tool_id, toolName, params, pdf_base64: null, pdf_dataurl: null, filename: null };
+  toolCallStore[callId] = { toolId: data.tool_id, toolName, params, pdf_base64: null, pdf_dataurl: null, filename: null, docLang: data._docLang || null };
 
   // ── DOCUMENT TOOLS — PDF preview + Open + Email ──
   if (toolType === 'document') {
@@ -1496,21 +1498,27 @@ function initEmailDraft(to, callId) {
   const bizName = businessProfileObj?.businessName || 'Terrapin Tools';
   const ownerName = businessProfileObj?.ownerName || bizName;
 
-  // Human-friendly document name — not the tool ID
+  // Human-friendly document name — language-aware
+  var emailLang = call.docLang || currentLang || 'en';
+  var esEmail = emailLang === 'es';
   const docNames = {
-    'contractor-invoice-generator': 'invoice',
-    'catering-quote-builder': 'catering quote',
-    'job-site-daily-log': 'daily log',
-    'simple-crm': 'contact info',
-    'tip-calculator': 'tip breakdown',
-    'street-vendor-order-log': 'daily sales summary',
-    'qr-code-generator': 'QR code',
-    'business-profile': 'business profile'
+    'contractor-invoice-generator': esEmail ? 'factura' : 'invoice',
+    'catering-quote-builder': esEmail ? 'cotización de catering' : 'catering quote',
+    'job-site-daily-log': esEmail ? 'bitácora diaria' : 'daily log',
+    'simple-crm': esEmail ? 'información de contacto' : 'contact info',
+    'tip-calculator': esEmail ? 'desglose de propinas' : 'tip breakdown',
+    'street-vendor-order-log': esEmail ? 'resumen de ventas' : 'daily sales summary',
+    'qr-code-generator': esEmail ? 'código QR' : 'QR code',
+    'business-profile': esEmail ? 'perfil del negocio' : 'business profile'
   };
-  const docName = docNames[call.toolId] || 'document';
+  const docName = docNames[call.toolId] || (esEmail ? 'documento' : 'document');
   const clientName = params.client_name || (params.data?.client?.name) || '';
-  const subject = (clientName ? docName.charAt(0).toUpperCase() + docName.slice(1) + ' for ' + clientName : docName.charAt(0).toUpperCase() + docName.slice(1)) + ' — ' + bizName;
-  const body = 'Hi' + (clientName ? ' ' + clientName.split(' ')[0] : '') + ',\n\nPlease find the attached ' + docName + '.\n\nBest regards,\n' + ownerName;
+  const subject = (clientName
+    ? docName.charAt(0).toUpperCase() + docName.slice(1) + (esEmail ? ' para ' : ' for ') + clientName
+    : docName.charAt(0).toUpperCase() + docName.slice(1)) + ' — ' + bizName;
+  const body = esEmail
+    ? 'Hola' + (clientName ? ' ' + clientName.split(' ')[0] : '') + ',\n\nAdjunto encontrarás la ' + docName + '.\n\nSaludos cordiales,\n' + ownerName
+    : 'Hi' + (clientName ? ' ' + clientName.split(' ')[0] : '') + ',\n\nPlease find the attached ' + docName + '.\n\nBest regards,\n' + ownerName;
 
   // Use the real PDF captured from the tool iframe if available
   let pdfBase64 = call.pdf_base64 || null;
@@ -1535,7 +1543,7 @@ function initEmailDraft(to, callId) {
   draftStore[draftId] = { to, subject, body, attachment_base64: pdfBase64, attachment_name: fileName, attachment_dataurl: pdfDataUrl };
 
   let html = '<div class="action-card email-draft" id="' + draftId + '">';
-  html += '<div class="card-label">Email Draft — Review Before Sending</div>';
+  html += '<div class="card-label">' + (esEmail ? 'Borrador de Email — Revisa Antes de Enviar' : 'Email Draft — Review Before Sending') + '</div>';
   html += '<div class="draft-field"><strong>To:</strong> ' + escapeHTML(to) + '</div>';
   html += '<div class="draft-field"><strong>Subject:</strong> ' + escapeHTML(subject) + '</div>';
   html += '<div class="draft-body">' + escapeHTML(body) + '</div>';
