@@ -696,10 +696,15 @@ console.log('ProjectTracker URL params:',Object.fromEntries(params));
 if(action==='add'||params.get('project_name')){
 var autorun=params.get('autorun')==='true';
 if(autorun&&params.get('project_name')){
-console.log('ProjectTracker autorun: saving project');
-projects.push({id:genId(),clientName:params.get('client_name')||'',clientEmail:params.get('client_email')||'',projectName:params.get('project_name'),brief:params.get('brief')||'',feeType:params.get('fee_type')||'fixed',fee:parseFloat(params.get('fee'))||0,rate:parseFloat(params.get('rate'))||0,estHours:parseFloat(params.get('est_hours'))||0,kickoff:params.get('kickoff')||todayISO(),delivery:params.get('delivery')||'',payTerms:params.get('terms')||'50/50',notes:'',status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+var pName=params.get('project_name');
+var exists=projects.some(function(x){return x.projectName.toLowerCase().trim()===pName.toLowerCase().trim()});
+if(exists){console.log('ProjectTracker autorun: "'+pName+'" already exists, skipping')}
+else{console.log('ProjectTracker autorun: saving project');
+projects.push({id:genId(),clientName:params.get('client_name')||'',clientEmail:params.get('client_email')||'',projectName:pName,brief:params.get('brief')||'',feeType:params.get('fee_type')||'fixed',fee:parseFloat(params.get('fee'))||0,rate:parseFloat(params.get('rate'))||0,estHours:parseFloat(params.get('est_hours'))||0,kickoff:params.get('kickoff')||todayISO(),delivery:params.get('delivery')||'',payTerms:params.get('terms')||'50/50',notes:'',status:'kickoff',milestones:[],changes:[],comms:[],payments:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
 saveLocal();renderProjects();
-if(window.parent!==window)setTimeout(function(){window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:'success',output:'Project saved: '+params.get('project_name')},'*')},200)
+if(window.parent!==window)setTimeout(function(){window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:'success',output:'Project saved: '+pName},'*')},200)}
+// Clear URL params so refresh doesn't re-trigger
+history.replaceState(null,'',window.location.pathname);
 }else{
 setTimeout(function(){openProjectModal();
 if(params.get('client_name'))document.getElementById('f-client').value=params.get('client_name');
@@ -710,6 +715,7 @@ if(params.get('fee'))document.getElementById('f-fee').value=params.get('fee')},3
 } else if(action==='log_hours'&&params.get('autorun')==='true'){
 var result=window.projectTracker.logHours(params.get('project_name')||'',params.get('hours')||0,params.get('description')||'');
 if(window.parent!==window)setTimeout(function(){window.parent.postMessage({type:'terrapin-tool-result',tool:'freelance-project-tracker',status:result.success?'success':'error',data:result},'*')},200);
+history.replaceState(null,'',window.location.pathname);
 }
 }
 
