@@ -133,6 +133,9 @@
     background: var(--bg-light); border: 1px solid var(--card-border);
     border-radius: 12px; padding: 16px; margin-top: 8px;
   }
+  /* Email drafts need more room than chat bubbles */
+  .message.agent:has(.email-draft) { max-width: 100%; }
+  .email-draft { min-width: 360px; }
   .action-card .card-label {
     font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--gold); margin-bottom: 8px;
