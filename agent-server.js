@@ -92,7 +92,7 @@ async function checkMail() {
 // ══════════════════════════════════════
 //  SYSTEM PROMPT BUILDER
 // ══════════════════════════════════════
-function buildSystemPrompt(businessProfile, crmContacts) {
+function buildSystemPrompt(businessProfile, crmContacts, calendarEvents, dailyLogs) {
   const bizName = businessProfile?.businessName || 'your business';
   const ownerName = businessProfile?.ownerName || '';
 
@@ -138,6 +138,34 @@ function buildSystemPrompt(businessProfile, crmContacts) {
     crmSection = `\nCRM Contacts (${crmContacts.length}):\n${contactList}`;
   }
 
+  // Build calendar events summary
+  let calendarSection = '';
+  if (calendarEvents && calendarEvents.length) {
+    const eventList = calendarEvents.map(e => {
+      const parts = [`${e.date}`];
+      if (e.time) parts.push(e.time);
+      parts.push('— ' + (e.title || 'Untitled'));
+      if (e.type && e.type !== 'appointment') parts.push(`(${e.type})`);
+      if (e.notes) parts.push(`[${e.notes}]`);
+      return parts.join(' ');
+    }).join('\n');
+    calendarSection = `\nCalendar Events (${calendarEvents.length}):\n${eventList}`;
+  }
+
+  // Build daily logs summary
+  let logsSection = '';
+  if (dailyLogs && dailyLogs.length) {
+    const logList = dailyLogs.slice(-10).map(l => {
+      const parts = [`${l.date || 'unknown date'}`];
+      if (l.jobName) parts.push('— ' + l.jobName);
+      if (l.jobAddress) parts.push(`at ${l.jobAddress}`);
+      if (l.weather) parts.push(`(${l.weather})`);
+      if (l.work) parts.push(': ' + l.work.substring(0, 100));
+      return parts.join(' ');
+    }).join('\n');
+    logsSection = `\nRecent Job Site Logs (${dailyLogs.length}):\n${logList}`;
+  }
+
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return `You are Terrapin, a friendly business assistant for ${ownerName || bizName}. Today is ${today}.
@@ -147,6 +175,10 @@ You talk like a helpful coworker — warm, brief, and practical. The person you'
 ABOUT THE OWNER:
 ${profileSection}
 ${crmSection}
+
+YOUR DATA — you have access to all of this stored data and can answer questions about it:
+${calendarSection || '\nCalendar: No events scheduled yet.'}
+${logsSection || '\nJob Site Logs: No logs yet.'}
 
 YOU CAN USE THESE TOOLS:
 ${toolsList}
@@ -170,6 +202,12 @@ PERSONALITY:
 - Keep answers to 1-2 sentences unless they ask for detail
 - When you look up a contact, just tell them naturally: "Tom's email is tom@example.com"
 - When you can't help, be honest: "I can't do that yet, but here's what I can help with..."
+
+ANSWERING QUESTIONS ABOUT DATA:
+- When the user asks about their schedule, calendar, upcoming events, or "what do I have" — look at the Calendar Events above and tell them directly. Do NOT open a tool — just respond with the info.
+- When the user asks about contacts, clients, or "do I have info for..." — look at the CRM Contacts and business profile above and answer directly.
+- When the user asks about job logs, recent work, or "what did I log" — look at the Job Site Logs above and answer directly.
+- Only use a tool when the user wants to CREATE, ADD, or GENERATE something new. For reading/viewing existing data, just answer from the data above.
 
 USING TOOLS:
 - Pull client info from the CRM contacts and business profile above — don't ask for info you already have
@@ -545,12 +583,29 @@ app.post('/chat', async (req, res) => {
     }
   } catch(e) { /* no server CRM file or parse error */ }
 
+  // Load calendar events from ~/.terrapin/
+  let calendarEvents = [];
+  try {
+    calendarEvents = JSON.parse(fs.readFileSync(DATA_FILES.calendar, 'utf8'));
+    if (!Array.isArray(calendarEvents)) calendarEvents = [];
+  } catch(e) { /* no calendar file or parse error */ }
+
+  // Load daily logs from ~/.terrapin/daily-logs/
+  let dailyLogs = [];
+  try {
+    const logFiles = fs.readdirSync(DATA_FILES.logsDir).filter(f => f.endsWith('.json'));
+    dailyLogs = logFiles.map(f => {
+      try { return JSON.parse(fs.readFileSync(path.join(DATA_FILES.logsDir, f), 'utf8')); }
+      catch(e) { return null; }
+    }).filter(Boolean);
+  } catch(e) { /* no logs dir or read error */ }
+
   // Log profile for debugging
   if (business_profile) {
     const clients = business_profile.clients || business_profile.regular_clients || [];
     console.log(`  → Profile: ${business_profile.businessName || 'unnamed'} | ${clients.length} profile clients`);
   }
-  console.log('CRM contacts available:', mergedContacts.length);
+  console.log('  → Data loaded: CRM %d contacts, Calendar %d events, Logs %d entries', mergedContacts.length, calendarEvents.length, dailyLogs.length);
 
   // Strip logo from profile before building system prompt — base64 images bloat the prompt
   let profileForPrompt = business_profile || null;
@@ -559,7 +614,7 @@ app.post('/chat', async (req, res) => {
     delete profileForPrompt.logo;
   }
 
-  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts);
+  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, calendarEvents, dailyLogs);
 
   // Build messages array with conversation history
   const ollamaMessages = [{ role: 'system', content: systemPrompt }];
