@@ -2077,11 +2077,6 @@ function saveProjectData(params) {
   }
 
   if (action === 'add') {
-    // Dedup — don't add if same project name exists
-    var existingName = (params.project_name || '').toLowerCase().trim();
-    if (existingName && projects.find(function(x) { return x.projectName.toLowerCase().trim() === existingName; })) {
-      return { success: true, message: (currentLang === 'es' ? 'Proyecto ya existe: ' : 'Project already exists: ') + params.project_name };
-    }
     var np = {
       id: 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
       clientName: params.client_name || '',
