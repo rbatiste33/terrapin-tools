@@ -1,16 +1,22 @@
 {
   "name": "terrapin-tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Simple tools for people who work — terrapin.tools",
   "private": true,
   "scripts": {
     "setup-mail": "node mail-setup.js",
     "mail": "node mail-server.js",
     "agent": "node agent-server.js",
-    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ index.html agent.html agent-setup.html privacy.html turtle-optimized.png"
+    "dev": "npx nodemon --watch agent-server.js --watch tools.json agent-server.js",
+    "dev:start": "launchctl unload ~/Library/LaunchAgents/tools.terrapin.agent.plist 2>/dev/null; npx nodemon --watch agent-server.js --watch tools.json agent-server.js",
+    "dev:stop": "launchctl load ~/Library/LaunchAgents/tools.terrapin.agent.plist",
+    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ index.html agent.html agent-setup.html privacy.html turtle-optimized.png update.sh"
   },
   "dependencies": {
     "express": "^4.21.0",
     "nodemailer": "^8.0.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

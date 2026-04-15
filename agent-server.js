@@ -24,6 +24,7 @@ const path = require('path');
 const os = require('os');
 
 const PORT = 7777;
+const TERRAPIN_VERSION = require('./package.json').version;
 const TOOLS_PATH = path.join(__dirname, 'tools.json');
 
 // ══════════════════════════════════════
@@ -94,7 +95,7 @@ async function checkMail() {
 // ══════════════════════════════════════
 //  SYSTEM PROMPT BUILDER
 // ══════════════════════════════════════
-function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries) {
+function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries, calendarEvents, dailyLogs) {
   const bizName = businessProfile?.businessName || 'your business';
   const ownerName = businessProfile?.ownerName || '';
 
@@ -635,6 +636,7 @@ app.get('/health', async (req, res) => {
   const ollama = await checkOllama();
   const mail = await checkMail();
   res.json({
+    version: TERRAPIN_VERSION,
     ollama: ollama.connected,
     gemma: ollama.model,
     mail,
@@ -703,7 +705,7 @@ app.post('/chat', async (req, res) => {
     delete profileForPrompt.logo;
   }
 
-  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, knowledgeEntries);
+  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, knowledgeEntries, calendarEvents, dailyLogs);
 
   // Build messages array with conversation history
   const ollamaMessages = [{ role: 'system', content: systemPrompt }];
@@ -899,7 +901,7 @@ initDataDir();
 
 app.listen(PORT, '127.0.0.1', async () => {
   console.log('');
-  console.log('  🐢 Terrapin Agent Server');
+  console.log(`  🐢 Terrapin Agent Server v${TERRAPIN_VERSION}`);
   console.log(`  Running on http://localhost:${PORT}`);
   console.log('');
 
