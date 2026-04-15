@@ -243,9 +243,13 @@ function idbSet(k,v){return openIDB().then(function(db){return new Promise(funct
 //  PERSISTENCE
 // ══════════════════════════════════════
 async function loadData(){
-try{var r=localStorage.getItem(LS_KEY);if(r)projects=JSON.parse(r)}catch(e){projects=[]}
-try{var ip=await idbGet('projects');if(Array.isArray(ip)&&ip.length){ip.forEach(function(p){if(!projects.find(function(x){return x.id===p.id}))projects.push(p)})}}catch(e){}
-try{var res=await fetch(AGENT_URL+'/data/projects',{signal:AbortSignal.timeout(2000)});if(res.ok){var sd=await res.json();if(sd.projects)sd.projects.forEach(function(p){var i=projects.findIndex(function(x){return x.id===p.id});if(i>-1)projects[i]=p;else projects.push(p)})}}catch(e){console.log('Agent server not available for projects')}
+// Priority: agent server (file-based, most reliable) > localStorage > IndexedDB
+// No additive merge — pick one authoritative source to prevent deleted projects from resurrecting
+var loaded=false;
+try{var res=await fetch(AGENT_URL+'/data/projects',{signal:AbortSignal.timeout(2000)});if(res.ok){var sd=await res.json();if(sd.projects){projects=sd.projects;loaded=true}}}catch(e){console.log('Agent server not available for projects')}
+if(!loaded){try{var r=localStorage.getItem(LS_KEY);if(r){var parsed=JSON.parse(r);if(Array.isArray(parsed)&&parsed.length){projects=parsed;loaded=true}}}catch(e){}}
+if(!loaded){try{var ip=await idbGet('projects');if(Array.isArray(ip)&&ip.length){projects=ip;loaded=true}}catch(e){}}
+if(!loaded)projects=[];
 saveLocal()
 }
 function saveLocal(){
