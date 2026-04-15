@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup Wizard — Terrapin Tools</title>
+<meta property="og:title" content="Set up your Terrapin Tools">
+<meta property="og:description" content="A quick 3-step setup to get your tools running.">
+<meta property="og:image" content="https://terrapin.tools/turtle-optimized.png">
+<meta property="og:url" content="https://terrapin.tools/setup-wizard">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Set up your Terrapin Tools">
+<meta name="twitter:description" content="A quick 3-step setup to get your tools running.">
+<meta name="twitter:image" content="https://terrapin.tools/turtle-optimized.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F0E8;
+    --dark: #2C3E2D;
+    --gold: #C9A84C;
+    --card-bg: #FFFFFF;
+    --card-border: #E8E0D0;
+    --text: #1A1A1A;
+    --text-secondary: #6B6B6B;
+    --green: #4A7C59;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0 0;
+  }
+
+  .back-link {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--dark); }
+
+  .lang-toggle {
+    display: flex;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .lang-toggle button {
+    padding: 6px 12px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .lang-toggle button.active {
+    background: var(--dark);
+    color: var(--gold);
+  }
+
+  /* Progress dots */
+  .progress-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 0 8px;
+  }
+  .progress-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--card-border);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .progress-dot.active {
+    background: var(--gold);
+    transform: scale(1.2);
+  }
+  .progress-dot.done {
+    background: var(--green);
+  }
+  .progress-line {
+    width: 40px;
+    height: 2px;
+    background: var(--card-border);
+    transition: background 0.3s;
+  }
+  .progress-line.done {
+    background: var(--green);
+  }
+
+  .step-indicator {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+
+  /* Steps container */
+  .steps-viewport {
+    position: relative;
+    overflow: hidden;
+  }
+  .steps-track {
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+  .step-panel {
+    min-width: 100%;
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+
+  /* Headings */
+  .step-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .step-header h1 {
+    font-family: 'Lora', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 8px;
+  }
+  .step-header p {
+    font-size: 16px;
+    color: var(--text-secondary);
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  /* Form elements */
+  .field-group {
+    margin-bottom: 20px;
+  }
+  .field-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .field-group label .optional {
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  .field-group input,
+  .field-group select {
+    width: 100%;
+    padding: 12px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field-group select {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  .field-group input:focus,
+  .field-group select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+  }
+  .field-group input.error {
+    border-color: #c0392b;
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+  }
+  .error-msg {
+    font-size: 13px;
+    color: #c0392b;
+    margin-top: 4px;
+    display: none;
+  }
+  .error-msg.visible {
+    display: block;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .btn {
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--dark);
+    color: #fff;
+    flex: 1;
+  }
+  .btn-primary:hover { background: #3A5240; }
+  .btn-secondary {
+    background: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+  }
+  .btn-secondary:hover { background: #FDFAF4; }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--text);
+    flex: 1;
+    font-size: 18px;
+    padding: 16px 32px;
+  }
+  .btn-gold:hover { background: #d4b35a; }
+
+  /* Tool cards */
+  .tools-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .tool-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tool-card:hover {
+    border-color: #ccc;
+  }
+  .tool-card.active {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(74, 124, 89, 0.15);
+  }
+  .tool-card.locked {
+    opacity: 0.85;
+    cursor: default;
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(74, 124, 89, 0.15);
+  }
+  .tool-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .tool-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .tool-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .tool-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #F0EBE0;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-top: 4px;
+    display: inline-block;
+  }
+  .tool-locked-note {
+    font-size: 11px;
+    color: var(--green);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Toggle switch */
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #D0D0D0;
+    border-radius: 12px;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .toggle-switch input:checked + .toggle-slider {
+    background: var(--green);
+  }
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+  }
+  .toggle-switch input:disabled + .toggle-slider {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  /* Step 3 — completion */
+  .done-section {
+    text-align: center;
+    padding: 20px 0 0;
+  }
+  .checkmark-circle {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    position: relative;
+  }
+  .checkmark-circle svg {
+    width: 80px;
+    height: 80px;
+  }
+  .checkmark-circle .circle {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 3;
+    stroke-dasharray: 226;
+    stroke-dashoffset: 226;
+    animation: drawCircle 0.6s ease-out 0.2s forwards;
+  }
+  .checkmark-circle .check {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: drawCheck 0.4s ease-out 0.7s forwards;
+  }
+  @keyframes drawCircle {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+  }
+  .done-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--green);
+    margin-bottom: 24px;
+  }
+
+  /* Footer */
+  .page-footer {
+    text-align: center;
+    padding: 40px 0 24px;
+  }
+  .page-footer span {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* Mobile */
+  @media (max-width: 520px) {
+    .step-header h1 { font-size: 24px; }
+    .step-header p { font-size: 14px; }
+    .tool-card { padding: 12px 14px; gap: 12px; }
+    .btn-row { flex-direction: column; }
+    .btn-secondary { order: 1; }
+    .btn-primary, .btn-gold { order: 0; }
+    .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <a href="https://terrapin.tools" class="back-link" data-i18n="back_link">&#8592; terrapin.tools</a>
+    <div class="lang-toggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-es" onclick="setLang('es')">ES</button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-bar">
+    <div class="progress-dot active" id="dot-1"></div>
+    <div class="progress-line" id="line-1"></div>
+    <div class="progress-dot" id="dot-2"></div>
+    <div class="progress-line" id="line-2"></div>
+    <div class="progress-dot" id="dot-3"></div>
+  </div>
+  <div class="step-indicator" id="step-indicator" data-i18n="step_indicator">Step 1 of 3</div>
+
+  <!-- Steps -->
+  <div class="steps-viewport">
+    <div class="steps-track" id="steps-track">
+
+      <!-- STEP 1 — Welcome + Basics -->
+      <div class="step-panel" id="panel-1">
+        <div class="step-header">
+          <h1 data-i18n="s1_title">Let's set up your Terrapin</h1>
+          <p data-i18n="s1_subtitle">Tell us a little about your business</p>
+        </div>
+
+        <div class="field-group">
+          <label for="field-name" data-i18n="s1_name_label">First name</label>
+          <input type="text" id="field-name" autocomplete="given-name" data-i18n-placeholder="s1_name_placeholder" placeholder="Your first name">
+          <div class="error-msg" id="name-error" data-i18n="s1_name_error">Please enter your first name</div>
+        </div>
+
+        <div class="field-group">
+          <label for="field-type" data-i18n="s1_type_label">Business type</label>
+          <select id="field-type">
+            <option value="" data-i18n="s1_type_placeholder">Select your business type...</option>
+            <option value="Contractor" data-i18n="s1_type_contractor">Contractor</option>
+            <option value="Restaurant / Cafe" data-i18n="s1_type_restaurant">Restaurant / Cafe</option>
+            <option value="Food Truck" data-i18n="s1_type_foodtruck">Food Truck</option>
+            <option value="Catering" data-i18n="s1_type_catering">Catering</option>
+            <option value="Freelancer" data-i18n="s1_type_freelancer">Freelancer</option>
+            <option value="Retail" data-i18n="s1_type_retail">Retail</option>
+            <option value="Bar / Venue" data-i18n="s1_type_bar">Bar / Venue</option>
+            <option value="Other" data-i18n="s1_type_other">Other</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="field-email" data-i18n="s1_email_label">Email <span class="optional" data-i18n="s1_email_optional">(optional but encouraged)</span></label>
+          <input type="email" id="field-email" autocomplete="email" data-i18n-placeholder="s1_email_placeholder" placeholder="you@example.com">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="goToStep(2)" data-i18n="btn_next">Next</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 — Pick Your Tools -->
+      <div class="step-panel" id="panel-2">
+        <div class="step-header">
+          <h1 data-i18n="s2_title">Pick the tools you need</h1>
+          <p data-i18n="s2_subtitle">Don't worry — you can always add more later</p>
+        </div>
+
+        <div class="tools-grid" id="tools-grid">
+          <!-- Rendered by JS -->
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="goToStep(1)" data-i18n="btn_back">Back</button>
+          <button class="btn btn-primary" onclick="goToStep(3)" data-i18n="btn_next">Next</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 — Done -->
+      <div class="step-panel" id="panel-3">
+        <div class="done-section">
+          <div class="checkmark-circle" id="checkmark-anim">
+            <svg viewBox="0 0 80 80">
+              <circle class="circle" cx="40" cy="40" r="36" />
+              <polyline class="check" points="24,42 35,53 56,30" />
+            </svg>
+          </div>
+          <div class="step-header">
+            <h1 id="done-headline" data-i18n="s3_title">You're all set!</h1>
+            <p class="done-count" id="done-count"></p>
+          </div>
+
+          <div class="btn-row" style="justify-content:center;">
+            <button class="btn btn-gold" onclick="finishSetup()" data-i18n="s3_cta">Open Your Dashboard</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    <span>A Terrapin Tool — terrapin.tools</span>
+  </div>
+
+</div>
+
+<script>
+/* ───── Tool data ───── */
+var TOOLS = [
+  {id: "turtle-shell", name: "Turtle Shell", description: "Business knowledge base — store preferences, policies, pricing rules", category: "all", file: "tools/turtle-shell.html"},
+  {id: "catering-quote-builder", name: "Catering Quote Builder", description: "Build professional catering quotes with menu items and pricing", category: "catering", file: "tools/catering-quote-builder.html"},
+  {id: "contractor-invoice-generator", name: "Contractor Invoice Generator", description: "Create clean invoices with labor, materials, and PDF export", category: "contractors", file: "tools/contractor-invoice-generator.html"},
+  {id: "simple-crm", name: "Simple CRM", description: "Track your clients, follow-ups, and notes", category: "freelancers", file: "tools/simple-crm.html"},
+  {id: "tip-calculator", name: "Tip Calculator & Staff Splitter", description: "Calculate tips and split across staff by role", category: "restaurants", file: "tools/tip-calculator.html"},
+  {id: "street-vendor-order-log", name: "Street Vendor Order Log", description: "Track orders, totals, and daily sales", category: "restaurants", file: "tools/street-vendor-order-log.html"},
+  {id: "qr-code-generator", name: "QR Code Generator", description: "Create QR codes for URLs, text, WiFi, and more", category: "all", file: "tools/qr-code-generator.html"},
+  {id: "job-site-daily-log", name: "Job Site Daily Log", description: "Log daily work, weather, notes for job sites", category: "contractors", file: "tools/job-site-daily-log.html"},
+  {id: "simple-calendar", name: "Simple Calendar", description: "Track appointments, deadlines, and events", category: "all", file: "tools/simple-calendar.html"}
+];
+
+var SUGGESTIONS = {
+  "Contractor": ["contractor-invoice-generator", "job-site-daily-log", "simple-crm", "simple-calendar", "qr-code-generator"],
+  "Restaurant / Cafe": ["tip-calculator", "street-vendor-order-log", "simple-calendar"],
+  "Food Truck": ["street-vendor-order-log", "tip-calculator", "qr-code-generator"],
+  "Catering": ["catering-quote-builder", "simple-crm", "simple-calendar"],
+  "Freelancer": ["simple-crm", "simple-calendar", "qr-code-generator"],
+  "Retail": ["simple-crm", "qr-code-generator", "simple-calendar"],
+  "Bar / Venue": ["tip-calculator", "simple-calendar"],
+  "Other": ["simple-crm", "simple-calendar", "qr-code-generator"]
+};
+
+var CATEGORY_LABELS = {
+  all: "All",
+  catering: "Catering",
+  contractors: "Contractors",
+  freelancers: "Freelancers",
+  restaurants: "Restaurants"
+};
+
+/* ───── i18n ───── */
+var T = {
+  en: {
+    back_link: "\u2190 terrapin.tools",
+    step_indicator: "Step {n} of 3",
+    s1_title: "Let's set up your Terrapin",
+    s1_subtitle: "Tell us a little about your business",
+    s1_name_label: "First name",
+    s1_name_placeholder: "Your first name",
+    s1_name_error: "Please enter your first name",
+    s1_type_label: "Business type",
+    s1_type_placeholder: "Select your business type...",
+    s1_type_contractor: "Contractor",
+    s1_type_restaurant: "Restaurant / Cafe",
+    s1_type_foodtruck: "Food Truck",
+    s1_type_catering: "Catering",
+    s1_type_freelancer: "Freelancer",
+    s1_type_retail: "Retail",
+    s1_type_bar: "Bar / Venue",
+    s1_type_other: "Other",
+    s1_email_label: "Email",
+    s1_email_optional: "(optional but encouraged)",
+    s1_email_placeholder: "you@example.com",
+    btn_next: "Next",
+    btn_back: "Back",
+    s2_title: "Pick the tools you need",
+    s2_subtitle: "Don\u2019t worry \u2014 you can always add more later",
+    s3_title: "You\u2019re all set, {name}!",
+    s3_count: "{n} tools selected",
+    s3_cta: "Open Your Dashboard",
+    turtle_shell_note: "Always on \u2014 this is your agent\u2019s brain",
+    cat_all: "All", cat_catering: "Catering", cat_contractors: "Contractors",
+    cat_freelancers: "Freelancers", cat_restaurants: "Restaurants"
+  },
+  es: {
+    back_link: "\u2190 terrapin.tools",
+    step_indicator: "Paso {n} de 3",
+    s1_title: "Configuremos tu Terrapin",
+    s1_subtitle: "Cu\u00e9ntanos un poco sobre tu negocio",
+    s1_name_label: "Nombre",
+    s1_name_placeholder: "Tu nombre",
+    s1_name_error: "Por favor ingresa tu nombre",
+    s1_type_label: "Tipo de negocio",
+    s1_type_placeholder: "Selecciona tu tipo de negocio...",
+    s1_type_contractor: "Contratista",
+    s1_type_restaurant: "Restaurante / Caf\u00e9",
+    s1_type_foodtruck: "Food Truck",
+    s1_type_catering: "Catering",
+    s1_type_freelancer: "Freelancer",
+    s1_type_retail: "Retail",
+    s1_type_bar: "Bar / Venue",
+    s1_type_other: "Otro",
+    s1_email_label: "Correo electr\u00f3nico",
+    s1_email_optional: "(opcional pero recomendado)",
+    s1_email_placeholder: "tu@ejemplo.com",
+    btn_next: "Siguiente",
+    btn_back: "Atr\u00e1s",
+    s2_title: "Elige las herramientas que necesitas",
+    s2_subtitle: "No te preocupes \u2014 siempre puedes agregar m\u00e1s despu\u00e9s",
+    s3_title: "\u00a1Todo listo, {name}!",
+    s3_count: "{n} herramientas seleccionadas",
+    s3_cta: "Abrir Tu Dashboard",
+    turtle_shell_note: "Siempre activo \u2014 es el cerebro de tu agente",
+    cat_all: "Todos", cat_catering: "Catering", cat_contractors: "Contratistas",
+    cat_freelancers: "Freelancers", cat_restaurants: "Restaurantes"
+  }
+};
+
+var currentLang = 'en';
+var currentStep = 1;
+var selectedTools = { 'turtle-shell': true };
+var suggestionsApplied = false;
+var lastBusinessType = '';
+
+/* ───── Language ───── */
+function detectLang() {
+  var saved = localStorage.getItem('terrapin-language');
+  if (saved === 'es' || saved === 'en') return saved;
+  var nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  return nav.startsWith('es') ? 'es' : 'en';
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('terrapin-language', lang);
+  document.getElementById('btn-en').className = lang === 'en' ? 'active' : '';
+  document.getElementById('btn-es').className = lang === 'es' ? 'active' : '';
+  applyTranslations();
+}
+
+function tr(key, replacements) {
+  var s = (T[currentLang] && T[currentLang][key]) || (T.en[key]) || '';
+  if (replacements) {
+    for (var k in replacements) {
+      s = s.replace('{' + k + '}', replacements[k]);
+    }
+  }
+  return s;
+}
+
+function applyTranslations() {
+  var els = document.querySelectorAll('[data-i18n]');
+  for (var i = 0; i < els.length; i++) {
+    var key = els[i].getAttribute('data-i18n');
+    var text = tr(key);
+    if (text) els[i].innerHTML = text;
+  }
+  var placeholders = document.querySelectorAll('[data-i18n-placeholder]');
+  for (var j = 0; j < placeholders.length; j++) {
+    var pk = placeholders[j].getAttribute('data-i18n-placeholder');
+    var pt = tr(pk);
+    if (pt) placeholders[j].placeholder = pt;
+  }
+  updateStepIndicator();
+  updateDoneScreen();
+  renderToolCards();
+}
+
+/* ───── Step navigation ───── */
+function goToStep(step) {
+  // Validate step 1 before advancing
+  if (currentStep === 1 && step === 2) {
+    var nameVal = document.getElementById('field-name').value.trim();
+    if (!nameVal) {
+      document.getElementById('field-name').classList.add('error');
+      document.getElementById('name-error').classList.add('visible');
+      document.getElementById('field-name').focus();
+      return;
+    }
+    document.getElementById('field-name').classList.remove('error');
+    document.getElementById('name-error').classList.remove('visible');
+
+    // Apply suggestions on first visit to step 2 or when business type changes
+    var bizType = document.getElementById('field-type').value;
+    if (!suggestionsApplied || bizType !== lastBusinessType) {
+      applySuggestions(bizType);
+      lastBusinessType = bizType;
+      suggestionsApplied = true;
+    }
+  }
+
+  currentStep = step;
+  var track = document.getElementById('steps-track');
+  track.style.transform = 'translateX(-' + ((step - 1) * 100) + '%)';
+
+  // Update progress dots
+  for (var i = 1; i <= 3; i++) {
+    var dot = document.getElementById('dot-' + i);
+    dot.className = 'progress-dot';
+    if (i < step) dot.className += ' done';
+    if (i === step) dot.className += ' active';
+  }
+  for (var j = 1; j <= 2; j++) {
+    var line = document.getElementById('line-' + j);
+    line.className = 'progress-line' + (j < step ? ' done' : '');
+  }
+
+  updateStepIndicator();
+
+  if (step === 3) {
+    updateDoneScreen();
+    // Restart animation
+    var anim = document.getElementById('checkmark-anim');
+    var clone = anim.cloneNode(true);
+    anim.parentNode.replaceChild(clone, anim);
+  }
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateStepIndicator() {
+  var el = document.getElementById('step-indicator');
+  el.textContent = tr('step_indicator', { n: currentStep });
+}
+
+/* ───── Tool suggestions ───── */
+function applySuggestions(bizType) {
+  // Reset all except turtle-shell
+  for (var i = 0; i < TOOLS.length; i++) {
+    if (TOOLS[i].id !== 'turtle-shell') {
+      selectedTools[TOOLS[i].id] = false;
+    }
+  }
+  var suggested = SUGGESTIONS[bizType] || SUGGESTIONS['Other'];
+  for (var j = 0; j < suggested.length; j++) {
+    selectedTools[suggested[j]] = true;
+  }
+  renderToolCards();
+}
+
+/* ───── Tool card rendering ───── */
+function renderToolCards() {
+  var grid = document.getElementById('tools-grid');
+  grid.innerHTML = '';
+
+  for (var i = 0; i < TOOLS.length; i++) {
+    var tool = TOOLS[i];
+    var isLocked = tool.id === 'turtle-shell';
+    var isActive = !!selectedTools[tool.id];
+
+    var card = document.createElement('div');
+    card.className = 'tool-card' + (isActive ? ' active' : '') + (isLocked ? ' locked' : '');
+    card.setAttribute('data-tool-id', tool.id);
+
+    if (!isLocked) {
+      card.onclick = (function(tid) {
+        return function() { toggleTool(tid); };
+      })(tool.id);
+    }
+
+    var catKey = 'cat_' + tool.category;
+    var catLabel = tr(catKey) || CATEGORY_LABELS[tool.category] || tool.category;
+
+    var html = '<div class="tool-info">' +
+      '<div class="tool-name">' + tool.name + '</div>' +
+      '<div class="tool-desc">' + tool.description + '</div>' +
+      '<span class="tool-badge">' + catLabel + '</span>';
+
+    if (isLocked) {
+      html += '<div class="tool-locked-note">' + tr('turtle_shell_note') + '</div>';
+    }
+
+    html += '</div>';
+
+    html += '<label class="toggle-switch" onclick="event.stopPropagation()">' +
+      '<input type="checkbox"' + (isActive ? ' checked' : '') + (isLocked ? ' disabled' : '') +
+      ' onchange="toggleTool(\'' + tool.id + '\')">' +
+      '<span class="toggle-slider"></span>' +
+      '</label>';
+
+    card.innerHTML = html;
+    grid.appendChild(card);
+  }
+}
+
+function toggleTool(toolId) {
+  if (toolId === 'turtle-shell') return;
+  selectedTools[toolId] = !selectedTools[toolId];
+  renderToolCards();
+}
+
+/* ───── Done screen ───── */
+function updateDoneScreen() {
+  var name = document.getElementById('field-name').value.trim() || '';
+  var headline = document.getElementById('done-headline');
+  headline.innerHTML = tr('s3_title', { name: name });
+
+  var count = 0;
+  for (var id in selectedTools) {
+    if (selectedTools[id]) count++;
+  }
+  var countEl = document.getElementById('done-count');
+  countEl.textContent = tr('s3_count', { n: count });
+}
+
+/* ───── Finish & save ───── */
+function finishSetup() {
+  var firstName = document.getElementById('field-name').value.trim();
+  var selectedType = document.getElementById('field-type').value || 'Other';
+  var email = document.getElementById('field-email').value.trim();
+
+  // Build selected tool IDs list
+  var selectedToolIds = [];
+  for (var id in selectedTools) {
+    if (selectedTools[id]) selectedToolIds.push(id);
+  }
+
+  // 1. Save business profile
+  var profile = {
+    ownerName: firstName,
+    businessType: selectedType,
+    email: email,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem('terrapin_business_profile', JSON.stringify(profile));
+  fetch('http://localhost:7777/data/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile)
+  }).catch(function() {});
+
+  // 2. Save dashboard config
+  var dashConfig = {
+    tools: selectedToolIds,
+    order: selectedToolIds,
+    businessType: selectedType,
+    onboarding_complete: true,
+    createdAt: new Date().toISOString()
+  };
+  localStorage.setItem('terrapin-dashboard', JSON.stringify(dashConfig));
+  fetch('http://localhost:7777/data/dashboard', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dashConfig)
+  }).catch(function() {});
+
+  // 3. Redirect
+  window.location.href = 'dashboard.html';
+}
+
+/* ───── Pre-fill from existing profile ───── */
+function prefillFromProfile() {
+  try {
+    var raw = localStorage.getItem('terrapin_business_profile');
+    if (!raw) return;
+    var p = JSON.parse(raw);
+    if (p.ownerName) document.getElementById('field-name').value = p.ownerName;
+    if (p.email) document.getElementById('field-email').value = p.email;
+    if (p.businessType) {
+      var sel = document.getElementById('field-type');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === p.businessType) {
+          sel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+/* ───── Init ───── */
+(function init() {
+  currentLang = detectLang();
+  setLang(currentLang);
+  prefillFromProfile();
+  renderToolCards();
+
+  // Clear error state on input
+  document.getElementById('field-name').addEventListener('input', function() {
+    this.classList.remove('error');
+    document.getElementById('name-error').classList.remove('visible');
+  });
+})();
+</script>
+</body>
+</html>

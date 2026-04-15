@@ -287,7 +287,8 @@ Local AI for immigrant-owned small businesses. Every tool in English and Spanish
 - Freelance Project Tracker — in progress
 
 ### The Product
-- **Personal Dashboard** — unified view by business type. This is where it all comes together.
+- **Personal Dashboard** — SHIPPED. Live widgets (CRM, Calendar, Knowledge), drag-and-drop tool arrangement, clock/date, personalized greeting. Default home at localhost:7777 after onboarding.
+- **Setup Wizard** — SHIPPED. 3-step onboarding: name/type/email → pick tools → launch dashboard. Auto-creates business profile.
 
 ---
 

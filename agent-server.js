@@ -36,6 +36,7 @@ const DATA_FILES = {
   crm: path.join(TERRAPIN_DIR, 'crm-contacts.json'),
   calendar: path.join(TERRAPIN_DIR, 'calendar-events.json'),
   knowledge: path.join(TERRAPIN_DIR, 'knowledge.json'),
+  dashboard: path.join(TERRAPIN_DIR, 'dashboard.json'),
   logsDir: path.join(TERRAPIN_DIR, 'daily-logs')
 };
 
@@ -99,9 +100,20 @@ function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries, calen
   const bizName = businessProfile?.businessName || 'your business';
   const ownerName = businessProfile?.ownerName || '';
 
-  const toolsList = toolsManifest.tools.filter(t => t.agent_ready !== false).map(t => {
-    return `- ${t.id}: ${t.description} (params: ${t.required_params.join(', ') || 'none'})`;
-  }).join('\n');
+  // Load dashboard config for personalized tool list
+  let dashboardTools = null;
+  try {
+    const dashData = JSON.parse(fs.readFileSync(DATA_FILES.dashboard, 'utf8'));
+    if (dashData.tools && Array.isArray(dashData.tools) && dashData.tools.length > 0) {
+      dashboardTools = new Set(dashData.tools);
+    }
+  } catch(e) { /* no dashboard config — include all tools */ }
+
+  const toolsList = toolsManifest.tools
+    .filter(t => t.agent_ready !== false)
+    .filter(t => !dashboardTools || dashboardTools.has(t.id))
+    .map(t => `- ${t.id}: ${t.description} (params: ${t.required_params.join(', ') || 'none'})`)
+    .join('\n');
 
   // Build lean profile — only what Gemma needs for conversation
   let profileSection = 'No business profile set up yet.';
@@ -738,6 +750,19 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '5mb' }));
 
+// Root redirect — dashboard is home base after onboarding
+app.get('/', (req, res, next) => {
+  try {
+    if (fs.existsSync(DATA_FILES.dashboard)) {
+      const dash = JSON.parse(fs.readFileSync(DATA_FILES.dashboard, 'utf8'));
+      if (dash.onboarding_complete) {
+        return res.sendFile(path.join(__dirname, 'dashboard.html'));
+      }
+    }
+  } catch(e) {}
+  next(); // fall through to static (serves index.html)
+});
+
 // Serve static files — agent.html, tools, and all assets
 app.use(express.static(path.join(__dirname)));
 
@@ -1010,6 +1035,27 @@ app.post('/data/knowledge', (req, res) => {
     fs.writeFileSync(DATA_FILES.knowledge, JSON.stringify(entries, null, 2));
     console.log('  → Knowledge saved: ' + entries.length + ' entries');
     res.json({ success: true, count: entries.length });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── DASHBOARD ──
+app.get('/data/dashboard', (req, res) => {
+  try {
+    if (!fs.existsSync(DATA_FILES.dashboard)) return res.json({});
+    const data = JSON.parse(fs.readFileSync(DATA_FILES.dashboard, 'utf8'));
+    res.json(data);
+  } catch(e) {
+    res.json({});
+  }
+});
+
+app.post('/data/dashboard', (req, res) => {
+  try {
+    fs.writeFileSync(DATA_FILES.dashboard, JSON.stringify(req.body, null, 2));
+    console.log('  → Dashboard saved: ' + (req.body.tools || []).length + ' tools');
+    res.json({ success: true });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }

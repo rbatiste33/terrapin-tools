@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Terrapin Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F0E8;
+  --dark: #2C3E2D;
+  --gold: #C9A84C;
+  --card-bg: #FFFFFF;
+  --card-border: #E8E0D0;
+  --text: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --green: #4A7C59;
+  --badge-bg: #F0EBE0;
+}
+
+html, body {
+  min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+/* ── HEADER BAR ── */
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.greeting {
+  font-family: 'Lora', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.agent-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+  transition: color 0.15s;
+}
+.agent-link:hover { color: var(--gold); }
+
+.agent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.agent-dot.online { background: var(--green); }
+
+.settings-btn {
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.settings-btn:hover {
+  background: var(--dark);
+  color: #fff;
+  border-color: var(--dark);
+}
+
+.lang-toggle {
+  display: flex;
+  gap: 2px;
+}
+.lang-toggle button {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--card-border);
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  transition: all 0.12s;
+}
+.lang-toggle button:first-child { border-radius: 4px 0 0 4px; }
+.lang-toggle button:last-child { border-radius: 0 4px 4px 0; }
+.lang-toggle button.active {
+  background: var(--dark);
+  color: #fff;
+  border-color: var(--dark);
+}
+
+/* ── CLOCK ── */
+.clock-section {
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+}
+
+.clock-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 48px;
+  font-weight: 500;
+  color: var(--dark);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.clock-date {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ── WIDGETS ── */
+.widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+
+.widget-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.widget-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.widget-title {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.widget-list {
+  list-style: none;
+  flex: 1;
+}
+
+.widget-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0ece4;
+  font-size: 13px;
+  color: var(--text);
+}
+.widget-list li:last-child { border-bottom: none; }
+
+.widget-list .event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.event-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-title {
+  flex: 1;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.contact-biz {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.knowledge-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.category-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: capitalize;
+  background: var(--badge-bg);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.knowledge-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.widget-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 12px 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.widget-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.widget-footer a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.widget-footer a:hover { color: var(--gold); }
+
+/* ── TOOLS GRID ── */
+.tools-section-title {
+  font-family: 'Lora', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.tool-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  cursor: default;
+}
+.tool-card:hover { border-color: #d4cfc4; }
+
+.drag-handle {
+  cursor: grab;
+  color: var(--card-border);
+  font-size: 18px;
+  user-select: none;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.drag-handle:hover { color: var(--text-secondary); }
+
+.tool-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.tool-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-open-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  background: var(--dark);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.tool-open-btn:hover { background: var(--green); }
+
+/* Dragging states */
+.tool-card.dragging {
+  opacity: 0.5;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.tool-card.drag-over {
+  border-color: var(--gold);
+  border-style: dashed;
+}
+
+/* ── SETTINGS MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--card-bg);
+  border-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-family: 'Lora', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s;
+}
+.modal-close:hover { background: #f5f0e8; }
+
+.tool-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tool-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.tool-toggle:hover { border-color: #d4cfc4; }
+.tool-toggle.active { border-color: var(--dark); background: #f9f7f2; }
+.tool-toggle.locked {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.toggle-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: transparent;
+  transition: all 0.12s;
+}
+.tool-toggle.active .toggle-check {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: #fff;
+}
+
+.toggle-info { flex: 1; min-width: 0; }
+.toggle-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.toggle-desc { font-size: 12px; color: var(--text-secondary); }
+
+.locked-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--badge-bg);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.modal-profile-link {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dark);
+  text-decoration: none;
+  margin-bottom: 20px;
+  transition: color 0.15s;
+}
+.modal-profile-link:hover { color: var(--gold); }
+
+.modal-save-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 28px;
+  background: var(--dark);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s;
+}
+.modal-save-btn:hover { background: var(--green); }
+
+/* ── FOOTER ── */
+.dash-footer {
+  text-align: center;
+  padding: 2rem 0 1rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.dash-footer p {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dash-footer a {
+  font-size: 13px;
+  color: var(--dark);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.dash-footer a:hover { color: var(--gold); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .widgets-grid {
+    grid-template-columns: 1fr;
+  }
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
+  .header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .clock-time {
+    font-size: 40px;
+  }
+  .greeting {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .clock-time {
+    font-size: 36px;
+  }
+  .modal {
+    padding: 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="greeting" id="greeting"></div>
+    <div class="header-right">
+      <a href="agent.html" class="agent-link">
+        <span class="agent-dot" id="agentDot"></span>
+        <span data-i18n="chat_agent">Chat with Terrapin</span>
+      </a>
+      <button class="settings-btn" onclick="openSettings()" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <div class="lang-toggle">
+        <button onclick="setLang('en')" id="langEn">EN</button>
+        <button onclick="setLang('es')" id="langEs">ES</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock -->
+  <div class="clock-section">
+    <div class="clock-time" id="clockTime"></div>
+    <div class="clock-date" id="clockDate"></div>
+  </div>
+
+  <!-- Widgets -->
+  <div class="widgets-grid" id="widgetsGrid"></div>
+
+  <!-- Tools Grid -->
+  <div id="toolsSection"></div>
+
+  <!-- Footer -->
+  <div class="dash-footer">
+    <p>A Terrapin Tool &mdash; <a href="https://terrapin.tools">terrapin.tools</a></p>
+    <a href="tools/business-profile.html" data-i18n="edit_profile_footer" style="display:inline-block;margin-top:6px;">Edit your business profile &rarr;</a>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" data-i18n="settings_title">Settings</div>
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="tool-toggle-list" id="toolToggleList"></div>
+    <a href="tools/business-profile.html" class="modal-profile-link" data-i18n="edit_profile_link">Edit your business details &rarr;</a>
+    <button class="modal-save-btn" onclick="saveSettings()" data-i18n="save_btn">Save</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  ALL TOOLS DATA
+// ══════════════════════════════════════
+var ALL_TOOLS = [
+  {id: "turtle-shell", name: "Turtle Shell", nameEs: "Turtle Shell", description: "Business knowledge base \u2014 store preferences, policies, pricing rules", descriptionEs: "Base de conocimiento \u2014 guarda preferencias, pol\u00edticas, reglas de precios", category: "all", file: "tools/turtle-shell.html", widget: true},
+  {id: "catering-quote-builder", name: "Catering Quote Builder", nameEs: "Cotizador de Catering", description: "Build professional catering quotes with menu items and pricing", descriptionEs: "Crea cotizaciones de catering con men\u00fas y precios", category: "catering", file: "tools/catering-quote-builder.html"},
+  {id: "contractor-invoice-generator", name: "Contractor Invoice Generator", nameEs: "Generador de Facturas", description: "Create clean invoices with labor, materials, and PDF export", descriptionEs: "Crea facturas con mano de obra, materiales y exportaci\u00f3n PDF", category: "contractors", file: "tools/contractor-invoice-generator.html"},
+  {id: "simple-crm", name: "Simple CRM", nameEs: "CRM Simple", description: "Track your clients, follow-ups, and notes", descriptionEs: "Rastrea clientes, seguimientos y notas", category: "freelancers", file: "tools/simple-crm.html", widget: true},
+  {id: "tip-calculator", name: "Tip Calculator & Staff Splitter", nameEs: "Calculadora de Propinas", description: "Calculate tips and split across staff by role", descriptionEs: "Calcula propinas y rep\u00e1rtelas por rol", category: "restaurants", file: "tools/tip-calculator.html"},
+  {id: "street-vendor-order-log", name: "Street Vendor Order Log", nameEs: "Registro de Pedidos", description: "Track orders, totals, and daily sales", descriptionEs: "Registra pedidos, totales y ventas del d\u00eda", category: "restaurants", file: "tools/street-vendor-order-log.html"},
+  {id: "qr-code-generator", name: "QR Code Generator", nameEs: "Generador de C\u00f3digos QR", description: "Create QR codes for URLs, text, WiFi, and more", descriptionEs: "Crea c\u00f3digos QR para URLs, texto, WiFi y m\u00e1s", category: "all", file: "tools/qr-code-generator.html"},
+  {id: "job-site-daily-log", name: "Job Site Daily Log", nameEs: "Bit\u00e1cora de Obra", description: "Log daily work, weather, notes for job sites", descriptionEs: "Registra trabajo diario, clima y notas de obra", category: "contractors", file: "tools/job-site-daily-log.html"},
+  {id: "simple-calendar", name: "Simple Calendar", nameEs: "Calendario Simple", description: "Track appointments, deadlines, and events", descriptionEs: "Registra citas, fechas l\u00edmite y eventos", category: "all", file: "tools/simple-calendar.html", widget: true}
+];
+
+// ══════════════════════════════════════
+//  i18n
+// ══════════════════════════════════════
+var STRINGS = {
+  en: {
+    good_morning: "Good morning",
+    good_afternoon: "Good afternoon",
+    good_evening: "Good evening",
+    chat_agent: "Chat with Terrapin",
+    upcoming: "Upcoming",
+    contacts: "Contacts",
+    knowledge: "Knowledge",
+    view_all: "View all \u2192",
+    no_events: "No upcoming events",
+    no_contacts: "No contacts yet",
+    no_notes: "No notes yet",
+    your_tools: "Your Tools",
+    open: "Open",
+    settings_title: "Settings",
+    edit_profile_link: "Edit your business details \u2192",
+    edit_profile_footer: "Edit your business profile \u2192",
+    save_btn: "Save",
+    always_on: "Always on"
+  },
+  es: {
+    good_morning: "Buenos d\u00edas",
+    good_afternoon: "Buenas tardes",
+    good_evening: "Buenas noches",
+    chat_agent: "Chatea con Terrapin",
+    upcoming: "Pr\u00f3ximos",
+    contacts: "Contactos",
+    knowledge: "Conocimiento",
+    view_all: "Ver todo \u2192",
+    no_events: "Sin eventos pr\u00f3ximos",
+    no_contacts: "Sin contactos a\u00fan",
+    no_notes: "Sin notas a\u00fan",
+    your_tools: "Tus Herramientas",
+    open: "Abrir",
+    settings_title: "Configuraci\u00f3n",
+    edit_profile_link: "Editar detalles de tu negocio \u2192",
+    edit_profile_footer: "Editar tu perfil de negocio \u2192",
+    save_btn: "Guardar",
+    always_on: "Siempre activo"
+  }
+};
+
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+var lang = 'en';
+var dashConfig = null;
+var calendarData = [];
+var crmData = [];
+var knowledgeData = [];
+var ownerFirstName = '';
+var agentOnline = false;
+
+// Widget tool IDs
+var WIDGET_TOOLS = ['simple-calendar', 'simple-crm', 'turtle-shell'];
+
+function t(key) { return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.en[key] || key; }
+
+// ══════════════════════════════════════
+//  BOOT SEQUENCE
+// ══════════════════════════════════════
+function boot() {
+  // 1. Detect language
+  var savedLang = localStorage.getItem('terrapin-language');
+  if (savedLang && (savedLang === 'en' || savedLang === 'es')) {
+    lang = savedLang;
+  } else {
+    var navLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+    lang = navLang.startsWith('es') ? 'es' : 'en';
+  }
+  updateLangButtons();
+
+  // 2. Load config
+  var localConfig = null;
+  try {
+    localConfig = JSON.parse(localStorage.getItem('terrapin-dashboard'));
+  } catch(e) {}
+
+  // 3. Try server, then decide
+  fetchJSON('http://localhost:7777/data/dashboard').then(function(serverData) {
+    agentOnline = true;
+    dashConfig = serverData || localConfig;
+    if (!dashConfig) {
+      window.location.href = 'setup-wizard.html';
+      return;
+    }
+    // Sync to localStorage
+    localStorage.setItem('terrapin-dashboard', JSON.stringify(dashConfig));
+    afterConfigLoaded();
+  }).catch(function() {
+    agentOnline = false;
+    dashConfig = localConfig;
+    if (!dashConfig) {
+      window.location.href = 'setup-wizard.html';
+      return;
+    }
+    afterConfigLoaded();
+  });
+
+  // 4. Check agent health
+  checkAgentHealth();
+}
+
+function afterConfigLoaded() {
+  // Load business profile for name
+  loadOwnerName();
+  // Load widget data
+  loadAllWidgetData().then(function() {
+    render();
+    startClock();
+  });
+}
+
+function loadOwnerName() {
+  try {
+    var profile = JSON.parse(localStorage.getItem('terrapin_business_profile'));
+    if (profile && profile.ownerName) {
+      var parts = profile.ownerName.trim().split(/\s+/);
+      ownerFirstName = parts[0];
+    }
+  } catch(e) {}
+}
+
+function checkAgentHealth() {
+  fetch('http://localhost:7777/health', {method: 'GET', signal: AbortSignal.timeout(3000)})
+    .then(function(r) {
+      if (r.ok) {
+        agentOnline = true;
+        document.getElementById('agentDot').classList.add('online');
+      }
+    })
+    .catch(function() {
+      agentOnline = false;
+      document.getElementById('agentDot').classList.remove('online');
+    });
+}
+
+function fetchJSON(url) {
+  return fetch(url, {method: 'GET', signal: AbortSignal.timeout(3000)})
+    .then(function(r) {
+      if (!r.ok) throw new Error('Not OK');
+      return r.json();
+    });
+}
+
+function loadAllWidgetData() {
+  var tools = (dashConfig && dashConfig.tools) || [];
+  var promises = [];
+
+  if (tools.indexOf('simple-calendar') !== -1) {
+    promises.push(loadData('/data/calendar', 'terrapin-calendar').then(function(d) { calendarData = d || []; }));
+  }
+  if (tools.indexOf('simple-crm') !== -1) {
+    promises.push(loadData('/data/crm', 'scrm_contacts').then(function(d) { crmData = d || []; }));
+  }
+  if (tools.indexOf('turtle-shell') !== -1) {
+    promises.push(loadData('/data/knowledge', 'terrapin_knowledge').then(function(d) { knowledgeData = d || []; }));
+  }
+
+  return Promise.all(promises);
+}
+
+function loadData(serverPath, localKey) {
+  if (agentOnline) {
+    return fetchJSON('http://localhost:7777' + serverPath)
+      .then(function(d) { return d; })
+      .catch(function() {
+        try { return JSON.parse(localStorage.getItem(localKey)) || []; } catch(e) { return []; }
+      });
+  } else {
+    try {
+      return Promise.resolve(JSON.parse(localStorage.getItem(localKey)) || []);
+    } catch(e) {
+      return Promise.resolve([]);
+    }
+  }
+}
+
+// ══════════════════════════════════════
+//  SAVE CONFIG
+// ══════════════════════════════════════
+function saveConfig() {
+  localStorage.setItem('terrapin-dashboard', JSON.stringify(dashConfig));
+  try {
+    fetch('http://localhost:7777/data/dashboard', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(dashConfig)
+    }).catch(function(){});
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function render() {
+  renderGreeting();
+  renderClock();
+  renderWidgets();
+  renderTools();
+  applyI18n();
+}
+
+function renderGreeting() {
+  var h = new Date().getHours();
+  var greetKey = h < 12 ? 'good_morning' : (h < 17 ? 'good_afternoon' : 'good_evening');
+  var greet = t(greetKey);
+  var name = ownerFirstName || '';
+  document.getElementById('greeting').textContent = name ? greet + ', ' + name : greet;
+}
+
+// ── Clock ──
+function renderClock() {
+  var now = new Date();
+  var hh = String(now.getHours()).padStart(2, '0');
+  var mm = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('clockTime').textContent = hh + ':' + mm;
+  document.getElementById('clockDate').textContent = formatFullDate(now);
+}
+
+function formatFullDate(d) {
+  if (lang === 'es') {
+    var days = ['domingo','lunes','martes','mi\u00e9rcoles','jueves','viernes','s\u00e1bado'];
+    var months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return days[d.getDay()] + ', ' + d.getDate() + ' de ' + months[d.getMonth()] + ' de ' + d.getFullYear();
+  } else {
+    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+}
+
+function startClock() {
+  setInterval(function() {
+    renderClock();
+  }, 1000);
+}
+
+// ── Widgets ──
+function renderWidgets() {
+  var container = document.getElementById('widgetsGrid');
+  var tools = (dashConfig && dashConfig.tools) || [];
+  var html = '';
+  var hasWidgets = false;
+
+  if (tools.indexOf('simple-calendar') !== -1) {
+    html += buildCalendarWidget();
+    hasWidgets = true;
+  }
+  if (tools.indexOf('simple-crm') !== -1) {
+    html += buildCrmWidget();
+    hasWidgets = true;
+  }
+  if (tools.indexOf('turtle-shell') !== -1) {
+    html += buildKnowledgeWidget();
+    hasWidgets = true;
+  }
+
+  container.innerHTML = html;
+  container.style.display = hasWidgets ? '' : 'none';
+
+  // Adjust grid columns based on widget count
+  var count = container.children.length;
+  if (count === 1) {
+    container.style.gridTemplateColumns = '1fr';
+  } else if (count === 2) {
+    container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+  } else {
+    container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+  }
+}
+
+function buildCalendarWidget() {
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var todayStr = today.toISOString().slice(0,10);
+
+  // Filter future events and sort
+  var upcoming = (calendarData || []).filter(function(ev) {
+    return ev.date >= todayStr;
+  }).sort(function(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.time || '') < (b.time || '') ? -1 : 1;
+  }).slice(0, 3);
+
+  var listHtml = '';
+  if (upcoming.length === 0) {
+    listHtml = '<div class="widget-empty">' + t('no_events') + '</div>';
+  } else {
+    listHtml = '<ul class="widget-list">';
+    upcoming.forEach(function(ev) {
+      var dateParts = ev.date.split('-');
+      var shortDate = dateParts[1] + '/' + dateParts[2];
+      var timeStr = ev.time ? ' ' + ev.time : '';
+      listHtml += '<li><div class="event-row"><span class="event-meta">' + escHtml(shortDate + timeStr) + '</span><span class="event-title">' + escHtml(ev.title || '') + '</span></div></li>';
+    });
+    listHtml += '</ul>';
+  }
+
+  return '<div class="widget-card">' +
+    '<div class="widget-header"><span class="widget-icon">\uD83D\uDCC5</span><span class="widget-title">' + t('upcoming') + '</span></div>' +
+    listHtml +
+    '<div class="widget-footer"><a href="tools/simple-calendar.html">' + t('view_all') + '</a></div>' +
+    '</div>';
+}
+
+function buildCrmWidget() {
+  var recent = (crmData || []).slice(-4).reverse();
+
+  var listHtml = '';
+  if (recent.length === 0) {
+    listHtml = '<div class="widget-empty">' + t('no_contacts') + '</div>';
+  } else {
+    listHtml = '<ul class="widget-list">';
+    recent.forEach(function(c) {
+      listHtml += '<li><div class="contact-row"><span class="contact-name">' + escHtml(c.name || '') + '</span>';
+      if (c.business) {
+        listHtml += '<span class="contact-biz">' + escHtml(c.business) + '</span>';
+      }
+      listHtml += '</div></li>';
+    });
+    listHtml += '</ul>';
+  }
+
+  return '<div class="widget-card">' +
+    '<div class="widget-header"><span class="widget-icon">\uD83D\uDC65</span><span class="widget-title">' + t('contacts') + '</span></div>' +
+    listHtml +
+    '<div class="widget-footer"><a href="tools/simple-crm.html">' + t('view_all') + '</a></div>' +
+    '</div>';
+}
+
+function buildKnowledgeWidget() {
+  var recent = (knowledgeData || []).slice(-3).reverse();
+
+  var listHtml = '';
+  if (recent.length === 0) {
+    listHtml = '<div class="widget-empty">' + t('no_notes') + '</div>';
+  } else {
+    listHtml = '<ul class="widget-list">';
+    recent.forEach(function(entry) {
+      var noteText = (entry.note || '').length > 60 ? entry.note.slice(0, 60) + '\u2026' : (entry.note || '');
+      listHtml += '<li><div class="knowledge-row"><span class="category-badge">' + escHtml(entry.category || 'general') + '</span><span class="knowledge-text">' + escHtml(noteText) + '</span></div></li>';
+    });
+    listHtml += '</ul>';
+  }
+
+  return '<div class="widget-card">' +
+    '<div class="widget-header"><span class="widget-icon">\uD83E\uDDE0</span><span class="widget-title">' + t('knowledge') + '</span></div>' +
+    listHtml +
+    '<div class="widget-footer"><a href="tools/turtle-shell.html">' + t('view_all') + '</a></div>' +
+    '</div>';
+}
+
+// ── Tools Grid ──
+function renderTools() {
+  var section = document.getElementById('toolsSection');
+  var tools = (dashConfig && dashConfig.tools) || [];
+  var order = (dashConfig && dashConfig.order) || tools;
+
+  // Filter to non-widget tools that are enabled
+  var nonWidgetIds = order.filter(function(id) {
+    return WIDGET_TOOLS.indexOf(id) === -1 && tools.indexOf(id) !== -1;
+  });
+
+  // Also add any enabled non-widget tools not yet in order
+  tools.forEach(function(id) {
+    if (WIDGET_TOOLS.indexOf(id) === -1 && nonWidgetIds.indexOf(id) === -1) {
+      nonWidgetIds.push(id);
+    }
+  });
+
+  if (nonWidgetIds.length === 0) {
+    section.innerHTML = '';
+    return;
+  }
+
+  var html = '<div class="tools-section-title" data-i18n="your_tools">' + t('your_tools') + '</div>';
+  html += '<div class="tools-grid" id="toolsGridInner">';
+
+  nonWidgetIds.forEach(function(id) {
+    var tool = getToolById(id);
+    if (!tool) return;
+    var name = lang === 'es' && tool.nameEs ? tool.nameEs : tool.name;
+    var desc = lang === 'es' && tool.descriptionEs ? tool.descriptionEs : tool.description;
+    html += '<div class="tool-card" draggable="true" data-tool-id="' + id + '">' +
+      '<span class="drag-handle">\u2807</span>' +
+      '<div class="tool-info"><div class="tool-name">' + escHtml(name) + '</div><div class="tool-desc">' + escHtml(desc) + '</div></div>' +
+      '<button class="tool-open-btn" onclick="window.location.href=\'' + tool.file + '\'">' + t('open') + '</button>' +
+      '</div>';
+  });
+
+  html += '</div>';
+  section.innerHTML = html;
+
+  // Setup drag-and-drop
+  setupDragAndDrop();
+}
+
+function getToolById(id) {
+  for (var i = 0; i < ALL_TOOLS.length; i++) {
+    if (ALL_TOOLS[i].id === id) return ALL_TOOLS[i];
+  }
+  return null;
+}
+
+// ── Drag and Drop ──
+var draggedEl = null;
+var draggedId = null;
+
+function setupDragAndDrop() {
+  var cards = document.querySelectorAll('.tool-card[draggable="true"]');
+  cards.forEach(function(card) {
+    // Mouse drag
+    card.addEventListener('dragstart', function(e) {
+      draggedEl = card;
+      draggedId = card.getAttribute('data-tool-id');
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedId);
+    });
+
+    card.addEventListener('dragend', function() {
+      card.classList.remove('dragging');
+      clearDragOver();
+      draggedEl = null;
+      draggedId = null;
+    });
+
+    card.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (card !== draggedEl) {
+        clearDragOver();
+        card.classList.add('drag-over');
+      }
+    });
+
+    card.addEventListener('dragleave', function() {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', function(e) {
+      e.preventDefault();
+      clearDragOver();
+      if (!draggedId) return;
+      var targetId = card.getAttribute('data-tool-id');
+      if (draggedId === targetId) return;
+      reorderTools(draggedId, targetId);
+    });
+
+    // Touch drag
+    var touchStartY = 0;
+    var touchClone = null;
+    var touchActive = false;
+
+    card.addEventListener('touchstart', function(e) {
+      var handle = card.querySelector('.drag-handle');
+      if (!handle) return;
+      var touch = e.touches[0];
+      var rect = handle.getBoundingClientRect();
+      // Only start drag if touch is on the handle
+      if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+          touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        touchActive = true;
+        draggedEl = card;
+        draggedId = card.getAttribute('data-tool-id');
+        touchStartY = touch.clientY;
+        card.classList.add('dragging');
+      }
+    }, {passive: true});
+
+    card.addEventListener('touchmove', function(e) {
+      if (!touchActive) return;
+      e.preventDefault();
+      var touch = e.touches[0];
+      var target = document.elementFromPoint(touch.clientX, touch.clientY);
+      clearDragOver();
+      if (target) {
+        var targetCard = target.closest('.tool-card');
+        if (targetCard && targetCard !== draggedEl) {
+          targetCard.classList.add('drag-over');
+        }
+      }
+    }, {passive: false});
+
+    card.addEventListener('touchend', function(e) {
+      if (!touchActive) return;
+      touchActive = false;
+      card.classList.remove('dragging');
+      var touch = e.changedTouches[0];
+      var target = document.elementFromPoint(touch.clientX, touch.clientY);
+      clearDragOver();
+      if (target) {
+        var targetCard = target.closest('.tool-card');
+        if (targetCard && targetCard !== draggedEl) {
+          var targetId = targetCard.getAttribute('data-tool-id');
+          reorderTools(draggedId, targetId);
+        }
+      }
+      draggedEl = null;
+      draggedId = null;
+    });
+  });
+}
+
+function clearDragOver() {
+  document.querySelectorAll('.tool-card.drag-over').forEach(function(el) {
+    el.classList.remove('drag-over');
+  });
+}
+
+function reorderTools(fromId, toId) {
+  var order = dashConfig.order || dashConfig.tools.slice();
+
+  var fromIdx = order.indexOf(fromId);
+  var toIdx = order.indexOf(toId);
+  if (fromIdx === -1 || toIdx === -1) return;
+
+  // Remove from old position and insert at new
+  order.splice(fromIdx, 1);
+  order.splice(toIdx, 0, fromId);
+
+  dashConfig.order = order;
+  saveConfig();
+  renderTools();
+}
+
+// ── Settings Modal ──
+function openSettings() {
+  var modal = document.getElementById('settingsModal');
+  var list = document.getElementById('toolToggleList');
+  var currentTools = (dashConfig && dashConfig.tools) || [];
+
+  var html = '';
+  ALL_TOOLS.forEach(function(tool) {
+    var isActive = currentTools.indexOf(tool.id) !== -1;
+    var isLocked = tool.id === 'turtle-shell';
+    var name = lang === 'es' && tool.nameEs ? tool.nameEs : tool.name;
+    var desc = lang === 'es' && tool.descriptionEs ? tool.descriptionEs : tool.description;
+
+    html += '<div class="tool-toggle' + (isActive ? ' active' : '') + (isLocked ? ' locked' : '') + '" data-tool-id="' + tool.id + '"' + (isLocked ? '' : ' onclick="toggleTool(this)"') + '>' +
+      '<div class="toggle-check">\u2713</div>' +
+      '<div class="toggle-info"><div class="toggle-name">' + escHtml(name) + '</div><div class="toggle-desc">' + escHtml(desc) + '</div></div>' +
+      (isLocked ? '<span class="locked-badge">' + t('always_on') + '</span>' : '') +
+      '</div>';
+  });
+
+  list.innerHTML = html;
+  modal.classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('open');
+}
+
+function toggleTool(el) {
+  el.classList.toggle('active');
+}
+
+function saveSettings() {
+  var toggles = document.querySelectorAll('.tool-toggle.active');
+  var newTools = [];
+  toggles.forEach(function(el) {
+    newTools.push(el.getAttribute('data-tool-id'));
+  });
+
+  // Ensure turtle-shell always included
+  if (newTools.indexOf('turtle-shell') === -1) {
+    newTools.unshift('turtle-shell');
+  }
+
+  dashConfig.tools = newTools;
+
+  // Update order: keep existing order for tools that remain, add new ones at end
+  var oldOrder = dashConfig.order || [];
+  var newOrder = [];
+  oldOrder.forEach(function(id) {
+    if (newTools.indexOf(id) !== -1) {
+      newOrder.push(id);
+    }
+  });
+  newTools.forEach(function(id) {
+    if (newOrder.indexOf(id) === -1) {
+      newOrder.push(id);
+    }
+  });
+  dashConfig.order = newOrder;
+
+  saveConfig();
+  closeSettings();
+
+  // Reload widget data for any newly enabled tools, then re-render
+  loadAllWidgetData().then(function() {
+    render();
+  });
+}
+
+// Close modal on overlay click
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// ── Language ──
+function setLang(newLang) {
+  lang = newLang;
+  localStorage.setItem('terrapin-language', lang);
+  updateLangButtons();
+  render();
+}
+
+function updateLangButtons() {
+  document.getElementById('langEn').classList.toggle('active', lang === 'en');
+  document.getElementById('langEs').classList.toggle('active', lang === 'es');
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    var val = t(key);
+    if (val && val !== key) {
+      el.textContent = val;
+    }
+  });
+}
+
+// ── Utility ──
+function escHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+// ── Visibility change (auto-refresh) ──
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && dashConfig) {
+    checkAgentHealth();
+    loadAllWidgetData().then(function() {
+      renderGreeting();
+      renderWidgets();
+    });
+  }
+});
+
+// ── Start ──
+boot();
+</script>
+</body>
+</html>

@@ -744,9 +744,9 @@
       </video>
       <h1 data-i18n="hero_h1">Stop managing your tools.<br>Start managing your business.</h1>
       <p class="subline" data-i18n="hero_sub">Terrapin knows your clients, your rates, and your business. Just tell him what to do.</p>
-      <div class="hero-ctas">
-        <a href="#tools" class="btn-primary" data-i18n="cta_browse">Browse Free Tools</a>
-        <a href="#categories" class="btn-secondary" data-i18n="cta_all">See All Tools</a>
+      <div class="hero-ctas" id="hero-ctas">
+        <a href="setup-wizard.html" class="btn-primary" id="cta-start" data-i18n="cta_start">Get Started</a>
+        <a href="#tools" class="btn-secondary" data-i18n="cta_browse">Browse Free Tools</a>
       </div>
     </div>
   </section>
@@ -973,6 +973,8 @@ const T = {
   en: {
     hero_h1: 'Stop managing your tools.<br>Start managing your business.',
     hero_sub: 'Terrapin knows your clients, your rates, and your business. Just tell him what to do.',
+    cta_start: 'Get Started',
+    cta_dashboard: 'Open Your Dashboard',
     cta_browse: 'Browse Free Tools',
     cta_all: 'See All Tools',
     nav_browse: 'Browse Tools',
@@ -1045,6 +1047,8 @@ const T = {
   es: {
     hero_h1: 'Deja de administrar tus herramientas.<br>Empieza a administrar tu negocio.',
     hero_sub: 'Terrapin conoce a tus clientes, tus tarifas y tu negocio. Solo dile qu\u00e9 hacer.',
+    cta_start: 'Comenzar',
+    cta_dashboard: 'Abrir Tu Dashboard',
     cta_browse: 'Ver Herramientas Gratis',
     cta_all: 'Ver Todo',
     nav_browse: 'Ver Herramientas',
@@ -1135,6 +1139,22 @@ function setLang(lang) {
   if (saved) { setLang(saved); return; }
   var nav = (navigator.language || '').toLowerCase();
   if (nav.startsWith('es')) setLang('es');
+})();
+
+// Swap hero CTA for returning users who completed onboarding
+(function() {
+  try {
+    var dash = JSON.parse(localStorage.getItem('terrapin-dashboard') || '{}');
+    if (dash.onboarding_complete) {
+      var btn = document.getElementById('cta-start');
+      if (btn) {
+        btn.href = 'dashboard.html';
+        btn.setAttribute('data-i18n', 'cta_dashboard');
+        var lang = localStorage.getItem('terrapin-language') || 'en';
+        btn.textContent = lang === 'es' ? 'Abrir Tu Dashboard' : 'Open Your Dashboard';
+      }
+    }
+  } catch(e) {}
 })();
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
