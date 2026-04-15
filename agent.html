@@ -2081,6 +2081,15 @@ function saveProjectData(params) {
     });
     p.updatedAt = new Date().toISOString();
     localStorage.setItem(LS_KEY, JSON.stringify(projects));
+    // Sync to IndexedDB
+    try {
+      var idbReq2 = indexedDB.open('terrapin-projects', 1);
+      idbReq2.onupgradeneeded = function() { idbReq2.result.createObjectStore('data'); };
+      idbReq2.onsuccess = function() {
+        var tx = idbReq2.result.transaction('data', 'readwrite');
+        tx.objectStore('data').put(projects, 'projects');
+      };
+    } catch(e) {}
     var totalH = p.timeLog.reduce(function(s, e) { return s + e.hours; }, 0);
     var totalE = totalH * rate;
     // Persist to agent server
@@ -2090,16 +2099,16 @@ function saveProjectData(params) {
   }
 
   if (action === 'add') {
-    // Dedup: skip if a project with the same name was added in the last 5 seconds
+    // Dedup: skip if a project with the same name already exists (any time)
     var newName = (params.project_name || '').toLowerCase().trim();
     if (newName) {
-      var fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
       var dup = projects.find(function(x) {
-        return x.projectName.toLowerCase().trim() === newName && x.createdAt > fiveSecsAgo;
+        return x.projectName.toLowerCase().trim() === newName;
       });
       if (dup) {
-        console.log('saveProjectData: blocked duplicate project "' + params.project_name + '" (same name within 5s)');
-        return { success: true, message: 'Already saved' };
+        console.log('saveProjectData: blocked duplicate project "' + params.project_name + '" (already exists)');
+        var es3 = currentLang === 'es';
+        return { success: true, message: (es3 ? 'El proyecto "' : 'Project "') + params.project_name + (es3 ? '" ya existe' : '" already exists') };
       }
     }
 
@@ -2121,6 +2130,15 @@ function saveProjectData(params) {
     };
     projects.push(np);
     localStorage.setItem(LS_KEY, JSON.stringify(projects));
+    // Sync to IndexedDB — keeps all 3 stores consistent so tool's loadData() merge won't create duplicates
+    try {
+      var idbReq = indexedDB.open('terrapin-projects', 1);
+      idbReq.onupgradeneeded = function() { idbReq.result.createObjectStore('data'); };
+      idbReq.onsuccess = function() {
+        var tx = idbReq.result.transaction('data', 'readwrite');
+        tx.objectStore('data').put(projects, 'projects');
+      };
+    } catch(e) {}
     try { fetch(AGENT_URL + '/data/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projects: projects }) }).catch(function() {}); } catch(e) {}
     var es2 = currentLang === 'es';
     return { success: true, message: (es2 ? 'Proyecto creado: ' : 'Project created: ') + np.projectName + (np.fee ? ' — $' + np.fee : '') };
