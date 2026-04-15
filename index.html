@@ -1142,19 +1142,30 @@ function setLang(lang) {
 })();
 
 // Swap hero CTA for returning users who completed onboarding
+function showDashboardCTA() {
+  var btn = document.getElementById('cta-start');
+  if (btn) {
+    btn.href = 'dashboard.html';
+    btn.setAttribute('data-i18n', 'cta_dashboard');
+    var lang = localStorage.getItem('terrapin-language') || 'en';
+    btn.textContent = lang === 'es' ? 'Abrir Tu Dashboard' : 'Open Your Dashboard';
+  }
+}
 (function() {
+  // Check localStorage first (instant)
   try {
     var dash = JSON.parse(localStorage.getItem('terrapin-dashboard') || '{}');
-    if (dash.onboarding_complete) {
-      var btn = document.getElementById('cta-start');
-      if (btn) {
-        btn.href = 'dashboard.html';
-        btn.setAttribute('data-i18n', 'cta_dashboard');
-        var lang = localStorage.getItem('terrapin-language') || 'en';
-        btn.textContent = lang === 'es' ? 'Abrir Tu Dashboard' : 'Open Your Dashboard';
-      }
-    }
+    if (dash.onboarding_complete) { showDashboardCTA(); return; }
   } catch(e) {}
+  // Fallback: check server — handles cleared browser cache
+  fetch('http://localhost:7777/data/dashboard', {signal: AbortSignal.timeout(2000)})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data && data.onboarding_complete) {
+        localStorage.setItem('terrapin-dashboard', JSON.stringify(data));
+        showDashboardCTA();
+      }
+    }).catch(function() {});
 })();
 
 // On localhost, swap agent link to chat if server is running
