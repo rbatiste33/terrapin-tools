@@ -860,11 +860,6 @@ function finishSetup() {
     createdAt: new Date().toISOString()
   };
   localStorage.setItem('terrapin_business_profile', JSON.stringify(profile));
-  fetch('http://localhost:7777/data/profile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(profile)
-  }).catch(function() {});
 
   // 2. Save dashboard config
   var dashConfig = {
@@ -875,14 +870,22 @@ function finishSetup() {
     createdAt: new Date().toISOString()
   };
   localStorage.setItem('terrapin-dashboard', JSON.stringify(dashConfig));
-  fetch('http://localhost:7777/data/dashboard', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(dashConfig)
-  }).catch(function() {});
 
-  // 3. Redirect
-  window.location.href = 'dashboard.html';
+  // 3. Save to server, then redirect — wait for POST so dashboard doesn't load stale data
+  Promise.all([
+    fetch('http://localhost:7777/data/dashboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dashConfig)
+    }).catch(function() {}),
+    fetch('http://localhost:7777/data/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile)
+    }).catch(function() {})
+  ]).then(function() {
+    window.location.href = 'dashboard.html';
+  });
 }
 
 /* ───── Pre-fill from existing profile ───── */
