@@ -1,0 +1,608 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Turtle Shell
+Type: data
+Description: Business knowledge base — store preferences, policies, pricing rules, and anything the agent should know
+Parameters:
+  - action (string, required): add or delete
+  - category (string, optional): hours|pricing|suppliers|policies|preferences|processes|seasonal|general
+  - note (string, required for add): the knowledge text to save
+  - id (string, required for delete): entry ID to remove
+  - autorun (boolean, optional): true to auto-execute without human interaction
+Output: Knowledge entry saved confirmation
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turtle Shell — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 800px; margin: 0 auto; }
+
+  .app-header { text-align: center; margin-bottom: 1.5rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .app-header p { font-size: 14px; color: #888; margin-top: 4px; }
+
+  /* Nav */
+  .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 13px; }
+  .top-nav a { color: #2C3E2D; text-decoration: none; font-weight: 500; }
+  .top-nav a:hover { text-decoration: underline; }
+  .lang-toggle { display: flex; gap: 4px; }
+  .lang-toggle button { font-family: 'DM Mono', monospace; font-size: 11px; padding: 4px 8px; border: 1px solid #e0e0db; border-radius: 4px; cursor: pointer; background: #fff; color: #888; }
+  .lang-toggle button.active { background: #2C3E2D; color: #fff; border-color: #2C3E2D; }
+
+  /* Category pills */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-pill {
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; padding: 5px 12px;
+    border-radius: 20px; cursor: pointer; border: 1px solid #e0e0db; background: #fff; color: #888;
+    transition: all 0.12s; text-transform: capitalize;
+  }
+  .filter-pill:hover { border-color: #2C3E2D; color: #2C3E2D; }
+  .filter-pill.active { background: #2C3E2D; color: #fff; border-color: #2C3E2D; }
+
+  /* Add form */
+  .add-form {
+    background: #fff; border: 1px solid #e0e0db; border-radius: 12px; padding: 20px;
+    margin-bottom: 1.5rem;
+  }
+  .add-form label { display: block; font-size: 12px; font-weight: 600; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .form-row select, .form-row textarea {
+    font-family: inherit; font-size: 14px; color: #1a1a1a; background: #fff;
+    border: 1px solid #e0e0db; border-radius: 8px; padding: 9px 12px;
+  }
+  .form-row select { width: 180px; }
+  .form-row select:focus, .form-row textarea:focus { outline: none; border-color: #2C3E2D; }
+  .form-row textarea { flex: 1; min-height: 60px; resize: vertical; }
+  .btn-primary { background: #2C3E2D; color: #fff; border: none; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: #3A5240; }
+
+  /* Entry cards */
+  .entries-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry-card {
+    background: #fff; border: 1px solid #e0e0db; border-radius: 10px; padding: 16px;
+    display: flex; gap: 12px; align-items: flex-start; transition: border-color 0.12s;
+  }
+  .entry-card:hover { border-color: #C8C0B0; }
+  .entry-badge {
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+    background: #F0EBE0; color: #6B6B6B;
+  }
+  .entry-content { flex: 1; min-width: 0; }
+  .entry-note { font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+  .entry-meta { font-size: 11px; color: #aaa; margin-top: 6px; font-family: 'DM Mono', monospace; }
+  .entry-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .entry-actions button {
+    font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
+    border: 1px solid #e0e0db; background: #fff; color: #888;
+  }
+  .entry-actions button:hover { border-color: #2C3E2D; color: #2C3E2D; }
+  .entry-actions button.delete:hover { border-color: #c0392b; color: #c0392b; }
+
+  /* Edit mode */
+  .edit-area { margin-top: 8px; }
+  .edit-area textarea { width: 100%; font-family: inherit; font-size: 14px; border: 1px solid #e0e0db; border-radius: 8px; padding: 8px; min-height: 50px; resize: vertical; }
+  .edit-area textarea:focus { outline: none; border-color: #2C3E2D; }
+  .edit-area select { font-family: inherit; font-size: 13px; border: 1px solid #e0e0db; border-radius: 6px; padding: 6px 8px; margin-right: 8px; }
+  .edit-btns { margin-top: 8px; display: flex; gap: 6px; }
+  .edit-btns button { font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; border: none; }
+  .edit-btns .save { background: #2C3E2D; color: #fff; }
+  .edit-btns .cancel { background: #eee; color: #666; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 3rem 1rem; color: #aaa; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* Count */
+  .count-bar { font-family: 'DM Mono', monospace; font-size: 11px; color: #aaa; margin-bottom: 8px; }
+
+  /* Footer */
+  .app-footer { text-align: center; margin-top: 2rem; font-size: 12px; color: #aaa; }
+  .app-footer a { color: #2C3E2D; text-decoration: none; }
+
+  /* Storage note */
+  .storage-note { text-align: center; font-size: 12px; color: #6B6B6B; margin-top: 12px; }
+  .storage-note a { color: #2C3E2D; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    body { padding: 1rem 0.75rem; }
+    .form-row { flex-direction: column; }
+    .form-row select { width: 100%; }
+    .entry-card { flex-direction: column; }
+    .entry-actions { align-self: flex-end; }
+  }
+
+  /* Hidden result div for agent */
+  #terrapin-result { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Nav -->
+  <div class="top-nav">
+    <a href="../">&larr; <span data-i18n="back">Back to Terrapin Tools</span></a>
+    <div class="lang-toggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-es" onclick="setLang('es')">ES</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="app-header">
+    <h1 data-i18n="title">Turtle Shell</h1>
+    <p data-i18n="subtitle">Your business knowledge base &mdash; everything the agent needs to know about how you run things.</p>
+  </div>
+
+  <!-- Category filter -->
+  <div class="filter-bar" id="filter-bar"></div>
+
+  <!-- Add form -->
+  <div class="add-form">
+    <div class="form-row">
+      <div>
+        <label data-i18n="lbl_category">Category</label>
+        <select id="f-category">
+          <option value="general" data-i18n="cat_general">General</option>
+          <option value="hours" data-i18n="cat_hours">Hours</option>
+          <option value="pricing" data-i18n="cat_pricing">Pricing</option>
+          <option value="suppliers" data-i18n="cat_suppliers">Suppliers</option>
+          <option value="policies" data-i18n="cat_policies">Policies</option>
+          <option value="preferences" data-i18n="cat_preferences">Preferences</option>
+          <option value="processes" data-i18n="cat_processes">Processes</option>
+          <option value="seasonal" data-i18n="cat_seasonal">Seasonal</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label data-i18n="lbl_note">Note</label>
+        <textarea id="f-note" placeholder="e.g. We're closed on Mondays" data-i18n="placeholder_note"></textarea>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="addEntry()" data-i18n="btn_save">Save</button>
+  </div>
+
+  <!-- Count + list -->
+  <div class="count-bar" id="count-bar"></div>
+  <div class="entries-list" id="entries-list"></div>
+  <div class="empty-state" id="empty-state" style="display:none;">
+    <p data-i18n="empty">No knowledge saved yet. Add your first note above &mdash; things like hours, pricing rules, supplier info, or policies.</p>
+  </div>
+
+  <!-- Storage note -->
+  <p class="storage-note" data-i18n="storage_note">Your data saves in this browser on this device. <a href="../agent-setup.html">For permanent storage set up the Terrapin agent.</a></p>
+
+  <!-- Footer -->
+  <div class="app-footer">A Terrapin Tool &mdash; <a href="https://terrapin.tools">terrapin.tools</a></div>
+</div>
+
+<div id="terrapin-result"></div>
+
+<script>
+// ══════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════
+var AGENT_URL = 'http://localhost:7777';
+var STORAGE_KEY = 'terrapin_knowledge';
+var IDB_NAME = 'terrapin-knowledge';
+var IDB_STORE = 'data';
+var CATEGORIES = ['general', 'hours', 'pricing', 'suppliers', 'policies', 'preferences', 'processes', 'seasonal'];
+var entries = [];
+var activeFilter = 'all';
+var currentLang = 'en';
+
+// ══════════════════════════════════════
+//  INDEXEDDB HELPERS
+// ══════════════════════════════════════
+function openIDB() {
+  return new Promise(function(r, j) {
+    var q = indexedDB.open(IDB_NAME, 1);
+    q.onupgradeneeded = function() { q.result.createObjectStore(IDB_STORE); };
+    q.onsuccess = function() { r(q.result); };
+    q.onerror = function() { j(q.error); };
+  });
+}
+function idbGet(k) {
+  return openIDB().then(function(db) {
+    return new Promise(function(r, j) {
+      var t = db.transaction(IDB_STORE, 'readonly');
+      var q = t.objectStore(IDB_STORE).get(k);
+      q.onsuccess = function() { r(q.result || null); };
+      q.onerror = function() { j(q.error); };
+    });
+  });
+}
+function idbSet(k, v) {
+  return openIDB().then(function(db) {
+    return new Promise(function(r, j) {
+      var t = db.transaction(IDB_STORE, 'readwrite');
+      t.objectStore(IDB_STORE).put(v, k);
+      t.oncomplete = function() { r(); };
+      t.onerror = function() { j(t.error); };
+    });
+  });
+}
+
+// ══════════════════════════════════════
+//  PERSISTENCE — server is source of truth
+// ══════════════════════════════════════
+async function loadData() {
+  var loaded = false;
+  // Priority: agent server > localStorage > IndexedDB
+  try {
+    var res = await fetch(AGENT_URL + '/data/knowledge', { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      var data = await res.json();
+      if (Array.isArray(data)) { entries = data; loaded = true; }
+    }
+  } catch(e) { console.log('Agent server not available for knowledge'); }
+  if (!loaded) {
+    try {
+      var r = localStorage.getItem(STORAGE_KEY);
+      if (r) { var parsed = JSON.parse(r); if (Array.isArray(parsed) && parsed.length) { entries = parsed; loaded = true; } }
+    } catch(e) {}
+  }
+  if (!loaded) {
+    try {
+      var ip = await idbGet('entries');
+      if (Array.isArray(ip) && ip.length) { entries = ip; loaded = true; }
+    } catch(e) {}
+  }
+  if (!loaded) entries = [];
+  saveAll();
+}
+
+function saveAll() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  idbSet('entries', entries).catch(function() {});
+  try {
+    fetch(AGENT_URL + '/data/knowledge', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries)
+    }).catch(function() {});
+  } catch(e) {}
+}
+
+function genId() {
+  return 'k_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+}
+
+// ══════════════════════════════════════
+//  CRUD
+// ══════════════════════════════════════
+function addEntry() {
+  var noteEl = document.getElementById('f-note');
+  var catEl = document.getElementById('f-category');
+  var note = noteEl.value.trim();
+  if (!note) return;
+
+  // Dedup by note text
+  var existing = entries.find(function(e) { return e.note.toLowerCase().trim() === note.toLowerCase(); });
+  if (existing) {
+    existing.category = catEl.value;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    entries.push({
+      id: genId(),
+      category: catEl.value,
+      note: note,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  saveAll();
+  noteEl.value = '';
+  render();
+
+  // Agent result
+  var rd = document.getElementById('terrapin-result');
+  rd.textContent = JSON.stringify({ status: 'success', tool: 'turtle-shell', output: 'Knowledge saved: ' + note });
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'turtle-shell', status: 'success', data: { note: note, category: catEl.value } }, '*');
+  }
+}
+
+function deleteEntry(id) {
+  var es = currentLang === 'es';
+  if (!confirm(es ? 'Eliminar esta nota?' : 'Delete this note?')) return;
+  entries = entries.filter(function(e) { return e.id !== id; });
+  saveAll();
+  render();
+}
+
+function startEdit(id) {
+  var card = document.getElementById('card-' + id);
+  var entry = entries.find(function(e) { return e.id === id; });
+  if (!card || !entry) return;
+
+  var editDiv = card.querySelector('.edit-area');
+  if (editDiv) { editDiv.remove(); return; } // toggle off
+
+  var html = '<div class="edit-area">';
+  html += '<select id="edit-cat-' + id + '">';
+  CATEGORIES.forEach(function(c) {
+    html += '<option value="' + c + '"' + (c === entry.category ? ' selected' : '') + '>' + c.charAt(0).toUpperCase() + c.slice(1) + '</option>';
+  });
+  html += '</select>';
+  html += '<textarea id="edit-note-' + id + '">' + escapeHTML(entry.note) + '</textarea>';
+  html += '<div class="edit-btns">';
+  html += '<button class="save" onclick="saveEdit(\'' + id + '\')">' + (currentLang === 'es' ? 'Guardar' : 'Save') + '</button>';
+  html += '<button class="cancel" onclick="startEdit(\'' + id + '\')">' + (currentLang === 'es' ? 'Cancelar' : 'Cancel') + '</button>';
+  html += '</div></div>';
+
+  card.querySelector('.entry-content').insertAdjacentHTML('beforeend', html);
+}
+
+function saveEdit(id) {
+  var entry = entries.find(function(e) { return e.id === id; });
+  if (!entry) return;
+  var noteEl = document.getElementById('edit-note-' + id);
+  var catEl = document.getElementById('edit-cat-' + id);
+  if (noteEl) entry.note = noteEl.value.trim();
+  if (catEl) entry.category = catEl.value;
+  entry.updatedAt = new Date().toISOString();
+  saveAll();
+  render();
+}
+
+// ══════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════
+function render() {
+  renderFilters();
+  renderEntries();
+}
+
+function renderFilters() {
+  var bar = document.getElementById('filter-bar');
+  var es = currentLang === 'es';
+  var html = '<span class="filter-pill' + (activeFilter === 'all' ? ' active' : '') + '" onclick="setFilter(\'all\')">' + (es ? 'Todas' : 'All') + '</span>';
+  CATEGORIES.forEach(function(c) {
+    var count = entries.filter(function(e) { return e.category === c; }).length;
+    if (count > 0) {
+      var label = T[currentLang] && T[currentLang]['cat_' + c] ? T[currentLang]['cat_' + c] : c.charAt(0).toUpperCase() + c.slice(1);
+      html += '<span class="filter-pill' + (activeFilter === c ? ' active' : '') + '" onclick="setFilter(\'' + c + '\')">' + label + ' (' + count + ')</span>';
+    }
+  });
+  bar.innerHTML = html;
+}
+
+function renderEntries() {
+  var list = document.getElementById('entries-list');
+  var empty = document.getElementById('empty-state');
+  var countBar = document.getElementById('count-bar');
+  var es = currentLang === 'es';
+
+  var filtered = activeFilter === 'all' ? entries : entries.filter(function(e) { return e.category === activeFilter; });
+
+  if (entries.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    countBar.textContent = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  countBar.textContent = filtered.length + (es ? ' notas' : ' notes') + (activeFilter !== 'all' ? ' in ' + activeFilter : '');
+
+  // Sort newest first
+  var sorted = filtered.slice().sort(function(a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+
+  var html = '';
+  sorted.forEach(function(e) {
+    var catLabel = e.category ? e.category.charAt(0).toUpperCase() + e.category.slice(1) : 'General';
+    var date = e.createdAt ? new Date(e.createdAt).toLocaleDateString() : '';
+    html += '<div class="entry-card" id="card-' + e.id + '">';
+    html += '<span class="entry-badge">' + escapeHTML(catLabel) + '</span>';
+    html += '<div class="entry-content">';
+    html += '<div class="entry-note">' + escapeHTML(e.note) + '</div>';
+    html += '<div class="entry-meta">' + date + '</div>';
+    html += '</div>';
+    html += '<div class="entry-actions">';
+    html += '<button onclick="startEdit(\'' + e.id + '\')" data-i18n="btn_edit">' + (es ? 'Editar' : 'Edit') + '</button>';
+    html += '<button class="delete" onclick="deleteEntry(\'' + e.id + '\')" data-i18n="btn_delete">' + (es ? 'Eliminar' : 'Delete') + '</button>';
+    html += '</div></div>';
+  });
+  list.innerHTML = html;
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  render();
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ══════════════════════════════════════
+//  i18n
+// ══════════════════════════════════════
+var T = {
+  en: {
+    back: 'Back to Terrapin Tools',
+    title: 'Turtle Shell',
+    subtitle: 'Your business knowledge base \u2014 everything the agent needs to know about how you run things.',
+    lbl_category: 'Category',
+    lbl_note: 'Note',
+    placeholder_note: "e.g. We're closed on Mondays",
+    btn_save: 'Save',
+    btn_edit: 'Edit',
+    btn_delete: 'Delete',
+    empty: 'No knowledge saved yet. Add your first note above \u2014 things like hours, pricing rules, supplier info, or policies.',
+    storage_note: 'Your data saves in this browser on this device. <a href="../agent-setup.html">For permanent storage set up the Terrapin agent.</a>',
+    cat_general: 'General', cat_hours: 'Hours', cat_pricing: 'Pricing', cat_suppliers: 'Suppliers',
+    cat_policies: 'Policies', cat_preferences: 'Preferences', cat_processes: 'Processes', cat_seasonal: 'Seasonal'
+  },
+  es: {
+    back: 'Volver a Terrapin Tools',
+    title: 'Turtle Shell',
+    subtitle: 'Tu base de conocimiento \u2014 todo lo que el agente debe saber sobre tu negocio.',
+    lbl_category: 'Categor\u00eda',
+    lbl_note: 'Nota',
+    placeholder_note: 'ej. Cerramos los lunes',
+    btn_save: 'Guardar',
+    btn_edit: 'Editar',
+    btn_delete: 'Eliminar',
+    empty: 'A\u00fan no hay conocimiento guardado. Agrega tu primera nota arriba \u2014 como horarios, precios, proveedores o pol\u00edticas.',
+    storage_note: 'Tus datos se guardan en este navegador en este dispositivo. <a href="../agent-setup.html">Para almacenamiento permanente configura el agente Terrapin.</a>',
+    cat_general: 'General', cat_hours: 'Horarios', cat_pricing: 'Precios', cat_suppliers: 'Proveedores',
+    cat_policies: 'Pol\u00edticas', cat_preferences: 'Preferencias', cat_processes: 'Procesos', cat_seasonal: 'Temporada'
+  }
+};
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var k = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][k]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][k];
+      else el.innerHTML = T[lang][k];
+    }
+  });
+  // Update select options
+  var catSelect = document.getElementById('f-category');
+  if (catSelect) {
+    Array.from(catSelect.options).forEach(function(opt) {
+      var k = opt.getAttribute('data-i18n');
+      if (k && T[lang] && T[lang][k]) opt.textContent = T[lang][k];
+    });
+  }
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem('terrapin-language', lang);
+  render();
+}
+
+// ══════════════════════════════════════
+//  URL PARAMS + AUTORUN
+// ══════════════════════════════════════
+function handleURLParams() {
+  var params = new URLSearchParams(window.location.search);
+  var action = params.get('action');
+  console.log('TurtleShell URL params:', Object.fromEntries(params));
+
+  if (action === 'add' && params.get('note')) {
+    var autorun = params.get('autorun') === 'true';
+    if (autorun) {
+      var note = params.get('note');
+      // Dedup
+      var exists = entries.some(function(e) { return e.note.toLowerCase().trim() === note.toLowerCase().trim(); });
+      if (exists) {
+        console.log('TurtleShell autorun: "' + note + '" already exists, skipping');
+      } else {
+        console.log('TurtleShell autorun: saving knowledge');
+        entries.push({
+          id: genId(),
+          category: params.get('category') || 'general',
+          note: note,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        saveAll();
+        render();
+        if (window.parent !== window) {
+          setTimeout(function() {
+            window.parent.postMessage({ type: 'terrapin-tool-result', tool: 'turtle-shell', status: 'success', data: { note: note, category: params.get('category') || 'general' } }, '*');
+          }, 200);
+        }
+      }
+      // Clear URL params so refresh doesn't re-trigger
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      // Pre-fill form
+      setTimeout(function() {
+        if (params.get('category')) document.getElementById('f-category').value = params.get('category');
+        if (params.get('note')) document.getElementById('f-note').value = params.get('note');
+      }, 300);
+    }
+  } else if (action === 'delete' && params.get('id') && params.get('autorun') === 'true') {
+    entries = entries.filter(function(e) { return e.id !== params.get('id'); });
+    saveAll();
+    render();
+    history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+// ══════════════════════════════════════
+//  PROGRAMMATIC API
+// ══════════════════════════════════════
+window.turtleShell = {
+  getEntries: function() { return JSON.parse(JSON.stringify(entries)); },
+  addEntry: function(note, category) {
+    if (!note) return null;
+    var exists = entries.find(function(e) { return e.note.toLowerCase().trim() === note.toLowerCase().trim(); });
+    if (exists) { exists.updatedAt = new Date().toISOString(); saveAll(); return exists; }
+    var entry = { id: genId(), category: category || 'general', note: note, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    entries.push(entry);
+    saveAll();
+    render();
+    return entry;
+  },
+  deleteEntry: function(id) { entries = entries.filter(function(e) { return e.id !== id; }); saveAll(); render(); },
+  getByCategory: function(cat) { return entries.filter(function(e) { return e.category === cat; }); }
+};
+
+// ══════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════
+(async function() {
+  console.log('TurtleShell boot: loading data...');
+  await loadData();
+  console.log('TurtleShell boot: loaded', entries.length, 'entries');
+  render();
+  handleURLParams();
+})();
+
+// Language init
+(function() {
+  var s = localStorage.getItem('terrapin-language');
+  if (s) { setLang(s); return; }
+  var n = (navigator.language || '').toLowerCase();
+  if (n.startsWith('es')) setLang('es');
+})();
+
+// ══════════════════════════════════════
+//  AGENT SYNC — auto-flush when agent comes online
+// ══════════════════════════════════════
+(function() {
+  var SYNC_URL = 'http://localhost:7777';
+  var agentOnline = false;
+  var bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('terrapin') : null;
+
+  function flushToAgent() {
+    if (!entries.length) return;
+    fetch(SYNC_URL + '/data/knowledge', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries), signal: AbortSignal.timeout(3000)
+    }).then(function() { console.log('Sync: knowledge flushed to agent'); }).catch(function() {});
+  }
+
+  function checkAgent() {
+    fetch(SYNC_URL + '/health', { signal: AbortSignal.timeout(1500) })
+      .then(function(r) {
+        if (r.ok && !agentOnline) { agentOnline = true; flushToAgent(); if (bc) bc.postMessage({ type: 'agent-online' }); }
+        else if (!r.ok) { agentOnline = false; }
+      }).catch(function() { agentOnline = false; });
+  }
+
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) checkAgent(); });
+  window.addEventListener('focus', checkAgent);
+  if (bc) bc.onmessage = function(e) { if (e.data.type === 'agent-online') { agentOnline = true; flushToAgent(); } };
+  checkAgent();
+})();
+
+// Keyboard
+document.getElementById('f-note').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addEntry(); }
+});
+</script>
+</body>
+</html>

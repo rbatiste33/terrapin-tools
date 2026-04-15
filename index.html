@@ -327,6 +327,37 @@
       border-radius: 6px;
     }
 
+    /* Foundation tools — agent brain */
+    .foundation-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .tool-card.foundation {
+      background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%);
+      border: 1px solid var(--gold);
+      box-shadow: 0 2px 8px rgba(201, 168, 76, 0.12);
+    }
+    .tool-card.foundation:hover {
+      border-color: var(--gold);
+      box-shadow: 0 4px 16px rgba(201, 168, 76, 0.2);
+    }
+    .foundation-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--gold);
+      color: #FFFFFF;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
     .tool-card h3 {
       font-size: 18px;
       font-weight: 600;
@@ -579,6 +610,12 @@
       }
     }
 
+    @media (max-width: 900px) {
+      .foundation-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 768px) {
       nav .container {
         justify-content: center;
@@ -765,15 +802,26 @@
     <div class="container">
       <p class="section-label" data-i18n="feat_label">Featured tools</p>
       <h2 class="section-title" data-i18n="feat_title">Simple tools. Real work.</h2>
-      <div class="featured-grid">
-
-        <div class="tool-card">
-          <span class="start-here-badge" data-i18n="badge_start">Start Here</span>
+      <!-- FOUNDATION TOOLS — Agent Brain -->
+      <div class="foundation-row">
+        <div class="tool-card foundation">
+          <span class="foundation-badge" data-i18n="badge_foundation">Agent Brain</span>
           <h3 data-i18n="t_profile">Business Profile</h3>
           <p class="tool-desc" data-i18n="t_profile_d">Set up your business once — every Terrapin tool and the agent will know who you are.</p>
           <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
           <a href="tools/business-profile/" class="btn-primary" data-i18n="open_tool">Open Tool</a>
         </div>
+
+        <div class="tool-card foundation">
+          <span class="foundation-badge" data-i18n="badge_foundation">Agent Brain</span>
+          <h3 data-i18n="t_shell">Turtle Shell</h3>
+          <p class="tool-desc" data-i18n="t_shell_d">Your business knowledge base — hours, policies, pricing rules, and anything the agent should know.</p>
+          <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
+          <a href="tools/turtle-shell/" class="btn-primary" data-i18n="open_tool">Open Tool</a>
+        </div>
+      </div>
+
+      <div class="featured-grid">
 
         <div class="tool-card">
           <span class="free-badge" data-i18n="badge_open">Open</span>
@@ -964,8 +1012,11 @@ const T = {
     footer_privacy: 'Privacy Promise',
     footer_setup: 'Agent Setup',
     badge_start: 'Start Here',
+    badge_foundation: 'Agent Brain',
     badge_open: 'Open',
     open_tool: 'Open Tool',
+    t_shell: 'Turtle Shell',
+    t_shell_d: 'Your business knowledge base \u2014 hours, policies, pricing rules, and anything the agent should know.',
     tag_all: 'All Businesses',
     tag_catering: 'Food & Catering',
     tag_contractors: 'Contractors',
@@ -1033,8 +1084,11 @@ const T = {
     footer_privacy: 'Promesa de Privacidad',
     footer_setup: 'Configurar Agente',
     badge_start: 'Empieza Aqu\u00ed',
+    badge_foundation: 'Cerebro del Agente',
     badge_open: 'Abrir',
     open_tool: 'Abrir Herramienta',
+    t_shell: 'Turtle Shell',
+    t_shell_d: 'Tu base de conocimiento \u2014 horarios, pol\u00edticas, precios y todo lo que el agente debe saber.',
     tag_all: 'Todos los Negocios',
     tag_catering: 'Comida y Catering',
     tag_contractors: 'Contratistas',

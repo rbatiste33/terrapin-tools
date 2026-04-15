@@ -34,11 +34,12 @@ Every tool works in English and Spanish. Every tool runs on your computer. Your 
 
 ---
 
-## 3. Current Tools (9)
+## 3. Current Tools (10)
 
 | Tool | Type | Category | File |
 |------|------|----------|------|
 | Business Profile | data | all | tools/business-profile.html |
+| Turtle Shell | data | all | tools/turtle-shell.html |
 | Catering Quote Builder | document | catering | tools/catering-quote-builder.html |
 | Contractor Invoice Generator | document | contractors | tools/contractor-invoice-generator.html |
 | Simple CRM | data | freelancers | tools/simple-crm.html |

@@ -961,6 +961,8 @@ function buildConfirmMessage(toolId, params) {
       return '\u{1f4c7} ' + (es ? 'Agregaré a ' + (p.name || 'un contacto') + ' a tu CRM' : 'I\'ll add ' + (p.name || 'a contact') + ' to your CRM') + (p.email ? ' (' + p.email + ')' : '') + '.';
     case 'job-site-daily-log':
       return '\u{1f477} ' + (es ? 'Registraré una entrada' : 'I\'ll log a daily entry') + (p.job_name ? (es ? ' para ' : ' for ') + p.job_name : '') + '.';
+    case 'turtle-shell':
+      return '\u{1f422} ' + (es ? 'Guardaré eso en tu base de conocimiento' : 'I\'ll save that to your knowledge base') + (p.category ? ' (' + p.category + ')' : '') + '.';
     default:
       return '\u{1f527} ' + (es ? 'Abriré ' : 'I\'ll open ') + toolId.replace(/-/g, ' ') + (es ? ' con tus datos.' : ' with your details.');
   }
@@ -1051,7 +1053,8 @@ async function executeToolCall(data, toolUrl, paramList) {
     'business-profile': 'data',
     'tip-calculator': 'utility',
     'qr-code-generator': 'utility',
-    'simple-calendar': 'data'
+    'simple-calendar': 'data',
+    'turtle-shell': 'data'
   };
   const toolType = toolTypes[data.tool_id] || 'utility';
 
@@ -1172,7 +1175,8 @@ async function executeToolCall(data, toolUrl, paramList) {
       'job-site-daily-log': (es ? 'Bitácora guardada para ' : 'Daily log saved for ') + (params.job_name || params.date || (es ? 'hoy' : 'today')) + ' \u2713',
       'street-vendor-order-log': (es ? 'Orden registrada \u2713' : 'Order logged \u2713'),
       'business-profile': (es ? 'Perfil del negocio actualizado \u2713' : 'Business profile updated \u2713'),
-      'simple-calendar': (params.title || (es ? 'Evento' : 'Event')) + (es ? ' agregado al calendario para ' : ' added to calendar for ') + (params.date || (es ? 'hoy' : 'today')) + ' \u2713'
+      'simple-calendar': (params.title || (es ? 'Evento' : 'Event')) + (es ? ' agregado al calendario para ' : ' added to calendar for ') + (params.date || (es ? 'hoy' : 'today')) + ' \u2713',
+      'turtle-shell': (es ? 'Conocimiento guardado \u2713' : 'Knowledge saved \u2713')
     };
     let confirmMsg = confirmMessages[data.tool_id] || 'Data saved \u2713';
 
@@ -1184,6 +1188,12 @@ async function executeToolCall(data, toolUrl, paramList) {
     // For Calendar add action, save directly via agent server + localStorage
     if (data.tool_id === 'simple-calendar' && (params.action === 'add' || params.title)) {
       saveCalendarEvent(params);
+    }
+
+    // For Turtle Shell, save knowledge directly
+    if (data.tool_id === 'turtle-shell' && (params.action === 'add' || params.note)) {
+      saveKnowledge(params);
+      window._lastUserMessage = null; // prevent chain from re-triggering
     }
 
     let cardHTML = '<div class="action-card">';
@@ -2025,6 +2035,54 @@ function saveCalendarEvent(params) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(events)
     }).then(r => console.log('Calendar saved to ~/.terrapin/', r.ok));
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+//  DIRECT KNOWLEDGE SAVE — no iframe needed
+// ══════════════════════════════════════
+function saveKnowledge(params) {
+  var STORAGE_KEY = 'terrapin_knowledge';
+  var entries = [];
+  try { entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { entries = []; }
+
+  var note = params.note || '';
+  if (!note) return;
+
+  // Dedup by note text
+  var existing = entries.find(function(e) { return e.note.toLowerCase().trim() === note.toLowerCase().trim(); });
+  if (existing) {
+    existing.category = params.category || existing.category;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    entries.push({
+      id: 'k_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      category: params.category || 'general',
+      note: note,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  console.log('Knowledge saved:', note.substring(0, 50));
+
+  // Sync to IndexedDB
+  try {
+    var idbReq = indexedDB.open('terrapin-knowledge', 1);
+    idbReq.onupgradeneeded = function() { idbReq.result.createObjectStore('data'); };
+    idbReq.onsuccess = function() {
+      var tx = idbReq.result.transaction('data', 'readwrite');
+      tx.objectStore('data').put(entries, 'entries');
+    };
+  } catch(e) {}
+
+  // Persist to agent server
+  try {
+    fetch(AGENT_URL + '/data/knowledge', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries)
+    }).then(function(r) { console.log('Knowledge saved to ~/.terrapin/', r.ok); });
   } catch(e) {}
 }
 
