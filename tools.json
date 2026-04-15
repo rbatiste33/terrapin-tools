@@ -120,19 +120,6 @@
       "output": "Calendar event saved",
       "can_email": false,
       "agent_ready": true
-    },
-    {
-      "name": "Freelance Project Tracker",
-      "id": "freelance-project-tracker",
-      "type": "data",
-      "description": "Track freelance projects from kickoff to final invoice with milestones, change orders, and work logs",
-      "file": "tools/freelance-project-tracker.html",
-      "category": "freelancers",
-      "required_params": ["action"],
-      "optional_params": ["client_name", "project_name", "fee", "fee_type", "rate", "est_hours", "brief", "autorun"],
-      "output": "Project saved confirmation",
-      "can_email": false,
-      "agent_ready": true
     }
   ]
 }

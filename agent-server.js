@@ -199,14 +199,7 @@ QR codes — include colors if requested:
   {"tool_id": "qr-code-generator", "params": {"type": "url", "data": "https://terrapin.tools", "fg_color": "#2C3E2D", "bg_color": "#ffffff"}}
 
 Tip calculator:
-  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}
-
-Freelance project tracker — log hours on a project:
-  {"tool_id": "freelance-project-tracker", "params": {"action": "log_hours", "project_name": "Kim Design", "hours": 3, "description": "Homepage mockups"}}
-
-Freelance project tracker — create a new project:
-  {"tool_id": "freelance-project-tracker", "params": {"action": "add", "client_name": "Sarah Kim", "project_name": "Logo Design", "fee": 1200, "fee_type": "fixed"}}
-  For hourly: {"tool_id": "freelance-project-tracker", "params": {"action": "add", "client_name": "Sarah Kim", "project_name": "Website Redesign", "rate": 125, "est_hours": 20, "fee_type": "hourly"}}`;
+  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}`;
 }
 
 // ══════════════════════════════════════
@@ -730,30 +723,6 @@ app.post('/data/calendar', (req, res) => {
     fs.writeFileSync(DATA_FILES.calendar, JSON.stringify(events, null, 2));
     console.log('  → Calendar saved: ' + events.length + ' events');
     res.json({ success: true, count: events.length });
-  } catch(e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
-
-// ── PROJECTS ──
-app.get('/data/projects', (req, res) => {
-  try {
-    const filePath = path.join(TERRAPIN_DIR, 'projects.json');
-    if (!fs.existsSync(filePath)) return res.json({ projects: [], workLogs: [] });
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    res.json(data);
-  } catch(e) {
-    res.json({ projects: [], workLogs: [] });
-  }
-});
-
-app.post('/data/projects', (req, res) => {
-  try {
-    const filePath = path.join(TERRAPIN_DIR, 'projects.json');
-    fs.writeFileSync(filePath, JSON.stringify(req.body, null, 2));
-    const count = (req.body.projects || []).length;
-    console.log('  → Projects saved: ' + count + ' projects');
-    res.json({ success: true, count });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
