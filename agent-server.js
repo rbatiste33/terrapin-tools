@@ -416,18 +416,30 @@ function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, d
   console.log('  → Raw Gemma response:', text.substring(0, 300));
 
   // Try to extract JSON from the response
+  // Gemma sometimes returns multiple JSON objects on separate lines —
+  // try each line individually before falling back to greedy match
   let json = null;
   try {
     json = JSON.parse(text);
   } catch (e) {
-    // Try markdown code block first: ```json {...} ```
-    const codeBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (codeBlock) {
-      try { json = JSON.parse(codeBlock[1]); } catch (e2) {}
+    // Try line-by-line — Gemma often returns multiple JSON objects
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('{')) {
+        try { json = JSON.parse(trimmed); break; } catch (e2) {}
+      }
     }
-    // Try to find JSON object within the text
+    // Try markdown code block: ```json {...} ```
     if (!json) {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const codeBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlock) {
+        try { json = JSON.parse(codeBlock[1]); } catch (e2) {}
+      }
+    }
+    // Last resort — find first balanced JSON object (non-greedy)
+    if (!json) {
+      const jsonMatch = text.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
       if (jsonMatch) {
         try { json = JSON.parse(jsonMatch[0]); } catch (e2) {}
       }
