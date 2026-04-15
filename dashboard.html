@@ -569,7 +569,7 @@ html, body {
   <div class="header-bar">
     <div class="greeting" id="greeting"></div>
     <div class="header-right">
-      <a href="agent.html" class="agent-link">
+      <a href="agent.html" class="agent-link" id="agentLink">
         <span class="agent-dot" id="agentDot"></span>
         <span data-i18n="chat_agent">Chat with Terrapin</span>
       </a>
@@ -759,16 +759,23 @@ function loadOwnerName() {
 }
 
 function checkAgentHealth() {
+  var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  var link = document.getElementById('agentLink');
+  // On public site, always link to setup page — agent chat only works locally
+  if (!isLocalhost && link) link.href = 'agent-setup.html';
+
   fetch('http://localhost:7777/health', {method: 'GET', signal: AbortSignal.timeout(3000)})
     .then(function(r) {
       if (r.ok) {
         agentOnline = true;
         document.getElementById('agentDot').classList.add('online');
+        if (isLocalhost && link) link.href = 'agent.html';
       }
     })
     .catch(function() {
       agentOnline = false;
       document.getElementById('agentDot').classList.remove('online');
+      if (link) link.href = 'agent-setup.html';
     });
 }
 
