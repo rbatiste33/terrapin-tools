@@ -1199,6 +1199,8 @@ async function executeToolCall(data, toolUrl, paramList) {
         // Override the confirm message with the actual result
         confirmMsg = ptResult.message + (ptResult.success ? ' \u2713' : ' \u2717');
       }
+      // Strip autorun from the Open Tool URL — we already saved directly
+      toolUrl = toolUrl.replace('&autorun=true', '').replace('?autorun=true&', '?').replace('?autorun=true', '');
     }
 
     let cardHTML = '<div class="action-card">';
@@ -1211,7 +1213,9 @@ async function executeToolCall(data, toolUrl, paramList) {
     addCard(cardHTML);
 
     // Multi-action chain: if the original message likely had more intent, re-send to Gemma
-    if (window._lastUserMessage && window._lastUserMessage.length > 40) {
+    // Skip chain for project tracker — its messages naturally contain chain keywords ("create")
+    // and re-sending the full message causes Gemma to create duplicate projects
+    if (data.tool_id !== 'freelance-project-tracker' && window._lastUserMessage && window._lastUserMessage.length > 40) {
       var keywords = ['send', 'invoice', 'quote', 'schedule', 'email', 'make', 'create', 'enviar', 'factura', 'cotización'];
       var remaining = window._lastUserMessage.toLowerCase();
       var toolAction = (data.tool_id === 'simple-crm') ? 'add' : (data.tool_id === 'simple-calendar') ? 'schedule' : '';
@@ -2044,10 +2048,19 @@ function saveCalendarEvent(params) {
 }
 
 function saveProjectData(params) {
+  // Prevent rapid duplicate calls (within 3 seconds)
+  var now = Date.now();
+  if (window._lastProjectSave && (now - window._lastProjectSave) < 3000) {
+    console.log('saveProjectData: blocked duplicate call within 3s');
+    return { success: true, message: 'Already saved' };
+  }
+  window._lastProjectSave = now;
+
   // Load existing projects
   var LS_KEY = 'terrapin-projects';
   var projects = [];
   try { projects = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) {}
+  console.log('saveProjectData called:', params.action, params.project_name, 'existing:', projects.length);
 
   var action = params.action || 'add';
 
@@ -2077,6 +2090,19 @@ function saveProjectData(params) {
   }
 
   if (action === 'add') {
+    // Dedup: skip if a project with the same name was added in the last 5 seconds
+    var newName = (params.project_name || '').toLowerCase().trim();
+    if (newName) {
+      var fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+      var dup = projects.find(function(x) {
+        return x.projectName.toLowerCase().trim() === newName && x.createdAt > fiveSecsAgo;
+      });
+      if (dup) {
+        console.log('saveProjectData: blocked duplicate project "' + params.project_name + '" (same name within 5s)');
+        return { success: true, message: 'Already saved' };
+      }
+    }
+
     var np = {
       id: 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
       clientName: params.client_name || '',
