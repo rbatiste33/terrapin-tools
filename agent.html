@@ -1230,10 +1230,6 @@ async function executeToolCall(data, toolUrl, paramList) {
       saveKnowledge(params);
     }
 
-    // Kill chain trigger for all data saves — prevents Gemma from re-creating
-    // the same entry when the message contains chain keywords like "email", "create"
-    window._lastUserMessage = null;
-
     let cardHTML = '<div class="action-card">';
     cardHTML += '<div class="card-label">' + L('data_saved') + '</div>';
     cardHTML += '<div class="card-title" style="color:var(--green);">' + escapeHTML(confirmMsg) + '</div>';
@@ -1243,13 +1239,16 @@ async function executeToolCall(data, toolUrl, paramList) {
     cardHTML += '</div>';
     addCard(cardHTML);
 
-    // Multi-action chain: if the original message likely had more intent, re-send to Gemma
+    // Multi-action chain: only fire when the message has a connecting word
+    // ("and", "then", "also") signaling a genuine second intent.
+    // "Add John and send him an invoice" → chain fires
+    // "Add John with email john@test.com" → chain does NOT fire
     if (window._lastUserMessage && window._lastUserMessage.length > 40) {
-      var keywords = ['send', 'invoice', 'quote', 'schedule', 'email', 'make', 'create', 'enviar', 'factura', 'cotización'];
       var remaining = window._lastUserMessage.toLowerCase();
-      var toolAction = (data.tool_id === 'simple-crm') ? 'add' : (data.tool_id === 'simple-calendar') ? 'schedule' : '';
-      var hasMoreIntent = keywords.some(function(kw) { return remaining.includes(kw) && kw !== toolAction; });
-      if (hasMoreIntent) {
+      var hasConnector = /\b(and|then|also|después|luego|también|y luego)\b/.test(remaining);
+      var actionKeywords = ['send', 'invoice', 'quote', 'schedule', 'make', 'create', 'enviar', 'factura', 'cotización'];
+      var hasSecondAction = actionKeywords.some(function(kw) { return remaining.includes(kw); });
+      if (hasConnector && hasSecondAction) {
         window._lastUserMessage = null; // prevent infinite loops
         // Build a follow-up message that tells Gemma the first action is done
         var doneAction = data.tool_id === 'simple-crm' ? 'I already added the contact to CRM.' : 'I already saved that.';
