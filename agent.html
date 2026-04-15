@@ -893,6 +893,24 @@ async function handleAgentResponse(data) {
     case 'call_tool':
       await handleToolCall(data);
       break;
+    case 'send_email':
+      var em = data.email || {};
+      var es_e = currentLang === 'es';
+      var emailId = 'email-' + Date.now();
+      var emailCardHTML = '<div class="action-card email-draft" id="' + emailId + '">';
+      emailCardHTML += '<div class="card-label">' + (es_e ? 'Borrador de Email' : 'Email Draft') + '</div>';
+      emailCardHTML += '<div class="draft-field"><strong>' + (es_e ? 'Para: ' : 'To: ') + '</strong>' + escapeHTML(em.to || '') + '</div>';
+      emailCardHTML += '<div class="draft-field"><strong>' + (es_e ? 'Asunto: ' : 'Subject: ') + '</strong>' + escapeHTML(em.subject || '') + '</div>';
+      emailCardHTML += '<div class="draft-body">' + escapeHTML(em.body || '') + '</div>';
+      emailCardHTML += '<div style="display:flex;gap:8px;margin-top:10px;">';
+      emailCardHTML += '<button class="card-btn primary" onclick="sendDraftEmail(\'' + emailId + '\')">' + (es_e ? 'Enviar' : 'Send') + '</button>';
+      emailCardHTML += '<button class="card-btn secondary" onclick="editDraftEmail(\'' + emailId + '\')">' + (es_e ? 'Editar' : 'Edit') + '</button>';
+      emailCardHTML += '<button class="card-btn secondary" onclick="this.closest(\'.action-card\').remove()">' + (es_e ? 'Cancelar' : 'Cancel') + '</button>';
+      emailCardHTML += '</div></div>';
+      addCard(emailCardHTML);
+      // Store draft data
+      window['_draft_' + emailId] = { to: em.to, subject: em.subject, body: em.body };
+      break;
     case 'ask':
       addMessage('agent', data.message);
       // Store pending tool context so we can complete the request when user provides info
@@ -1831,6 +1849,48 @@ async function sendEmailDirect(to, subject, body) {
 function mailtoFallback(to, subject, body) {
   const mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   window.open(mailto);
+}
+
+// ── DRAFT EMAIL (from agent chat) ──
+function sendDraftEmail(emailId) {
+  var draft = window['_draft_' + emailId];
+  if (!draft) return;
+  var card = document.getElementById(emailId);
+  if (card) {
+    var btns = card.querySelectorAll('.card-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+  }
+  sendEmailDirect(draft.to, draft.subject, draft.body);
+  if (card) card.remove();
+}
+
+function editDraftEmail(emailId) {
+  var draft = window['_draft_' + emailId];
+  if (!draft) return;
+  var card = document.getElementById(emailId);
+  if (!card) return;
+  var es = currentLang === 'es';
+  card.innerHTML = '<div class="card-label">' + (es ? 'Editar Email' : 'Edit Email') + '</div>' +
+    '<label style="font-size:12px;color:var(--text-muted);margin-top:8px;display:block;">' + (es ? 'Para' : 'To') + '</label>' +
+    '<input type="text" id="' + emailId + '-to" value="' + escapeAttr(draft.to || '') + '" style="width:100%;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;margin-bottom:6px;font-family:inherit;background:var(--bg);">' +
+    '<label style="font-size:12px;color:var(--text-muted);display:block;">' + (es ? 'Asunto' : 'Subject') + '</label>' +
+    '<input type="text" id="' + emailId + '-subject" value="' + escapeAttr(draft.subject || '') + '" style="width:100%;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;margin-bottom:6px;font-family:inherit;background:var(--bg);">' +
+    '<label style="font-size:12px;color:var(--text-muted);display:block;">' + (es ? 'Mensaje' : 'Body') + '</label>' +
+    '<textarea id="' + emailId + '-body" style="width:100%;min-height:100px;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;background:var(--bg);">' + escapeHTML(draft.body || '') + '</textarea>' +
+    '<div style="display:flex;gap:8px;margin-top:10px;">' +
+    '<button class="card-btn primary" onclick="sendEditedDraft(\'' + emailId + '\')">' + (es ? 'Enviar' : 'Send') + '</button>' +
+    '<button class="card-btn secondary" onclick="this.closest(\'.action-card\').remove()">' + (es ? 'Cancelar' : 'Cancel') + '</button>' +
+    '</div>';
+}
+
+function sendEditedDraft(emailId) {
+  var to = document.getElementById(emailId + '-to').value.trim();
+  var subject = document.getElementById(emailId + '-subject').value.trim();
+  var body = document.getElementById(emailId + '-body').value.trim();
+  if (!to) return;
+  var card = document.getElementById(emailId);
+  if (card) card.remove();
+  sendEmailDirect(to, subject, body);
 }
 
 // ══════════════════════════════════════

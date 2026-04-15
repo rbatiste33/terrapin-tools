@@ -225,7 +225,10 @@ HOW TO RESPOND — you must ALWAYS reply with exactly one JSON object, nothing e
 2. To use a tool (you have all the info you need):
    {"tool_id": "the-tool-id", "params": {"key": "value"}}
 
-3. To ask for missing info before using a tool:
+3. To send an email (you can compose and send emails directly):
+   {"email": {"to": "recipient@example.com", "subject": "Subject line", "body": "Email body text"}}
+
+4. To ask for missing info before using a tool:
    {"question": "what you need to know"}
 
 NEVER return any other format. No markdown. No tool_calls. No function calls. Just one JSON object.
@@ -274,6 +277,10 @@ QR codes — include colors if requested:
 
 Tip calculator:
   {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}
+
+Emails — compose and send directly from chat. Look up the recipient's email from CRM contacts or business profile:
+  {"email": {"to": "sarah@test.com", "subject": "Following up on our meeting", "body": "Hi Sarah,\\n\\nJust following up on our conversation today. Let me know if you have any questions.\\n\\nBest,\\n${ownerName || 'Me'}"}}
+  {"email": {"to": "mike@example.com", "subject": "Project update", "body": "Hi Mike,\\n\\nWanted to give you a quick update on the project. Everything is on track.\\n\\nThanks,\\n${ownerName || 'Me'}"}}
 
 Turtle Shell — save business knowledge automatically when the owner mentions it:
   {"tool_id": "turtle-shell", "params": {"action": "add", "category": "hours", "note": "Closed on Mondays"}}
@@ -713,6 +720,21 @@ function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, d
     const url = tool.file + '?' + query.toString();
     console.log(`  → Tool URL: ${url.substring(0, 120)}...`);
     return { action: 'call_tool', tool_id: json.tool_id, params, url };
+  }
+
+  // Email — compose and send directly
+  if (json.email && json.email.to) {
+    // Resolve recipient email from CRM/profile if needed
+    let emailTo = json.email.to;
+    if (emailTo && !emailTo.includes('@')) {
+      // It's a name, not an email — try to look up
+      const resolved = businessProfile ? resolveClientEmail(emailTo, businessProfile) : null;
+      const resolvedCRM = !resolved && crmContacts ? resolveClientEmail(emailTo, { clients: crmContacts }) : null;
+      if (resolved) emailTo = resolved.email;
+      else if (resolvedCRM) emailTo = resolvedCRM.email;
+    }
+    console.log(`  → Email draft: to=${emailTo} subject="${json.email.subject}"`);
+    return { action: 'send_email', email: { to: emailTo, subject: json.email.subject || '', body: json.email.body || '' } };
   }
 
   // Clarifying question
