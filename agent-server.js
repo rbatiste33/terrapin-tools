@@ -34,6 +34,7 @@ const DATA_FILES = {
   profile: path.join(TERRAPIN_DIR, 'business-profile.json'),
   crm: path.join(TERRAPIN_DIR, 'crm-contacts.json'),
   calendar: path.join(TERRAPIN_DIR, 'calendar-events.json'),
+  knowledge: path.join(TERRAPIN_DIR, 'knowledge.json'),
   logsDir: path.join(TERRAPIN_DIR, 'daily-logs')
 };
 
@@ -43,6 +44,7 @@ function initDataDir() {
   if (!fs.existsSync(DATA_FILES.profile)) fs.writeFileSync(DATA_FILES.profile, '{}');
   if (!fs.existsSync(DATA_FILES.crm)) fs.writeFileSync(DATA_FILES.crm, '[]');
   if (!fs.existsSync(DATA_FILES.calendar)) fs.writeFileSync(DATA_FILES.calendar, '[]');
+  if (!fs.existsSync(DATA_FILES.knowledge)) fs.writeFileSync(DATA_FILES.knowledge, '[]');
   console.log('  Data: ' + TERRAPIN_DIR);
 }
 
@@ -92,7 +94,7 @@ async function checkMail() {
 // ══════════════════════════════════════
 //  SYSTEM PROMPT BUILDER
 // ══════════════════════════════════════
-function buildSystemPrompt(businessProfile, crmContacts, calendarEvents, dailyLogs) {
+function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries) {
   const bizName = businessProfile?.businessName || 'your business';
   const ownerName = businessProfile?.ownerName || '';
 
@@ -123,6 +125,24 @@ function buildSystemPrompt(businessProfile, crmContacts, calendarEvents, dailyLo
     }
     if (businessProfile.paymentMethods) parts.push('Payment: ' + businessProfile.paymentMethods);
     profileSection = parts.join('\n');
+  }
+
+  // Build knowledge base summary
+  let knowledgeSection = '';
+  if (knowledgeEntries && knowledgeEntries.length) {
+    const capped = knowledgeEntries.slice(-50); // cap at 50 most recent entries
+    const grouped = {};
+    for (const entry of capped) {
+      const cat = entry.category || 'general';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(entry.note);
+    }
+    const parts = [];
+    for (const [cat, notes] of Object.entries(grouped)) {
+      parts.push(cat.charAt(0).toUpperCase() + cat.slice(1) + ':\n' + notes.map(n => '  - ' + n).join('\n'));
+    }
+    knowledgeSection = `\nBUSINESS KNOWLEDGE (${capped.length} notes):\n${parts.join('\n')}`;
+    if (knowledgeEntries.length > 50) console.log('  ⚠ Knowledge capped at 50 entries (' + knowledgeEntries.length + ' total)');
   }
 
   // Build CRM contacts summary
@@ -174,6 +194,7 @@ You talk like a helpful coworker — warm, brief, and practical. The person you'
 
 ABOUT THE OWNER:
 ${profileSection}
+${knowledgeSection}
 ${crmSection}
 
 YOUR DATA — you have access to all of this stored data and can answer questions about it:
@@ -208,8 +229,10 @@ ANSWERING QUESTIONS ABOUT DATA:
 - When the user asks about contacts, clients, or "do I have info for..." — look at the CRM Contacts and business profile above and answer directly.
 - When the user asks about job logs, recent work, or "what did I log" — look at the Job Site Logs above and answer directly.
 - Only use a tool when the user wants to CREATE, ADD, or GENERATE something new. For reading/viewing existing data, just answer from the data above.
+- When the user asks about business knowledge (hours, policies, pricing, preferences) — check the BUSINESS KNOWLEDGE section above and answer from there.
 
 USING TOOLS:
+- When the owner tells you something about their business (hours, policies, pricing, suppliers, preferences, processes), AUTOMATICALLY save it to Turtle Shell — don't ask, just save it. You can respond naturally AND trigger a save in the same turn.
 - Pull client info from the CRM contacts and business profile above — don't ask for info you already have
 - Use conversation history to resolve pronouns like "him", "her", "them", "that client"
 - If a message asks for two things (e.g. "add Jake and send him an invoice"), do the first one. The system will automatically follow up for the second.
@@ -237,7 +260,13 @@ QR codes — include colors if requested:
   {"tool_id": "qr-code-generator", "params": {"type": "url", "data": "https://terrapin.tools", "fg_color": "#2C3E2D", "bg_color": "#ffffff"}}
 
 Tip calculator:
-  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}`;
+  {"tool_id": "tip-calculator", "params": {"bill": 247, "tip_percent": 20, "staff_count": 4}}
+
+Turtle Shell — save business knowledge automatically when the owner mentions it:
+  {"tool_id": "turtle-shell", "params": {"action": "add", "category": "hours", "note": "Closed on Mondays"}}
+  {"tool_id": "turtle-shell", "params": {"action": "add", "category": "pricing", "note": "10% discount for repeat clients"}}
+  {"tool_id": "turtle-shell", "params": {"action": "add", "category": "suppliers", "note": "Get lumber from Henderson Supply on 5th Ave"}}
+  Categories: hours, pricing, suppliers, policies, preferences, processes, seasonal, general`;
 }
 
 // ══════════════════════════════════════
@@ -309,7 +338,7 @@ function resolveClientEmail(nameQuery, profile) {
 // ══════════════════════════════════════
 //  PARSE GEMMA RESPONSE
 // ══════════════════════════════════════
-function parseAgentResponse(raw, businessProfile, crmContacts) {
+function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, dailyLogs) {
   const text = raw.trim();
   console.log('  → Raw Gemma response:', text.substring(0, 300));
 
@@ -355,6 +384,59 @@ function parseAgentResponse(raw, businessProfile, crmContacts) {
       return { action: 'respond', message: `I tried to use "${json.tool_id}" but that tool doesn't exist. Let me try again.` };
     }
     let params = json.params || {};
+
+    // ── INTERCEPT READ/VIEW ACTIONS ──
+    // Gemma sometimes tries to open a tool to "view" data instead of answering from the prompt.
+    // Catch these and return the data directly as a conversation response.
+    const action = (params.action || '').toLowerCase();
+    if (action === 'view' || action === 'list' || action === 'get' || action === 'check' || action === 'read') {
+      console.log(`  → Intercepted ${json.tool_id} "${action}" — answering from stored data`);
+
+      if (json.tool_id === 'simple-calendar') {
+        if (!calendarEvents || !calendarEvents.length) {
+          return { action: 'respond', message: "You don't have anything on the calendar yet. Want me to add something?" };
+        }
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = calendarEvents.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+        if (!upcoming.length) {
+          return { action: 'respond', message: "Nothing upcoming on your calendar. Want me to schedule something?" };
+        }
+        const lines = upcoming.map(e => {
+          let line = `${e.date}`;
+          if (e.time) line += ` at ${e.time}`;
+          line += ` — ${e.title || 'Untitled'}`;
+          return line;
+        });
+        return { action: 'respond', message: "Here's what's coming up:\n" + lines.join('\n') };
+      }
+
+      if (json.tool_id === 'simple-crm') {
+        if (!crmContacts || !crmContacts.length) {
+          return { action: 'respond', message: "No contacts in the CRM yet. Want me to add someone?" };
+        }
+        const lines = crmContacts.slice(0, 15).map(c => {
+          const parts = [c.name];
+          if (c.email) parts.push(c.email);
+          if (c.phone) parts.push(c.phone);
+          if (c.business) parts.push('(' + c.business + ')');
+          return parts.join(', ');
+        });
+        return { action: 'respond', message: `You have ${crmContacts.length} contact${crmContacts.length === 1 ? '' : 's'}:\n` + lines.join('\n') };
+      }
+
+      if (json.tool_id === 'job-site-daily-log') {
+        if (!dailyLogs || !dailyLogs.length) {
+          return { action: 'respond', message: "No job site logs yet. Want me to start one?" };
+        }
+        const lines = dailyLogs.slice(-5).map(l => {
+          let line = `${l.date || 'unknown'}`;
+          if (l.jobName) line += ` — ${l.jobName}`;
+          if (l.work) line += `: ${l.work.substring(0, 80)}`;
+          return line;
+        });
+        return { action: 'respond', message: "Recent logs:\n" + lines.join('\n') };
+      }
+    }
 
     console.log(`  → Gemma returned tool: ${json.tool_id}`);
     console.log(`  → Raw params:`, JSON.stringify(params, null, 2));
@@ -590,6 +672,13 @@ app.post('/chat', async (req, res) => {
     if (!Array.isArray(calendarEvents)) calendarEvents = [];
   } catch(e) { /* no calendar file or parse error */ }
 
+  // Load knowledge base
+  let knowledgeEntries = [];
+  try {
+    knowledgeEntries = JSON.parse(fs.readFileSync(DATA_FILES.knowledge, 'utf8'));
+    if (!Array.isArray(knowledgeEntries)) knowledgeEntries = [];
+  } catch(e) { knowledgeEntries = []; }
+
   // Load daily logs from ~/.terrapin/daily-logs/
   let dailyLogs = [];
   try {
@@ -605,7 +694,7 @@ app.post('/chat', async (req, res) => {
     const clients = business_profile.clients || business_profile.regular_clients || [];
     console.log(`  → Profile: ${business_profile.businessName || 'unnamed'} | ${clients.length} profile clients`);
   }
-  console.log('  → Data loaded: CRM %d contacts, Calendar %d events, Logs %d entries', mergedContacts.length, calendarEvents.length, dailyLogs.length);
+  console.log('  → Data loaded: CRM %d contacts, Knowledge %d notes, Calendar %d events, Logs %d entries', mergedContacts.length, knowledgeEntries.length, calendarEvents.length, dailyLogs.length);
 
   // Strip logo from profile before building system prompt — base64 images bloat the prompt
   let profileForPrompt = business_profile || null;
@@ -614,7 +703,7 @@ app.post('/chat', async (req, res) => {
     delete profileForPrompt.logo;
   }
 
-  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, calendarEvents, dailyLogs);
+  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, knowledgeEntries);
 
   // Build messages array with conversation history
   const ollamaMessages = [{ role: 'system', content: systemPrompt }];
@@ -650,7 +739,7 @@ app.post('/chat', async (req, res) => {
 
     const data = await ollamaRes.json();
     const rawResponse = data.message?.content || '';
-    const parsed = parseAgentResponse(rawResponse, business_profile, mergedContacts);
+    const parsed = parseAgentResponse(rawResponse, business_profile, mergedContacts, calendarEvents, dailyLogs);
 
     res.json({ success: true, ...parsed, raw: rawResponse });
   } catch (e) {
@@ -778,6 +867,27 @@ app.post('/data/calendar', (req, res) => {
     fs.writeFileSync(DATA_FILES.calendar, JSON.stringify(events, null, 2));
     console.log('  → Calendar saved: ' + events.length + ' events');
     res.json({ success: true, count: events.length });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── KNOWLEDGE ──
+app.get('/data/knowledge', (req, res) => {
+  try {
+    const data = JSON.parse(fs.readFileSync(DATA_FILES.knowledge, 'utf8'));
+    res.json(Array.isArray(data) ? data : []);
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+app.post('/data/knowledge', (req, res) => {
+  try {
+    const entries = Array.isArray(req.body) ? req.body : (req.body.entries || []);
+    fs.writeFileSync(DATA_FILES.knowledge, JSON.stringify(entries, null, 2));
+    console.log('  → Knowledge saved: ' + entries.length + ' entries');
+    res.json({ success: true, count: entries.length });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
