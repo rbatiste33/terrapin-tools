@@ -1228,8 +1228,11 @@ async function executeToolCall(data, toolUrl, paramList) {
     // For Turtle Shell, save knowledge directly
     if (data.tool_id === 'turtle-shell' && (params.action === 'add' || params.note)) {
       saveKnowledge(params);
-      window._lastUserMessage = null; // prevent chain from re-triggering
     }
+
+    // Kill chain trigger for all data saves — prevents Gemma from re-creating
+    // the same entry when the message contains chain keywords like "email", "create"
+    window._lastUserMessage = null;
 
     let cardHTML = '<div class="action-card">';
     cardHTML += '<div class="card-label">' + L('data_saved') + '</div>';
