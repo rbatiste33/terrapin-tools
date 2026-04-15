@@ -856,6 +856,20 @@ async function sendMessage() {
     const data = await res.json();
     handleAgentResponse(data);
 
+    // Show subtle note if server auto-saved knowledge
+    if (data.knowledge_saved) {
+      var es = currentLang === 'es';
+      addProgress('\u{1f422} ' + (es ? 'Guardado en Turtle Shell: ' : 'Saved to Turtle Shell: ') + data.knowledge_saved.note.substring(0, 60) + (data.knowledge_saved.note.length > 60 ? '...' : ''));
+      // Sync to localStorage so the tool sees it
+      try {
+        var kEntries = JSON.parse(localStorage.getItem('terrapin_knowledge') || '[]');
+        if (!kEntries.some(function(e) { return e.id === data.knowledge_saved.id; })) {
+          kEntries.push(data.knowledge_saved);
+          localStorage.setItem('terrapin_knowledge', JSON.stringify(kEntries));
+        }
+      } catch(e) {}
+    }
+
   } catch(e) {
     hideTyping();
     addMessage('agent', L('cant_connect'));

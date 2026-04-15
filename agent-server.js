@@ -271,6 +271,78 @@ Turtle Shell — save business knowledge automatically when the owner mentions i
 }
 
 // ══════════════════════════════════════
+//  KNOWLEDGE DETECTION — server-side auto-save
+//  Don't rely on Gemma to decide. The server
+//  listens for business facts and saves them.
+// ══════════════════════════════════════
+const KNOWLEDGE_PATTERNS = [
+  { pattern: /(?:we(?:'re|'re| are)\s+)?(?:closed|open)\s+(?:on\s+)?(?:mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?|sundays?|weekends?|holidays?)/i, category: 'hours' },
+  { pattern: /(?:our\s+)?hours?\s+(?:are|is)\s+/i, category: 'hours' },
+  { pattern: /(?:we\s+)?open\s+(?:at\s+)?\d/i, category: 'hours' },
+  { pattern: /(?:we\s+)?close\s+(?:at\s+)?\d/i, category: 'hours' },
+  { pattern: /(?:we\s+)?charge\s+\$?\d/i, category: 'pricing' },
+  { pattern: /(?:our\s+)?(?:rate|price|fee|cost)\s+(?:is|are)\s+\$?\d/i, category: 'pricing' },
+  { pattern: /(?:\d+%?\s+)?discount\s+(?:for|on|if)/i, category: 'pricing' },
+  { pattern: /(?:we\s+)?(?:get|buy|order|source)\s+(?:\w+\s+)?(?:from|at|through)\s+/i, category: 'suppliers' },
+  { pattern: /(?:our\s+)?supplier\s+(?:is|for)/i, category: 'suppliers' },
+  { pattern: /(?:our\s+)?(?:policy|rule)\s+(?:is|for)/i, category: 'policies' },
+  { pattern: /(?:we\s+)?(?:don'?t|never|always|require)\s+/i, category: 'policies' },
+  { pattern: /(?:we\s+)?prefer\s+/i, category: 'preferences' },
+  { pattern: /(?:i|we)\s+(?:like|want)\s+(?:to\s+)?(?:use|keep|do)/i, category: 'preferences' },
+  { pattern: /(?:in|during|for)\s+(?:summer|winter|spring|fall|holiday|christmas|thanksgiving)/i, category: 'seasonal' },
+  { pattern: /(?:our\s+)?(?:process|workflow|procedure)\s+(?:is|for)/i, category: 'processes' },
+  { pattern: /(?:we\s+)?(?:first|then|after that|next)\s+/i, category: 'processes' },
+  { pattern: /(?:remember|don'?t forget|keep in mind|note that|fyi)\s+/i, category: 'general' },
+];
+
+function detectKnowledge(message) {
+  if (!message || message.length < 10 || message.length > 500) return null;
+  const lower = message.toLowerCase().trim();
+
+  // Skip questions — they're asking, not telling
+  if (lower.endsWith('?')) return null;
+  // Skip greetings and short chat
+  if (/^(hi|hey|hello|thanks|ok|yes|no|sure|good|great)\b/i.test(lower)) return null;
+  // Skip tool requests — Gemma handles those
+  if (/\b(create|make|build|generate|add|send|schedule|log|invoice|quote|qr)\b/i.test(lower) &&
+      /\b(for|to|an?)\b/i.test(lower)) return null;
+
+  for (const { pattern, category } of KNOWLEDGE_PATTERNS) {
+    if (pattern.test(message)) {
+      return { note: message.trim(), category };
+    }
+  }
+  return null;
+}
+
+function autoSaveKnowledge(knowledge) {
+  try {
+    let entries = [];
+    try { entries = JSON.parse(fs.readFileSync(DATA_FILES.knowledge, 'utf8')); } catch(e) {}
+    if (!Array.isArray(entries)) entries = [];
+
+    // Dedup by note text
+    const exists = entries.some(e => e.note.toLowerCase().trim() === knowledge.note.toLowerCase().trim());
+    if (exists) return null;
+
+    const entry = {
+      id: 'k_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6),
+      category: knowledge.category,
+      note: knowledge.note,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    entries.push(entry);
+    fs.writeFileSync(DATA_FILES.knowledge, JSON.stringify(entries, null, 2));
+    console.log(`  → Auto-saved knowledge: "${knowledge.note.substring(0, 60)}..." [${knowledge.category}]`);
+    return entry;
+  } catch(e) {
+    console.error('  → Knowledge auto-save failed:', e.message);
+    return null;
+  }
+}
+
+// ══════════════════════════════════════
 //  TIME FORMAT NORMALIZER
 // ══════════════════════════════════════
 function normalizeTime(input) {
@@ -743,7 +815,17 @@ app.post('/chat', async (req, res) => {
     const rawResponse = data.message?.content || '';
     const parsed = parseAgentResponse(rawResponse, business_profile, mergedContacts, calendarEvents, dailyLogs);
 
-    res.json({ success: true, ...parsed, raw: rawResponse });
+    // Server-side knowledge detection — if Gemma responded conversationally
+    // but the user shared a business fact, save it automatically
+    let knowledgeSaved = null;
+    if (parsed.action === 'respond' || parsed.action === 'ask') {
+      const detected = detectKnowledge(message);
+      if (detected) {
+        knowledgeSaved = autoSaveKnowledge(detected);
+      }
+    }
+
+    res.json({ success: true, ...parsed, raw: rawResponse, knowledge_saved: knowledgeSaved });
   } catch (e) {
     res.status(502).json({
       success: false,
