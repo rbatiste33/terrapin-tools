@@ -1201,6 +1201,9 @@ async function executeToolCall(data, toolUrl, paramList) {
       }
       // Strip autorun from the Open Tool URL — we already saved directly
       toolUrl = toolUrl.replace('&autorun=true', '').replace('?autorun=true&', '?').replace('?autorun=true', '');
+      // Kill the chain trigger — project tracker messages naturally contain chain keywords
+      // ("create", "make") which cause Gemma to re-create the same project
+      window._lastUserMessage = null;
     }
 
     let cardHTML = '<div class="action-card">';
