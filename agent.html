@@ -1870,13 +1870,14 @@ function editDraftEmail(emailId) {
   var card = document.getElementById(emailId);
   if (!card) return;
   var es = currentLang === 'es';
+  var inputStyle = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;margin-bottom:6px;font-family:inherit;background:var(--bg);color:var(--text);';
   card.innerHTML = '<div class="card-label">' + (es ? 'Editar Email' : 'Edit Email') + '</div>' +
     '<label style="font-size:12px;color:var(--text-muted);margin-top:8px;display:block;">' + (es ? 'Para' : 'To') + '</label>' +
-    '<input type="text" id="' + emailId + '-to" value="' + escapeAttr(draft.to || '') + '" style="width:100%;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;margin-bottom:6px;font-family:inherit;background:var(--bg);">' +
+    '<input type="text" id="' + emailId + '-to" value="' + escapeAttr(draft.to || '') + '" style="' + inputStyle + '">' +
     '<label style="font-size:12px;color:var(--text-muted);display:block;">' + (es ? 'Asunto' : 'Subject') + '</label>' +
-    '<input type="text" id="' + emailId + '-subject" value="' + escapeAttr(draft.subject || '') + '" style="width:100%;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;margin-bottom:6px;font-family:inherit;background:var(--bg);">' +
+    '<input type="text" id="' + emailId + '-subject" value="' + escapeAttr(draft.subject || '') + '" style="' + inputStyle + '">' +
     '<label style="font-size:12px;color:var(--text-muted);display:block;">' + (es ? 'Mensaje' : 'Body') + '</label>' +
-    '<textarea id="' + emailId + '-body" style="width:100%;min-height:100px;padding:8px 10px;border:1px solid var(--card-border);border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;background:var(--bg);">' + escapeHTML(draft.body || '') + '</textarea>' +
+    '<textarea id="' + emailId + '-body" style="' + inputStyle + 'min-height:100px;resize:vertical;">' + escapeHTML(draft.body || '') + '</textarea>' +
     '<div style="display:flex;gap:8px;margin-top:10px;">' +
     '<button class="card-btn primary" onclick="sendEditedDraft(\'' + emailId + '\')">' + (es ? 'Enviar' : 'Send') + '</button>' +
     '<button class="card-btn secondary" onclick="this.closest(\'.action-card\').remove()">' + (es ? 'Cancelar' : 'Cancel') + '</button>' +
