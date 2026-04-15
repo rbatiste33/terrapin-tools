@@ -761,7 +761,7 @@ function loadOwnerName() {
 function checkAgentHealth() {
   var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   var link = document.getElementById('agentLink');
-  // On public site, always link to setup page — agent chat only works locally
+  // On public site, link to setup page — agent chat only works locally
   if (!isLocalhost && link) link.href = 'agent-setup.html';
 
   fetch('http://localhost:7777/health', {method: 'GET', signal: AbortSignal.timeout(3000)})
@@ -769,13 +769,11 @@ function checkAgentHealth() {
       if (r.ok) {
         agentOnline = true;
         document.getElementById('agentDot').classList.add('online');
-        if (isLocalhost && link) link.href = 'agent.html';
       }
     })
     .catch(function() {
       agentOnline = false;
       document.getElementById('agentDot').classList.remove('online');
-      if (link) link.href = 'agent-setup.html';
     });
 }
 

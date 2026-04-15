@@ -728,7 +728,7 @@
         <span>Terrapin Tools</span>
       </a>
       <div class="nav-right">
-        <a href="agent-setup.html" id="nav-agent-link" data-i18n="nav_agent" style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C9A84C;text-decoration:none;transition:opacity 0.15s;">Agent &#9889;</a>
+        <a href="agent.html" id="nav-agent-link" data-i18n="nav_agent" style="font-family:'DM Sans',sans-serif;font-size:14px;color:#C9A84C;text-decoration:none;transition:opacity 0.15s;">Agent &#9889;</a>
         <a href="#tools" class="btn-primary" data-i18n="nav_browse">Browse Tools</a>
         <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
       </div>
@@ -1168,17 +1168,13 @@ function showDashboardCTA() {
     }).catch(function() {});
 })();
 
-// On localhost, swap agent link to chat if server is running
+// On public site, swap agent link to setup page (can't chat remotely)
 (function() {
   var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!isLocalhost) return;
-  fetch('http://localhost:7777/health', {signal: AbortSignal.timeout(2000)})
-    .then(function(r) {
-      if (r.ok) {
-        var link = document.getElementById('nav-agent-link');
-        if (link) link.href = 'agent.html';
-      }
-    }).catch(function() {});
+  if (!isLocalhost) {
+    var link = document.getElementById('nav-agent-link');
+    if (link) link.href = 'agent-setup.html';
+  }
 })();
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
