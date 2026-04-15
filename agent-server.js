@@ -411,7 +411,7 @@ function resolveClientEmail(nameQuery, profile) {
 // ══════════════════════════════════════
 //  PARSE GEMMA RESPONSE
 // ══════════════════════════════════════
-function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, dailyLogs) {
+function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, dailyLogs, userMessage) {
   const text = raw.trim();
   console.log('  → Raw Gemma response:', text.substring(0, 300));
 
@@ -520,6 +520,32 @@ function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, d
           return line;
         });
         return { action: 'respond', message: "Recent logs:\n" + lines.join('\n') };
+      }
+    }
+
+    // ── TURTLE SHELL QUESTION GUARD ──
+    // If the user asked a question but Gemma tried to save to turtle-shell,
+    // override — look up the answer from knowledge instead of saving
+    if (json.tool_id === 'turtle-shell' && userMessage) {
+      const msg = userMessage || '';
+      if (msg.trim().endsWith('?') || /^(what|how|when|where|who|why|do we|are we|is our|how much|what's)\b/i.test(msg.trim())) {
+        console.log('  → Blocked turtle-shell save — user asked a question, not stating a fact');
+        // Try to answer from knowledge
+        try {
+          const knowledge = JSON.parse(fs.readFileSync(DATA_FILES.knowledge, 'utf8'));
+          if (knowledge.length) {
+            const q = msg.toLowerCase();
+            const relevant = knowledge.filter(k => {
+              const words = q.replace(/[?.,!]/g, '').split(/\s+/).filter(w => w.length > 3);
+              return words.some(w => k.note.toLowerCase().includes(w));
+            });
+            if (relevant.length) {
+              const notes = relevant.map(k => k.note).join('. ');
+              return { action: 'respond', message: notes };
+            }
+          }
+        } catch(e) {}
+        return { action: 'respond', message: json.params?.note || "I don't have that info saved yet. Tell me and I'll remember it!" };
       }
     }
 
@@ -825,7 +851,7 @@ app.post('/chat', async (req, res) => {
 
     const data = await ollamaRes.json();
     const rawResponse = data.message?.content || '';
-    const parsed = parseAgentResponse(rawResponse, business_profile, mergedContacts, calendarEvents, dailyLogs);
+    const parsed = parseAgentResponse(rawResponse, business_profile, mergedContacts, calendarEvents, dailyLogs, message);
 
     // Server-side knowledge detection — if Gemma responded conversationally
     // but the user shared a business fact, save it automatically
