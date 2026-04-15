@@ -1239,16 +1239,24 @@ async function executeToolCall(data, toolUrl, paramList) {
     cardHTML += '</div>';
     addCard(cardHTML);
 
-    // Multi-action chain: only fire when the message has a connecting word
-    // ("and", "then", "also") signaling a genuine second intent.
-    // "Add John and send him an invoice" → chain fires
-    // "Add John with email john@test.com" → chain does NOT fire
+    // Multi-action chain: only fire when a second action verb appears
+    // AFTER a connector word (and/then/also). This distinguishes:
+    // "Add John and send him an invoice" → "send" after "and" → chain
+    // "Add John and his email is john@test.com" → no action after "and" → no chain
     if (window._lastUserMessage && window._lastUserMessage.length > 40) {
       var remaining = window._lastUserMessage.toLowerCase();
-      var hasConnector = /\b(and|then|also|después|luego|también|y luego)\b/.test(remaining);
-      var actionKeywords = ['send', 'invoice', 'quote', 'schedule', 'make', 'create', 'enviar', 'factura', 'cotización'];
-      var hasSecondAction = actionKeywords.some(function(kw) { return remaining.includes(kw); });
-      if (hasConnector && hasSecondAction) {
+      var connectorMatch = remaining.match(/\b(and then|then|also|después|luego|también|y luego)\b/);
+      // Only check for "and" if it's not followed by data words like "his", "her", "the", "a"
+      if (!connectorMatch) {
+        var andMatch = remaining.match(/\band\s+(send|invoice|create|make|schedule|quote|generate|enviar|factura|cotización)/);
+        if (andMatch) connectorMatch = andMatch;
+      }
+      if (connectorMatch) {
+        var afterConnector = remaining.substring(remaining.indexOf(connectorMatch[0]) + connectorMatch[0].length);
+        var actionKeywords = ['send', 'invoice', 'quote', 'schedule', 'generate', 'create', 'enviar', 'factura', 'cotización'];
+        var hasSecondAction = actionKeywords.some(function(kw) { return afterConnector.includes(kw); });
+      }
+      if (connectorMatch && hasSecondAction) {
         window._lastUserMessage = null; // prevent infinite loops
         // Build a follow-up message that tells Gemma the first action is done
         var doneAction = data.tool_id === 'simple-crm' ? 'I already added the contact to CRM.' : 'I already saved that.';
