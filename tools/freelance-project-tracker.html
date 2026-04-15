@@ -655,9 +655,8 @@ getProjectSummary:function(){
 // ══════════════════════════════════════
 const T={
 en:{back:'\u2190 Back to Terrapin Tools',h1:'Freelance Project Tracker',sub:'Kickoff to final invoice. Everything in one place.',
-tab_projects:'My Projects',tab_worklog:'My Contractor Work Log',new_project:'+ Start a Project',active_projects:'Active Projects',
-worklog_title:'My Contractor Work Log',worklog_sub:'Track your work when you\'re the hired gun.',
-log_session:'+ Log Work Session',export_worklog:'Export Work Log PDF',back_list:'\u2190 Back to Projects',
+tab_projects:'My Projects',new_project:'+ Start a Project',active_projects:'Active Projects',
+back_list:'\u2190 Back to Projects',
 tab_deliverables:'Deliverables',tab_changes:'Change Orders',tab_comms:'Communication',tab_invoice:'Invoice',
 new_project_title:'Start a Project',lbl_client:'Client',lbl_client_email:'Client email',lbl_project:'Project name',
 lbl_brief:'Brief',lbl_fee_type:'Fee type',lbl_fee:'Agreed fee',lbl_rate:'Hourly rate',lbl_est_hours:'Estimated hours',
@@ -666,12 +665,10 @@ save_project:'Save Project',delete_project:'Delete Project',add_deliverable:'Add
 lbl_deliverable:'Description',lbl_amount:'Amount',lbl_due:'Due date',save_deliverable:'Save Deliverable',
 log_change:'Log Change Order',lbl_change_desc:'What the client is asking for',lbl_add_cost:'Additional cost',save_change:'Save Change Order',
 log_comm:'Log Touchpoint',lbl_comm_type:'Type',lbl_comm_date:'Date',lbl_comm_notes:'Notes',save_comm:'Save Touchpoint',
-log_work_session:'Log Work Session',lbl_wl_date:'Date',lbl_wl_hours:'Hours worked',lbl_wl_rate:'Hourly rate',lbl_wl_desc:'Work completed',save_session:'Save Session',
 footer:'A Terrapin Tool \u2014 terrapin.tools'},
 es:{back:'\u2190 Volver a Terrapin Tools',h1:'Rastreador de Proyectos Freelance',sub:'Del inicio a la factura final. Todo en un lugar.',
-tab_projects:'Mis Proyectos',tab_worklog:'Mi Registro de Trabajo',new_project:'+ Iniciar un Proyecto',active_projects:'Proyectos Activos',
-worklog_title:'Mi Registro de Trabajo',worklog_sub:'Rastrea tu trabajo cuando eres el contratista.',
-log_session:'+ Registrar Sesi\u00f3n',export_worklog:'Exportar PDF del Registro',back_list:'\u2190 Volver a Proyectos',
+tab_projects:'Mis Proyectos',new_project:'+ Iniciar un Proyecto',active_projects:'Proyectos Activos',
+back_list:'\u2190 Volver a Proyectos',
 tab_deliverables:'Entregables',tab_changes:'\u00d3rdenes de Cambio',tab_comms:'Comunicaci\u00f3n',tab_invoice:'Factura',
 new_project_title:'Iniciar un Proyecto',lbl_client:'Cliente',lbl_client_email:'Email del cliente',lbl_project:'Nombre del proyecto',
 lbl_brief:'Brief',lbl_fee_type:'Tipo de tarifa',lbl_fee:'Tarifa acordada',lbl_rate:'Tarifa por hora',lbl_est_hours:'Horas estimadas',
@@ -680,7 +677,6 @@ save_project:'Guardar Proyecto',delete_project:'Eliminar Proyecto',add_deliverab
 lbl_deliverable:'Descripci\u00f3n',lbl_amount:'Monto',lbl_due:'Fecha l\u00edmite',save_deliverable:'Guardar Entregable',
 log_change:'Registrar Orden de Cambio',lbl_change_desc:'Qu\u00e9 est\u00e1 pidiendo el cliente',lbl_add_cost:'Costo adicional',save_change:'Guardar Orden de Cambio',
 log_comm:'Registrar Contacto',lbl_comm_type:'Tipo',lbl_comm_date:'Fecha',lbl_comm_notes:'Notas',save_comm:'Guardar Contacto',
-log_work_session:'Registrar Sesi\u00f3n de Trabajo',lbl_wl_date:'Fecha',lbl_wl_hours:'Horas trabajadas',lbl_wl_rate:'Tarifa por hora',lbl_wl_desc:'Trabajo completado',save_session:'Guardar Sesi\u00f3n',
 footer:'Una Herramienta Terrapin \u2014 terrapin.tools'}
 };
 function setLang(lang){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(T[lang]&&T[lang][k]){if(el.tagName==='INPUT'||el.tagName==='TEXTAREA')el.placeholder=T[lang][k];else el.innerHTML=T[lang][k]}});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-es').classList.toggle('active',lang==='es');localStorage.setItem('terrapin-language',lang)}
@@ -746,21 +742,13 @@ renderProjects();handleURLParams()
           req.onsuccess = function() { resolve(req.result || []); };
           req.onerror = function() { resolve([]); };
         }).catch(function() { resolve([]); });
-      }),
-      new Promise(function(resolve) {
-        openIDB().then(function(db) {
-          var tx = db.transaction(IDB_STORE, 'readonly');
-          var req = tx.objectStore(IDB_STORE).get('worklog');
-          req.onsuccess = function() { resolve(req.result || []); };
-          req.onerror = function() { resolve([]); };
-        }).catch(function() { resolve([]); });
       })
     ]).then(function(results) {
-      var p = results[0], w = results[1];
-      if ((!p || p.length === 0) && (!w || w.length === 0)) return;
+      var p = results[0];
+      if (!p || p.length === 0) return;
       fetch(SYNC_URL + '/data/projects', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projects: p, workLogs: w }), signal: AbortSignal.timeout(3000)
+        body: JSON.stringify({ projects: p }), signal: AbortSignal.timeout(3000)
       }).then(function() { console.log('Sync: projects flushed to agent'); }).catch(function() {});
     });
   }
