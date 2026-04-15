@@ -759,11 +759,6 @@ function loadOwnerName() {
 }
 
 function checkAgentHealth() {
-  var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  var link = document.getElementById('agentLink');
-  // On public site, link to setup page — agent chat only works locally
-  if (!isLocalhost && link) link.href = 'agent-setup.html';
-
   fetch('http://localhost:7777/health', {method: 'GET', signal: AbortSignal.timeout(3000)})
     .then(function(r) {
       if (r.ok) {
