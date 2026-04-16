@@ -707,6 +707,28 @@ function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, d
 
   // Tool call
   if (json.tool_id) {
+    // Intercept "schedule" — Gemma treats it as a tool but it's a response type
+    if (json.tool_id === 'schedule' || json.tool_id === 'scheduler' || json.tool_id === 'reminder') {
+      const params = json.params || {};
+      const scheduleData = { type: params.type || params.action || 'morning_briefing' };
+      if (params.time) scheduleData.time = params.time;
+      if (params.days) scheduleData.days = params.days;
+      if (params.minutes_before) scheduleData.minutes_before = params.minutes_before;
+      if (params.enabled !== undefined) scheduleData.enabled = params.enabled;
+      const updated = updateSchedule(scheduleData);
+      const type = scheduleData.type;
+      let msg = '';
+      if (type === 'morning_briefing') {
+        msg = scheduleData.enabled === false ? 'Morning briefing turned off.' : 'Morning briefing set for ' + formatTime12(updated.morning_briefing.time) + ', ' + (updated.morning_briefing.days || []).join('/');
+      } else if (type === 'appointment_reminders') {
+        msg = scheduleData.enabled === false ? 'Appointment reminders turned off.' : 'Appointment reminders enabled — ' + (updated.appointment_reminders.minutes_before || 60) + ' minutes before each event.';
+      } else {
+        msg = 'Schedule updated.';
+      }
+      console.log('  → Schedule set via tool_id intercept:', msg);
+      return { action: 'schedule_set', message: msg, schedule: scheduleData };
+    }
+
     const tool = toolsManifest.tools.find(t => t.id === json.tool_id);
     if (!tool) {
       return { action: 'respond', message: `I tried to use "${json.tool_id}" but that tool doesn't exist. Let me try again.` };
