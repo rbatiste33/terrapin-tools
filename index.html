@@ -415,6 +415,45 @@
       border-radius: 6px;
     }
 
+    /* Premium tools section */
+    .premium-section { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--card-border); }
+    .section-label.gold { color: var(--gold); }
+    .section-subtitle { font-family: 'Lora', 'Playfair Display', serif; font-size: 22px; color: var(--dark); margin-bottom: 24px; font-weight: 600; letter-spacing: -0.01em; }
+    .premium-row { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 720px; }
+    .tool-card.premium {
+      background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%);
+      border: 1.5px solid var(--gold);
+      box-shadow: 0 4px 16px rgba(201, 168, 76, 0.15);
+      padding: 28px 32px;
+    }
+    .tool-card.premium:hover {
+      border-color: var(--gold);
+      box-shadow: 0 6px 24px rgba(201, 168, 76, 0.25);
+    }
+    .tool-card.premium h3 { font-size: 22px; margin-bottom: 10px; padding-right: 120px; }
+    .tool-card.premium .tool-desc { font-size: 15px; margin-bottom: 14px; color: var(--text); }
+    .premium-requires { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; font-style: italic; }
+    .premium-cta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .tool-card.premium .btn-primary { flex: 0 0 auto; padding: 11px 22px; font-size: 14px; }
+    .btn-buy {
+      flex: 0 0 auto;
+      background: var(--gold);
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn-buy:hover { opacity: 0.9; }
+    @media (max-width: 600px) {
+      .tool-card.premium h3 { padding-right: 90px; font-size: 20px; }
+      .premium-cta-row { flex-direction: column; }
+      .tool-card.premium .btn-primary,
+      .btn-buy { width: 100%; text-align: center; }
+    }
+
     .coming-soon-badge {
       position: absolute;
       top: 16px;
@@ -904,15 +943,26 @@
           <a href="tools/simple-calendar/" class="btn-primary" data-i18n="open_tool">Open Tool</a>
         </div>
 
-        <div class="tool-card">
-          <span class="premium-badge" data-i18n="badge_premium">Premium</span>
-          <h3 data-i18n="t_receipt">Smart Receipt Box</h3>
-          <p class="tool-desc" data-i18n="t_receipt_d">Snap a photo of a receipt. Local AI extracts the vendor, date, items, totals. Categorizes. Stores locally. Exports for tax time.</p>
-          <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
-          <a href="tools/smart-receipt-box/" class="btn-primary" data-i18n="open_tool">Open Tool</a>
-        </div>
-
       </div>
+
+      <!-- PREMIUM TOOLS — pay once, own forever -->
+      <div class="premium-section">
+        <p class="section-label gold" data-i18n="prem_label">Premium tools</p>
+        <h3 class="section-subtitle" data-i18n="prem_title">Pay once. Own it forever. No subscription.</h3>
+        <div class="premium-row">
+          <div class="tool-card premium">
+            <span class="premium-badge" data-i18n="badge_premium">Premium · $29</span>
+            <h3 data-i18n="t_receipt">Smart Receipt Box</h3>
+            <p class="tool-desc" data-i18n="t_receipt_d">Snap a photo of any receipt. Local Gemma 4 extracts vendor, date, line items, totals — on your Mac. Auto-categorizes. Exports CSV + printable summary for tax time.</p>
+            <p class="premium-requires" data-i18n="prem_requires">⚡ Requires the free Terrapin agent — one command to install.</p>
+            <div class="premium-cta-row">
+              <a href="tools/smart-receipt-box/" class="btn-primary" data-i18n="prem_learn">Learn more</a>
+              <a href="https://strategist5710.gumroad.com/l/qdtca" target="_blank" rel="noopener" class="btn-buy" data-i18n="prem_buy">Buy for $29</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1070,7 +1120,12 @@ const T = {
     t_calendar: 'Simple Calendar',
     t_calendar_d: 'Track appointments, jobs and deadlines. Always know what\'s next.',
     t_receipt: 'Smart Receipt Box',
-    t_receipt_d: 'Snap a photo of a receipt. Local AI extracts the vendor, date, items, totals. Categorizes. Stores locally. Exports for tax time.'
+    t_receipt_d: 'Snap a photo of any receipt. Local Gemma 4 extracts vendor, date, line items, totals — on your Mac. Auto-categorizes. Exports CSV + printable summary for tax time.',
+    prem_label: 'Premium tools',
+    prem_title: 'Pay once. Own it forever. No subscription.',
+    prem_requires: '⚡ Requires the free Terrapin agent — one command to install.',
+    prem_learn: 'Learn more',
+    prem_buy: 'Buy for $29'
   },
   es: {
     hero_h1: 'Deja de administrar tus herramientas.<br>Empieza a administrar tu negocio.',
@@ -1147,7 +1202,12 @@ const T = {
     t_calendar: 'Calendario Simple',
     t_calendar_d: 'Rastrea citas, trabajos y fechas l\u00edmite. Siempre sabe qu\u00e9 sigue.',
     t_receipt: 'Caja de Recibos Inteligente',
-    t_receipt_d: 'Toma una foto de un recibo. La IA local extrae el proveedor, la fecha, los art\u00edculos y los totales. Categoriza. Guarda localmente. Exporta para impuestos.'
+    t_receipt_d: 'Toma una foto de cualquier recibo. Gemma 4 local extrae el proveedor, la fecha, los art\u00edculos y los totales \u2014 en tu Mac. Categoriza autom\u00e1ticamente. Exporta CSV y resumen imprimible para impuestos.',
+    prem_label: 'Herramientas premium',
+    prem_title: 'Paga una vez. Tuyo para siempre. Sin suscripci\u00f3n.',
+    prem_requires: '\u26a1 Requiere el agente Terrapin gratuito \u2014 un solo comando para instalar.',
+    prem_learn: 'M\u00e1s informaci\u00f3n',
+    prem_buy: 'Comprar por $29'
   }
 };
 
