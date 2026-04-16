@@ -25,12 +25,17 @@ Every tool works in English and Spanish. Every tool runs on your computer. Your 
 ## 2. The Stack
 
 - **Tools:** Single-file HTML tools in `tools/` directory
-- **Agent server:** `agent-server.js` on `localhost:7777` — serves all files + API
+- **Agent server:** `agent-server.js` on `localhost:7777` — serves all files + API + scheduler
 - **Mail server:** `mail-server.js` on `localhost:3001` — Gmail SMTP relay
 - **AI:** Gemma 4 via Ollama on `localhost:11434`
+- **Scheduler:** `node-cron` — morning briefings + appointment reminders
 - **Data:** `~/.terrapin/` permanent files + IndexedDB browser storage + localStorage fallback
+- **Dashboard:** `dashboard.html` — personal home base with live widgets (desktop only)
+- **Onboarding:** `setup-wizard.html` — 3-step wizard, auto-creates business profile
 - **Deploy:** Vercel at terrapin.tools
 - **Install:** `curl -fsSL https://terrapin.tools/install.sh | bash`
+- **Update:** Same install command detects existing install, skips setup, just updates
+- **Dev:** `npm run dev:start` — stops launchd agent, runs nodemon from dev repo
 
 ---
 
@@ -107,18 +112,29 @@ Every tool must have — no exceptions:
 - Step-by-step progress visible in chat thread
 - Tool type determines output card: document / data / utility
 - Email draft preview before sending — edit, approve, or cancel
+- **Direct email from chat** — agent composes emails, shows preview card with Send/Edit/Cancel
 - Rotating turtle thinking phrases while processing (EN/ES)
 - Client email resolution from business profile + CRM contacts
 - Invoice restructuring — parses natural language into structured data
 - Time normalization — "2pm" → "14:00"
 - Calendar param fixing — moves title from action field automatically
+- **Server-side knowledge detection** — auto-saves business facts to Turtle Shell without Gemma deciding
+- **Turtle Shell question guard** — blocks Gemma from saving when user is asking a question
+- **Smart multi-action chain** — only fires when connector word (and/then/also) + action verb after it
+- **Personalized tool list** — agent only sees tools the user selected in dashboard
+- **Scheduled reminders** — morning briefing + appointment reminders via node-cron
+- **Multi-JSON parser** — handles Gemma returning multiple JSON objects in one response
 
 ### System Prompt
 - Includes current date for relative date calculation
 - Business profile JSON
+- **Business knowledge** (Turtle Shell) — grouped by category, capped at 50 entries
 - CRM contacts list
-- tools.json manifest with types
-- Explicit examples for invoice and calendar tools
+- Calendar events (upcoming)
+- Job site logs (recent 10)
+- tools.json manifest — **filtered to user's dashboard selection**
+- Explicit examples for all tools + email + schedule
+- Response types: conversation, tool call, email, schedule, question
 
 ---
 
@@ -133,12 +149,19 @@ Every tool must have — no exceptions:
 - `GET/POST /data/profile` — business-profile.json
 - `GET/POST /data/crm` — crm-contacts.json
 - `GET/POST /data/calendar` — calendar-events.json
+- `GET/POST /data/knowledge` — knowledge.json (Turtle Shell)
+- `GET/POST /data/dashboard` — dashboard.json (tool selection + onboarding state)
+- `GET/POST /data/schedules` — schedules.json (cron job config)
 - `GET/POST /data/logs` — daily-logs/ directory
+- `GET /health` — system status + version
 
 ### Files
 - `~/.terrapin/business-profile.json`
 - `~/.terrapin/crm-contacts.json`
 - `~/.terrapin/calendar-events.json`
+- `~/.terrapin/knowledge.json` — Turtle Shell knowledge base
+- `~/.terrapin/dashboard.json` — personal dashboard config
+- `~/.terrapin/schedules.json` — scheduled reminders config
 - `~/.terrapin/daily-logs/[date]-[id].json`
 - `~/.terrapin/mail-config.json` — encrypted AES-256-GCM
 - `~/.terrapin/mail-log.txt`
@@ -284,22 +307,30 @@ Local AI for immigrant-owned small businesses. Every tool in English and Spanish
 - Sales Tax Tracker — track collected sales tax by period
 - Avery Label Generator — print mailing labels
 - Business Card Generator — simple card layout with QR code
-- Freelance Project Tracker — in progress
+- Freelance Project Tracker — deactivated, needs rebuild (file exists at tools/freelance-project-tracker.html)
 
-### The Product
-- **Personal Dashboard** — SHIPPED. Live widgets (CRM, Calendar, Knowledge), drag-and-drop tool arrangement, clock/date, personalized greeting. Default home at localhost:7777 after onboarding.
+### Shipped This Session
+- **Turtle Shell** — SHIPPED. Agent knowledge base, server-side auto-detection of business facts
+- **Personal Dashboard** — SHIPPED. Live widgets (CRM, Calendar, Knowledge), drag-and-drop, clock/date, personalized greeting. Default home at localhost:7777 after onboarding.
 - **Setup Wizard** — SHIPPED. 3-step onboarding: name/type/email → pick tools → launch dashboard. Auto-creates business profile.
+- **Direct Email from Chat** — SHIPPED. Agent composes emails, preview card with Send/Edit/Cancel.
+- **Scheduled Reminders** — SHIPPED. Morning briefing + appointment reminders via node-cron.
+- **Agent Light Theme** — SHIPPED. Warm cream background matching landing page and dashboard.
+- **Update System** — SHIPPED. Version check, gold banner, update-mode install script.
 
 ---
 
 ## 15. V2 Roadmap
 
-- **Personal dashboard** — one screen, your whole business
-- **Fine tuning Gemma** — Unsloth, trained on real Terrapin usage patterns
+- **Ad-hoc reminders** — "remind me in 30 minutes to call Mike"
+- **iMessage notifications** — local via AppleScript, privacy-compliant
+- **Dark mode** — toggle for agent chat and dashboard
+- **Fine tuning Gemma** — Unsloth, trained on real Terrapin usage patterns (synthetic data only — privacy compliant)
 - **Windows install script** — expand to Windows users
 - **Mobile agent** — Gemma E2B running on device
 - **Desktop app** — Tauri wrapper, native feel
 - **More languages** — Portuguese, Chinese, Vietnamese, Korean
+- **Demo videos on landing page** — `demos/` folder for screen recordings
 
 ---
 

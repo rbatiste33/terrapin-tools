@@ -43,7 +43,8 @@ Inspired by TinyWow's clean grid layout but warmer, more human, with Grateful De
 - Turtle mascot left or centered — large, friendly, with tool belt
 - H1: Bold serif headline, 2-3 lines max
 - Subline: 1 sentence, gray, explains what it is
-- Two CTAs: "Browse Free Tools" (primary, green) + "See All Tools" (secondary, outlined)
+- CTAs: "Get Started" (primary, green, links to setup wizard — hidden on mobile) + "Browse Free Tools" (secondary)
+- Returning users: "Get Started" swaps to "Open Your Dashboard" (checks localStorage + server)
 - Subtle texture or grain overlay for warmth
 - NO hero image carousel, NO video, NO animation
 
@@ -127,6 +128,41 @@ Inspired by TinyWow's clean grid layout but warmer, more human, with Grateful De
 - "Free" badge: green
 - "New" badge: gold
 
+### Foundation Card (Agent Brain tools)
+- Background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%) — warm gold tint
+- Border: 1px solid #C9A84C (gold)
+- Box shadow: 0 2px 8px rgba(201, 168, 76, 0.12)
+- Hover: gold border intensifies, shadow grows
+- "Agent Brain" badge: gold background (#C9A84C), white text, top right
+- Used for: Business Profile + Turtle Shell on homepage
+- Layout: 2-column row above the regular tools grid
+
+### Agent Chat (Light Theme)
+- Background: #F5F0E8 (same warm cream as everything else)
+- Top bar: #2C3E2D dark green with gold title — anchors the brand
+- Agent bubbles: white (#FFFFFF) with #E8E0D0 border — card style
+- User bubbles: dark green (#2C3E2D) with white text
+- Send button: dark green (#2C3E2D)
+- Input: white background, warm border
+- Action cards: white with warm borders (same as tool cards)
+- NO dark mode by default — warm and earthy is the brand (dark mode as toggle later)
+
+### Dashboard
+- Same warm cream background as all pages
+- Clock: DM Mono, 48px, centered
+- Greeting: Lora serif, time-based (morning/afternoon/evening)
+- Live widgets: white cards with warm borders, 3-column grid
+- Tool cards: draggable, subtle handle icon
+- Settings modal: white card with toggles
+- Desktop only — mobile shows gate with "desktop only" message
+
+### Mobile Gate (Desktop-Only Pages)
+- Centered vertically, warm cream background
+- Title: Lora serif, 22px
+- Subtitle: 15px, muted color
+- Single CTA button linking to free tools
+- Used on: dashboard.html, turtle-shell.html, agent.html
+
 ---
 
 ## Design Principles
@@ -149,4 +185,4 @@ Inspired by TinyWow's clean grid layout but warmer, more human, with Grateful De
 - No modal popups on first load
 - No cookie consent banners that cover half the screen
 - No fake social proof ("Join 50,000+ businesses!" when you have 3 users)
-- No dark mode (warm and earthy is the brand, dark mode breaks it)
+- No dark mode by default (warm and earthy is the brand — dark mode as optional toggle later)
