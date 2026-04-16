@@ -33,13 +33,13 @@ Your AI brain is on your computer.
 
 We never see any of it.
 
-## The Only Thing We Take
+## How We Make Money
 
-Your $5 a month. That's it. That's the deal.
+The core tool library is free. Always. No login, no account, no subscription.
 
-You pay us to maintain the tool library, build new tools, and keep the lights on at terrapin.tools. We make money from subscriptions — not from your data. That alignment matters. When we make money from subscriptions we have to keep earning your trust every month. When companies make money from data they have an incentive to collect more of it.
+If you want a premium tool — Invoice Follow-Up Generator, Review Response Generator, Customer Email Response Generator — you pay once and own it forever. No recurring charges. No auto-renew. No "upgrade to keep using the tool you already paid for."
 
-We chose the harder business model on purpose.
+We make money from one-time tool purchases and tool sponsorships — not from your data. That alignment matters. When companies make money from data they have an incentive to collect more of it. We chose the harder business model on purpose.
 
 ## On Cloud Agents
 
@@ -62,7 +62,7 @@ When Terrapin is fully agentic:
 The only internet activity:
 - Downloading software during initial setup
 - Sending emails through your own email account
-- Paying your $5/month subscription
+- One-time payment if you choose to buy a premium tool
 
 That's it. Everything else is local. Everything else is yours.
 

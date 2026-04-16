@@ -11,6 +11,21 @@
 const OLLAMA_URL = 'http://localhost:11434';
 const MAIL_URL = 'http://localhost:3001';
 
+// ══════════════════════════════════════
+//  PREMIUM LICENSING (Gumroad)
+//  Maps tool_id → {permalink, max_uses}
+//  Gumroad's /v2/licenses/verify is the only external endpoint Terrapin calls.
+//  It is called exactly once per activation. No telemetry, no phone-home.
+// ══════════════════════════════════════
+const PREMIUM_PRODUCTS = {
+  'smart-receipt-box': {
+    product_id: '_X4AlkomzhMz-dalXaHZ0A==',  // Gumroad's internal ID for this product
+    permalink: 'qdtca',                       // used for the public Buy URL
+    max_uses: 3,
+    name: 'Smart Receipt Box'
+  }
+};
+
 // ── PRIVACY CHECK ──
 const urlCheck = new URL(OLLAMA_URL);
 if (urlCheck.hostname !== 'localhost' && urlCheck.hostname !== '127.0.0.1') {
@@ -39,12 +54,17 @@ const DATA_FILES = {
   knowledge: path.join(TERRAPIN_DIR, 'knowledge.json'),
   dashboard: path.join(TERRAPIN_DIR, 'dashboard.json'),
   schedules: path.join(TERRAPIN_DIR, 'schedules.json'),
-  logsDir: path.join(TERRAPIN_DIR, 'daily-logs')
+  logsDir: path.join(TERRAPIN_DIR, 'daily-logs'),
+  receiptsDir: path.join(TERRAPIN_DIR, 'receipts'),
+  receiptsImagesDir: path.join(TERRAPIN_DIR, 'receipts', 'images'),
+  licenses: path.join(TERRAPIN_DIR, 'licenses.json')
 };
 
 function initDataDir() {
   if (!fs.existsSync(TERRAPIN_DIR)) fs.mkdirSync(TERRAPIN_DIR, { recursive: true });
   if (!fs.existsSync(DATA_FILES.logsDir)) fs.mkdirSync(DATA_FILES.logsDir, { recursive: true });
+  if (!fs.existsSync(DATA_FILES.receiptsDir)) fs.mkdirSync(DATA_FILES.receiptsDir, { recursive: true });
+  if (!fs.existsSync(DATA_FILES.receiptsImagesDir)) fs.mkdirSync(DATA_FILES.receiptsImagesDir, { recursive: true });
   if (!fs.existsSync(DATA_FILES.profile)) fs.writeFileSync(DATA_FILES.profile, '{}');
   if (!fs.existsSync(DATA_FILES.crm)) fs.writeFileSync(DATA_FILES.crm, '[]');
   if (!fs.existsSync(DATA_FILES.calendar)) fs.writeFileSync(DATA_FILES.calendar, '[]');
@@ -98,7 +118,7 @@ async function checkMail() {
 // ══════════════════════════════════════
 //  SYSTEM PROMPT BUILDER
 // ══════════════════════════════════════
-function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries, calendarEvents, dailyLogs) {
+function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries, calendarEvents, dailyLogs, receipts) {
   const bizName = businessProfile?.businessName || 'your business';
   const ownerName = businessProfile?.ownerName || '';
 
@@ -201,6 +221,35 @@ function buildSystemPrompt(businessProfile, crmContacts, knowledgeEntries, calen
     logsSection = `\nRecent Job Site Logs (${dailyLogs.length}):\n${logList}`;
   }
 
+  // Build receipts summary — recent list + month totals by category
+  let receiptsSection = '';
+  if (receipts && receipts.length) {
+    const sorted = [...receipts].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const recent = sorted.slice(0, 30).map(r => {
+      const parts = [r.date || 'no-date'];
+      if (r.vendor) parts.push('| ' + r.vendor);
+      if (typeof r.total === 'number') parts.push('| $' + r.total.toFixed(2));
+      if (r.category) parts.push('| ' + r.category);
+      return parts.join(' ');
+    }).join('\n');
+
+    // This month totals
+    const now = new Date();
+    const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    const monthTotals = {};
+    for (const r of receipts) {
+      if (!r.date || !r.date.startsWith(ym)) continue;
+      const cat = r.category || 'Uncategorized';
+      monthTotals[cat] = (monthTotals[cat] || 0) + (typeof r.total === 'number' ? r.total : 0);
+    }
+    const totalsLine = Object.entries(monthTotals)
+      .map(([cat, t]) => `${cat} $${t.toFixed(2)}`)
+      .join(', ');
+
+    receiptsSection = `\nReceipts (${receipts.length} total, most recent 30 shown):\n${recent}`;
+    if (totalsLine) receiptsSection += `\nThis month by category: ${totalsLine}`;
+  }
+
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return `You are Terrapin, a friendly business assistant for ${ownerName || bizName}. Today is ${today}.
@@ -215,6 +264,7 @@ ${crmSection}
 YOUR DATA — you have access to all of this stored data and can answer questions about it:
 ${calendarSection || '\nCalendar: No events scheduled yet.'}
 ${logsSection || '\nJob Site Logs: No logs yet.'}
+${receiptsSection || '\nReceipts: No receipts scanned yet.'}
 
 YOU CAN USE THESE TOOLS:
 ${toolsList}
@@ -1116,12 +1166,22 @@ app.post('/chat', async (req, res) => {
     }).filter(Boolean);
   } catch(e) { /* no logs dir or read error */ }
 
+  // Load receipts from ~/.terrapin/receipts/
+  let receipts = [];
+  try {
+    const receiptFiles = fs.readdirSync(DATA_FILES.receiptsDir).filter(f => f.endsWith('.json'));
+    receipts = receiptFiles.map(f => {
+      try { return JSON.parse(fs.readFileSync(path.join(DATA_FILES.receiptsDir, f), 'utf8')); }
+      catch(e) { return null; }
+    }).filter(Boolean);
+  } catch(e) { /* no receipts dir or read error */ }
+
   // Log profile for debugging
   if (business_profile) {
     const clients = business_profile.clients || business_profile.regular_clients || [];
     console.log(`  → Profile: ${business_profile.businessName || 'unnamed'} | ${clients.length} profile clients`);
   }
-  console.log('  → Data loaded: CRM %d contacts, Knowledge %d notes, Calendar %d events, Logs %d entries', mergedContacts.length, knowledgeEntries.length, calendarEvents.length, dailyLogs.length);
+  console.log('  → Data loaded: CRM %d contacts, Knowledge %d notes, Calendar %d events, Logs %d entries, Receipts %d', mergedContacts.length, knowledgeEntries.length, calendarEvents.length, dailyLogs.length, receipts.length);
 
   // Strip logo from profile before building system prompt — base64 images bloat the prompt
   let profileForPrompt = business_profile || null;
@@ -1130,7 +1190,7 @@ app.post('/chat', async (req, res) => {
     delete profileForPrompt.logo;
   }
 
-  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, knowledgeEntries, calendarEvents, dailyLogs);
+  const systemPrompt = buildSystemPrompt(profileForPrompt, mergedContacts, knowledgeEntries, calendarEvents, dailyLogs, receipts);
 
   // Build messages array with conversation history
   const ollamaMessages = [{ role: 'system', content: systemPrompt }];
@@ -1351,6 +1411,300 @@ app.post('/data/dashboard', (req, res) => {
   }
 });
 
+// ── RECEIPTS ──
+app.get('/data/receipts', (req, res) => {
+  try {
+    const files = fs.readdirSync(DATA_FILES.receiptsDir).filter(f => f.endsWith('.json'));
+    const list = files.map(f => {
+      try { return JSON.parse(fs.readFileSync(path.join(DATA_FILES.receiptsDir, f), 'utf8')); }
+      catch(e) { return null; }
+    }).filter(Boolean).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    res.json(list);
+  } catch(e) {
+    res.json([]);
+  }
+});
+
+app.post('/data/receipts', (req, res) => {
+  try {
+    const entry = req.body;
+    if (!entry || !entry.id || !entry.date) {
+      return res.status(400).json({ success: false, error: 'Missing required fields: id, date' });
+    }
+    fs.writeFileSync(path.join(DATA_FILES.receiptsDir, entry.id + '.json'), JSON.stringify(entry, null, 2));
+    console.log('  → Receipt saved: ' + entry.id + ' — ' + (entry.vendor || 'unknown') + ' $' + (entry.total || '?'));
+    res.json({ success: true, id: entry.id });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.delete('/data/receipts/:id', (req, res) => {
+  try {
+    const id = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
+    const jsonPath = path.join(DATA_FILES.receiptsDir, id + '.json');
+    const imgPath = path.join(DATA_FILES.receiptsImagesDir, id + '.jpg');
+    if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
+    if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    console.log('  → Receipt deleted: ' + id);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Serve stored receipt images (read-only, localhost CORS already enforced above)
+app.get('/data/receipts/image/:id', (req, res) => {
+  try {
+    const id = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
+    const imgPath = path.join(DATA_FILES.receiptsImagesDir, id + '.jpg');
+    if (!fs.existsSync(imgPath)) return res.status(404).send('not found');
+    res.type('image/jpeg').send(fs.readFileSync(imgPath));
+  } catch(e) {
+    res.status(500).send('error');
+  }
+});
+
+// ── RECEIPT SCAN — Gemma vision proxy ──
+app.post('/api/receipt-scan', async (req, res) => {
+  const { image } = req.body || {};
+  if (!image || typeof image !== 'string') {
+    return res.status(400).json({ success: false, error: 'Missing image (expected base64 string)' });
+  }
+
+  const now = new Date();
+  const ymd = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  const id = 'rcpt_' + ymd + '_' + Math.random().toString(36).slice(2, 8);
+  const imagePath = path.join(DATA_FILES.receiptsImagesDir, id + '.jpg');
+
+  try {
+    fs.writeFileSync(imagePath, Buffer.from(image, 'base64'));
+  } catch(e) {
+    return res.status(500).json({ success: false, error: 'Failed to save image: ' + e.message });
+  }
+
+  const prompt = `You are reading a receipt image. Extract the data and return ONLY a JSON object — no prose, no markdown fences, nothing else.
+
+Required shape:
+{
+  "vendor": string or null,
+  "date": "YYYY-MM-DD" or null,
+  "items": [{"name": string, "qty": number, "price": number}],
+  "subtotal": number or null,
+  "tax": number or null,
+  "total": number or null,
+  "payment_method": string or null,
+  "suggested_category": one of "Supplies" | "Food" | "Fuel" | "Labor" | "Rent" | "Utilities" | "Materials" | "Marketing" | "Other"
+}
+
+Rules:
+- If a field is unclear, set it to null. Do not invent values.
+- Convert dates to YYYY-MM-DD. If only a month/day is visible and no year, use ${now.getFullYear()}.
+- Numbers must be plain numbers (no $, no commas).
+- Return ONLY the JSON.`;
+
+  try {
+    const ollamaRes = await fetch(OLLAMA_URL + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemma4',
+        messages: [{ role: 'user', content: prompt, images: [image] }],
+        stream: false
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      console.error('  → Receipt scan: Ollama error', ollamaRes.status, errText);
+      return res.status(502).json({ success: false, error: 'Gemma vision request failed', id, image_url: '/data/receipts/image/' + id });
+    }
+
+    const data = await ollamaRes.json();
+    const raw = (data.message && data.message.content) || '';
+
+    // Parse JSON out of Gemma's response (strip any fences or surrounding prose)
+    let extracted = null;
+    try {
+      let clean = raw.trim()
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/, '');
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        clean = clean.substring(start, end + 1);
+      }
+      extracted = JSON.parse(clean);
+    } catch(e) {
+      console.log('  → Receipt JSON parse failed. Raw: ' + raw.substring(0, 200));
+      return res.json({ success: false, error: 'Could not parse receipt response', raw, id, image_url: '/data/receipts/image/' + id });
+    }
+
+    console.log('  → Receipt scanned: ' + (extracted.vendor || 'unknown') + ' $' + (extracted.total || '?'));
+    res.json({ success: true, id, extracted, image_url: '/data/receipts/image/' + id });
+  } catch(e) {
+    console.error('  → Receipt scan error:', e.message);
+    res.status(502).json({ success: false, error: e.message, id, image_url: '/data/receipts/image/' + id });
+  }
+});
+
+// ══════════════════════════════════════
+//  LICENSING — Gumroad verify + local storage
+// ══════════════════════════════════════
+
+function loadLicenses() {
+  try {
+    if (!fs.existsSync(DATA_FILES.licenses)) return {};
+    return JSON.parse(fs.readFileSync(DATA_FILES.licenses, 'utf8')) || {};
+  } catch(e) { return {}; }
+}
+
+function saveLicenses(all) {
+  fs.writeFileSync(DATA_FILES.licenses, JSON.stringify(all, null, 2));
+}
+
+// ── GET /data/licenses — returns all activated licenses (safe to read, no secrets) ──
+app.get('/data/licenses', (req, res) => {
+  const all = loadLicenses();
+  // Redact the key except last 4 — the agent server stores the raw key for re-verify,
+  // but we don't expose it to the browser.
+  const redacted = {};
+  for (const [toolId, lic] of Object.entries(all)) {
+    redacted[toolId] = {
+      tool_id: toolId,
+      tool_name: lic.tool_name,
+      key_last4: lic.license_key ? lic.license_key.slice(-4) : '',
+      activated_at: lic.activated_at,
+      uses: lic.uses,
+      max_uses: lic.max_uses,
+      purchase_email: lic.purchase_email || null
+    };
+  }
+  res.json(redacted);
+});
+
+// ── GET /data/license/:toolId — single tool check ──
+app.get('/data/license/:toolId', (req, res) => {
+  const all = loadLicenses();
+  const lic = all[req.params.toolId];
+  if (!lic) return res.json({ licensed: false });
+  res.json({
+    licensed: true,
+    tool_id: req.params.toolId,
+    tool_name: lic.tool_name,
+    key_last4: lic.license_key ? lic.license_key.slice(-4) : '',
+    activated_at: lic.activated_at,
+    uses: lic.uses,
+    max_uses: lic.max_uses
+  });
+});
+
+// ── POST /api/license/activate — {tool_id, license_key} → Gumroad verify + save ──
+app.post('/api/license/activate', async (req, res) => {
+  const { tool_id, license_key } = req.body || {};
+  if (!tool_id || !license_key) {
+    return res.status(400).json({ success: false, error: 'Missing tool_id or license_key' });
+  }
+
+  const product = PREMIUM_PRODUCTS[tool_id];
+  if (!product) {
+    return res.status(400).json({ success: false, error: 'Unknown tool: ' + tool_id });
+  }
+
+  // Verify with Gumroad. Only external call in the entire activation flow.
+  try {
+    const params = new URLSearchParams();
+    params.append('product_id', product.product_id);
+    params.append('license_key', license_key.trim());
+    // Don't increment on verify — we'll increment after we confirm it's safe to activate
+    params.append('increment_uses_count', 'false');
+
+    const gumRes = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    const data = await gumRes.json();
+
+    if (!data.success) {
+      console.log('  → License rejected:', data.message || 'unknown');
+      return res.status(400).json({ success: false, error: data.message || 'Invalid license key.' });
+    }
+
+    const currentUses = data.uses || 0;
+    if (currentUses >= product.max_uses) {
+      return res.status(400).json({
+        success: false,
+        error: 'This license has been activated on ' + currentUses + ' Macs already (limit: ' + product.max_uses + '). Reply to your Gumroad receipt email for help freeing up a slot.'
+      });
+    }
+
+    // Check if this Mac already has this same key activated — if so, don't double-charge uses count
+    const all = loadLicenses();
+    const existing = all[tool_id];
+    const alreadyActivatedHere = existing && existing.license_key === license_key.trim();
+
+    let finalUses = currentUses;
+    if (!alreadyActivatedHere) {
+      // Increment the uses counter on Gumroad's side
+      const incParams = new URLSearchParams();
+      incParams.append('product_id', product.product_id);
+      incParams.append('license_key', license_key.trim());
+      incParams.append('increment_uses_count', 'true');
+
+      const incRes = await fetch('https://api.gumroad.com/v2/licenses/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: incParams.toString(),
+        signal: AbortSignal.timeout(15000)
+      });
+      try {
+        const incData = await incRes.json();
+        finalUses = (incData.uses != null) ? incData.uses : currentUses + 1;
+      } catch(e) {
+        finalUses = currentUses + 1;
+      }
+    }
+
+    const purchase = data.purchase || {};
+    const license = {
+      tool_id,
+      tool_name: product.tool_name || product.name,
+      license_key: license_key.trim(),
+      activated_at: new Date().toISOString(),
+      uses: finalUses,
+      max_uses: product.max_uses,
+      purchase_email: purchase.email || null,
+      purchase_id: purchase.id || null,
+      purchase_created_at: purchase.created_at || null
+    };
+
+    all[tool_id] = license;
+    saveLicenses(all);
+
+    const masked = license_key.slice(0, 4) + '...' + license_key.slice(-4);
+    console.log('  → License activated: ' + tool_id + ' ' + masked + ' (' + finalUses + '/' + product.max_uses + ')');
+
+    res.json({
+      success: true,
+      license: {
+        tool_id,
+        tool_name: license.tool_name,
+        key_last4: license_key.slice(-4),
+        activated_at: license.activated_at,
+        uses: finalUses,
+        max_uses: product.max_uses
+      }
+    });
+  } catch(e) {
+    console.error('  → License activation error:', e.message);
+    res.status(502).json({ success: false, error: 'Could not reach Gumroad. Check your internet connection and try again.' });
+  }
+});
+
 // ── SCHEDULES ──
 app.get('/data/schedules', (req, res) => {
   res.json(loadSchedules());
@@ -1388,9 +1742,11 @@ app.listen(PORT, '127.0.0.1', async () => {
   console.log(`    Tools:   ${toolsManifest.tools.length} loaded`);
   console.log('');
   console.log('  Endpoints:');
-  console.log('    GET  /health     — system status');
-  console.log('    POST /chat       — {message, business_profile} → agent response');
-  console.log('    POST /call-tool  — {tool_id, params} → tool URL');
+  console.log('    GET  /health           — system status');
+  console.log('    POST /chat             — {message, business_profile} → agent response');
+  console.log('    POST /call-tool        — {tool_id, params} → tool URL');
+  console.log('    POST /api/receipt-scan — {image: base64} → extracted receipt JSON');
+  console.log('    POST /api/license/activate — {tool_id, license_key} → verify + save');
   console.log('');
   console.log(`  Data:    ${TERRAPIN_DIR}`);
   console.log('  Privacy: All AI runs locally via ' + OLLAMA_URL);

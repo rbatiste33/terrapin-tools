@@ -39,25 +39,30 @@ Every tool works in English and Spanish. Every tool runs on your computer. Your 
 
 ---
 
-## 3. Current Tools (10)
+## 3. Current Tools (11)
 
-| Tool | Type | Category | File |
-|------|------|----------|------|
-| Business Profile | data | all | tools/business-profile.html |
-| Turtle Shell | data | all | tools/turtle-shell.html |
-| Catering Quote Builder | document | catering | tools/catering-quote-builder.html |
-| Contractor Invoice Generator | document | contractors | tools/contractor-invoice-generator.html |
-| Simple CRM | data | freelancers | tools/simple-crm.html |
-| Tip Calculator & Staff Splitter | utility | restaurants | tools/tip-calculator.html |
-| Street Vendor Order Log | data | restaurants | tools/street-vendor-order-log.html |
-| QR Code Generator | utility | all | tools/qr-code-generator.html |
-| Job Site Daily Log | data | contractors | tools/job-site-daily-log.html |
-| Simple Calendar | data | all | tools/simple-calendar.html |
+| Tool | Type | Tier | Category | File |
+|------|------|------|----------|------|
+| Business Profile | data | free | all | tools/business-profile.html |
+| Turtle Shell | data | free | all | tools/turtle-shell.html |
+| Catering Quote Builder | document | free | catering | tools/catering-quote-builder.html |
+| Contractor Invoice Generator | document | free | contractors | tools/contractor-invoice-generator.html |
+| Simple CRM | data | free | freelancers | tools/simple-crm.html |
+| Tip Calculator & Staff Splitter | utility | free | restaurants | tools/tip-calculator.html |
+| Street Vendor Order Log | data | free | restaurants | tools/street-vendor-order-log.html |
+| QR Code Generator | utility | free | all | tools/qr-code-generator.html |
+| Job Site Daily Log | data | free | contractors | tools/job-site-daily-log.html |
+| Simple Calendar | data | free | all | tools/simple-calendar.html |
+| Smart Receipt Box | data | **premium ($29)** | all | tools/smart-receipt-box.html |
 
 Tool types determine agent behavior:
 - **document** — PDF output, email button, attachment preview
 - **data** — confirmation card, save to storage, no email
 - **utility** — result display, open tool button, no email
+
+Tool tiers:
+- Absence of `tier` in `tools.json` (or `"tier": "free"`) = free tool
+- `"tier": "premium"` + `"price_usd": N` = one-time purchase. Ships unlocked for now; license check is a later task. Rendered with gold `.premium-badge` on the homepage.
 
 ---
 
@@ -153,6 +158,9 @@ Every tool must have — no exceptions:
 - `GET/POST /data/dashboard` — dashboard.json (tool selection + onboarding state)
 - `GET/POST /data/schedules` — schedules.json (cron job config)
 - `GET/POST /data/logs` — daily-logs/ directory
+- `GET/POST/DELETE /data/receipts` — receipts/ directory (one JSON per receipt)
+- `GET /data/receipts/image/:id` — serves stored receipt JPEG from receipts/images/
+- `POST /api/receipt-scan` — Gemma 4 vision proxy. Body `{image: base64}`. Saves image to `receipts/images/<id>.jpg`, returns extracted receipt JSON.
 - `GET /health` — system status + version
 
 ### Files
@@ -163,6 +171,8 @@ Every tool must have — no exceptions:
 - `~/.terrapin/dashboard.json` — personal dashboard config
 - `~/.terrapin/schedules.json` — scheduled reminders config
 - `~/.terrapin/daily-logs/[date]-[id].json`
+- `~/.terrapin/receipts/[id].json` — one per receipt (vendor, date, items, totals, category, thumbnail)
+- `~/.terrapin/receipts/images/[id].jpg` — full-res receipt images
 - `~/.terrapin/mail-config.json` — encrypted AES-256-GCM
 - `~/.terrapin/mail-log.txt`
 - `~/.terrapin/agent.log`
@@ -301,6 +311,7 @@ Local AI for immigrant-owned small businesses. Every tool in English and Spanish
 - Invoice Follow-Up Generator — Gemma-powered email follow-ups
 - Review Response Generator — respond to Google/Yelp reviews
 - Customer Email Response Generator — professional replies in your voice
+- Premium license-key gating — ships with `"tier": "premium"` flagged in tools.json but no paywall yet
 
 ### Free Tools
 - Staff Schedule Builder — weekly schedule for small teams
@@ -317,6 +328,7 @@ Local AI for immigrant-owned small businesses. Every tool in English and Spanish
 - **Scheduled Reminders** — SHIPPED. Morning briefing + appointment reminders via node-cron.
 - **Agent Light Theme** — SHIPPED. Warm cream background matching landing page and dashboard.
 - **Update System** — SHIPPED. Version check, gold banner, update-mode install script.
+- **Smart Receipt Box (first premium tool, $29)** — SHIPPED. Gemma 4 vision proxy at `/api/receipt-scan`. Upload receipt → local AI extracts vendor/date/items/totals + suggests category. Review form, IndexedDB + `~/.terrapin/receipts/` persistence, CSV + printable summary exports, EN/ES i18n, desktop-only (mobile gate).
 
 ---
 

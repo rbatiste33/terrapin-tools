@@ -1,0 +1,1290 @@
+<!--
+TERRAPIN AGENT INTERFACE
+Tool: Smart Receipt Box
+Description: Photograph or upload a receipt and the local AI (Gemma 4 via Ollama) extracts vendor, date, line items, totals, and suggests a category. Stores locally. Exports CSV + printable summary for tax time.
+Parameters:
+  - action (string, optional): scan | list | export
+  - autorun (boolean, optional): auto-apply intent on load
+Output: postMessage {type: 'terrapin-tool-result', tool: 'smart-receipt-box', status, receiptId?, extracted?}
+Privacy: Receipt images are sent ONLY to localhost:7777 (which proxies to the local Ollama vision API). No external fetches. No analytics. No cloud.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Receipt Box — Terrapin Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F0E8; --dark: #2C3E2D; --gold: #C9A84C; --rust: #B85C2C;
+    --card: #FFFFFF; --card-border: #E8E0D0; --text: #1A1A1A; --text-mute: #6B6B6B;
+    --success: #4A7C59;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.5rem 1rem; font-size: 15px; }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px; }
+  .back-link { font-size: 13px; color: var(--text-mute); text-decoration: none; }
+  .back-link:hover { color: var(--dark); }
+  .lang-toggle { display: flex; font-family: 'DM Mono', monospace; font-size: 12px; background: #fff; border: 1px solid var(--card-border); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .lang-toggle button { padding: 6px 12px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: var(--text-mute); }
+  .lang-toggle button.active { background: var(--dark); color: var(--gold); }
+
+  .app-header { text-align: center; margin-bottom: 1.25rem; }
+  .app-header h1 { font-family: 'Lora', serif; font-size: 30px; font-weight: 700; color: var(--dark); letter-spacing: -0.01em; }
+  .app-header p { font-size: 14px; color: var(--text-mute); margin-top: 6px; }
+
+  /* View toggle */
+  .view-toggle { display: flex; justify-content: center; margin-bottom: 1.5rem; background: #fff; border: 1px solid var(--card-border); border-radius: 10px; padding: 4px; width: max-content; margin-left: auto; margin-right: auto; }
+  .view-toggle button { padding: 8px 20px; border: none; background: transparent; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--text-mute); border-radius: 7px; cursor: pointer; }
+  .view-toggle button.active { background: var(--dark); color: #fff; }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Capture view ── */
+  .drop-zone {
+    background: #fff; border: 2px dashed var(--card-border); border-radius: 14px;
+    padding: 48px 24px; text-align: center; cursor: pointer; position: relative;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--dark); background: #fdfaf4; }
+  .drop-zone .dz-icon { font-size: 42px; margin-bottom: 10px; }
+  .drop-zone .dz-title { font-family: 'Lora', serif; font-size: 20px; color: var(--dark); margin-bottom: 6px; }
+  .drop-zone .dz-sub { font-size: 14px; color: var(--text-mute); margin-bottom: 18px; }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .dz-browse { display: inline-block; background: var(--dark); color: #fff; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+
+  .preview-wrap { display: none; margin-top: 1.25rem; background: #fff; border: 1px solid var(--card-border); border-radius: 14px; padding: 20px; text-align: center; }
+  .preview-wrap.show { display: block; }
+  .preview-wrap img { max-width: 100%; max-height: 360px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+  .preview-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+  .btn { padding: 10px 22px; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: var(--dark); color: #fff; }
+  .btn-primary:hover { background: #3A5240; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: #fff; color: var(--dark); border: 1px solid var(--card-border); }
+  .btn-secondary:hover { border-color: var(--dark); }
+  .btn-danger { background: #fff; color: #B85C2C; border: 1px solid var(--card-border); }
+  .btn-danger:hover { border-color: #B85C2C; background: #fff5f0; }
+
+  /* ── Processing view ── */
+  .processing { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; background: #fff; border: 1px solid var(--card-border); border-radius: 14px; padding: 24px; }
+  .processing img { max-width: 100%; max-height: 360px; border-radius: 8px; object-fit: contain; }
+  .thinking { display: flex; flex-direction: column; justify-content: center; padding: 20px; }
+  .thinking .turtle { font-size: 56px; margin-bottom: 16px; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.8; } }
+  .thinking-phrase { font-family: 'Lora', serif; font-size: 19px; color: var(--dark); line-height: 1.4; min-height: 56px; }
+
+  /* ── Review view ── */
+  .review { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; }
+  .review .r-image { background: #fff; border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; text-align: center; position: sticky; top: 20px; align-self: flex-start; }
+  .review .r-image img { max-width: 100%; max-height: 560px; border-radius: 8px; object-fit: contain; }
+  .review .r-form { background: #fff; border: 1px solid var(--card-border); border-radius: 14px; padding: 20px; }
+  .review .r-form h2 { font-family: 'Lora', serif; font-size: 20px; color: var(--dark); margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field label { font-size: 13px; color: var(--text-mute); font-weight: 500; }
+  .field input, .field select, .field textarea {
+    font-family: inherit; font-size: 14px; color: var(--text);
+    background: #fafaf8; border: 1px solid #e0e0db;
+    border-radius: 8px; padding: 9px 11px; width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--dark); background: #fff; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* Items table */
+  .items-table { width: 100%; font-size: 13px; margin-bottom: 12px; }
+  .items-table th { text-align: left; padding: 6px 8px; color: var(--text-mute); font-weight: 500; border-bottom: 1px solid var(--card-border); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .items-table td { padding: 4px 0; }
+  .items-table input { width: 100%; font-size: 13px; padding: 6px 8px; }
+  .items-table .col-qty { width: 60px; }
+  .items-table .col-price { width: 90px; }
+  .items-table .col-del { width: 32px; }
+  .items-table .del-row { background: none; border: none; cursor: pointer; color: #ccc; font-size: 18px; padding: 0 4px; }
+  .items-table .del-row:hover { color: var(--rust); }
+  .btn-add-row { background: none; border: 1px dashed var(--card-border); color: var(--text-mute); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
+  .btn-add-row:hover { border-color: var(--dark); color: var(--dark); }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .form-actions .btn { flex: 1; min-width: 120px; }
+
+  /* ── Receipt list view ── */
+  .list-filters { background: #fff; border: 1px solid var(--card-border); border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; margin-bottom: 14px; align-items: end; }
+  .list-filters .field { margin-bottom: 0; }
+  .list-filters input, .list-filters select { padding: 7px 10px; font-size: 13px; }
+
+  .list-totals { background: #fff; border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; color: var(--text-mute); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .list-totals strong { color: var(--dark); font-weight: 600; }
+  .list-actions { display: flex; gap: 8px; }
+  .btn-mini { padding: 6px 12px; font-size: 12px; font-weight: 500; border-radius: 6px; cursor: pointer; font-family: inherit; background: #fff; border: 1px solid var(--card-border); color: var(--text-mute); }
+  .btn-mini:hover { border-color: var(--dark); color: var(--dark); }
+
+  .receipt-row {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 8px; display: grid;
+    grid-template-columns: 110px 1fr auto auto auto; gap: 12px; align-items: center;
+    cursor: pointer; transition: border-color 0.12s;
+  }
+  .receipt-row:hover { border-color: var(--dark); }
+  .rr-date { font-size: 13px; color: var(--text-mute); font-family: 'DM Mono', monospace; }
+  .rr-vendor { font-weight: 600; color: var(--text); }
+  .rr-vendor-sub { font-size: 12px; color: var(--text-mute); margin-top: 2px; }
+  .rr-total { font-weight: 600; color: var(--dark); font-size: 15px; }
+  .cat-pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cat-Supplies { background: #E8F0E6; color: #2C3E2D; }
+  .cat-Food { background: #FCEAD2; color: #8B5A1C; }
+  .cat-Fuel { background: #F3E0E0; color: #8B3A3A; }
+  .cat-Labor { background: #E0E6F0; color: #2C4A6B; }
+  .cat-Rent { background: #F0E0EC; color: #6B2C5A; }
+  .cat-Utilities { background: #E0F0F0; color: #2C6B6B; }
+  .cat-Materials { background: #FCE8D2; color: #B85C2C; }
+  .cat-Marketing { background: #EAE0F0; color: #5A2C8B; }
+  .cat-Other { background: #E8E0D0; color: #6B6B6B; }
+  .rr-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 18px; padding: 4px 8px; }
+  .rr-del:hover { color: var(--rust); }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-mute); }
+  .empty-state .turtle { font-size: 56px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; margin-bottom: 6px; }
+  .empty-state small { font-size: 13px; }
+
+  .error-msg { background: #fff5f0; border: 1px solid #f0c8b0; color: var(--rust); padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+
+  /* Premium banner */
+  .premium-banner {
+    background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%);
+    border: 1px solid var(--gold); border-radius: 10px;
+    padding: 10px 16px; margin-bottom: 1rem; font-size: 13px;
+    color: var(--dark); text-align: center;
+  }
+  .license-badge {
+    display: inline-block; background: var(--gold); color: #fff;
+    font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 3px 9px; border-radius: 5px; margin-left: 8px;
+  }
+
+  /* Paywall overlay */
+  .paywall-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(44, 62, 45, 0.72); backdrop-filter: blur(4px);
+    justify-content: center; align-items: flex-start; padding: 48px 24px; overflow-y: auto;
+  }
+  .paywall-overlay.open { display: flex; }
+  .paywall-modal {
+    background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%);
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    max-width: 520px; width: 100%;
+    padding: 36px 32px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  .paywall-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 22px; color: var(--text-mute); cursor: pointer; }
+  .paywall-close:hover { color: var(--dark); }
+  .paywall-modal .turtle { font-size: 52px; margin-bottom: 12px; }
+  .paywall-modal h2 { font-family: 'Lora', serif; font-size: 26px; color: var(--dark); margin-bottom: 10px; letter-spacing: -0.01em; }
+  .paywall-modal p.lede { font-size: 15px; color: var(--text-mute); margin-bottom: 20px; line-height: 1.55; }
+  .paywall-price { font-family: 'Lora', serif; font-size: 40px; color: var(--dark); font-weight: 700; margin-bottom: 4px; }
+  .paywall-price small { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-mute); font-weight: 400; display: block; margin-top: 2px; letter-spacing: 0.03em; }
+  .paywall-features { text-align: left; max-width: 340px; margin: 20px auto; font-size: 14px; color: var(--text); line-height: 1.8; }
+  .paywall-features li { padding-left: 22px; position: relative; list-style: none; }
+  .paywall-features li::before { content: '✓'; position: absolute; left: 0; color: var(--success); font-weight: 700; }
+  .paywall-buy { display: inline-block; background: var(--gold); color: #fff; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600; text-decoration: none; margin-bottom: 14px; transition: opacity 0.15s; }
+  .paywall-buy:hover { opacity: 0.9; }
+  .paywall-activate-link { display: block; font-size: 13px; color: var(--text-mute); text-decoration: underline; cursor: pointer; margin-top: 8px; }
+  .paywall-activate-link:hover { color: var(--dark); }
+  .paywall-activate-form { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--card-border); text-align: left; }
+  .paywall-activate-form.open { display: block; }
+  .paywall-activate-form label { font-size: 13px; color: var(--text-mute); font-weight: 500; display: block; margin-bottom: 6px; }
+  .paywall-activate-form input { width: 100%; padding: 11px 13px; font-family: 'DM Mono', monospace; font-size: 14px; border: 1px solid var(--card-border); border-radius: 8px; background: #fff; }
+  .paywall-activate-form input:focus { outline: none; border-color: var(--dark); }
+  .paywall-activate-form .row { display: flex; gap: 8px; margin-top: 10px; }
+  .paywall-activate-form .row button { flex: 1; padding: 11px; font-family: inherit; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+  .paywall-activate-form .btn-activate { background: var(--dark); color: #fff; }
+  .paywall-activate-form .btn-activate:disabled { opacity: 0.5; cursor: not-allowed; }
+  .paywall-activate-form .btn-cancel { background: #fff; border: 1px solid var(--card-border); color: var(--text-mute); }
+  .paywall-activate-status { margin-top: 10px; font-size: 13px; min-height: 20px; }
+  .paywall-activate-status.error { color: var(--rust); }
+  .paywall-activate-status.success { color: var(--success); font-weight: 600; }
+
+  .scan-locked {
+    text-align: center; padding: 18px; background: #FDFAF4; border: 1px solid var(--gold);
+    border-radius: 10px; margin-top: 16px; font-size: 14px; color: var(--dark);
+  }
+  .scan-locked button { background: var(--gold); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-family: inherit; margin-top: 10px; cursor: pointer; font-size: 14px; }
+
+  .toast-activated {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+    background: var(--success); color: #fff; padding: 14px 24px; border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); font-weight: 600; z-index: 600;
+    display: none;
+  }
+  .toast-activated.show { display: block; animation: fadeInOut 3s forwards; }
+  @keyframes fadeInOut { 0% { opacity: 0; transform: translate(-50%, 20px); } 15%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+
+  /* Footer */
+  .footer-line { text-align: center; font-size: 12px; color: var(--text-mute); margin-top: 2rem; padding: 16px 0; }
+  .footer-line a { color: var(--text-mute); text-decoration: none; font-family: 'DM Mono', monospace; }
+
+  /* Storage note */
+  .storage-note { text-align: center; font-size: 12px; color: var(--text-mute); margin-top: 1rem; }
+  .storage-note a { color: var(--dark); }
+
+  /* Mobile gate — tool requires localhost agent, desktop only */
+  .mobile-gate { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; background: var(--bg); }
+  .mobile-gate .turtle { font-size: 64px; margin-bottom: 20px; }
+  .mobile-gate h2 { font-family: 'Lora', serif; font-size: 22px; color: var(--dark); margin-bottom: 12px; }
+  .mobile-gate p { font-size: 15px; color: var(--text-mute); max-width: 340px; margin-bottom: 24px; line-height: 1.5; }
+  .mobile-gate a { display: inline-block; background: var(--dark); color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+
+  @media (max-width: 768px) {
+    .mobile-gate { display: flex; }
+    .container { display: none; }
+  }
+
+  @media (max-width: 720px) and (min-width: 769px) {
+    .review { grid-template-columns: 1fr; }
+    .processing { grid-template-columns: 1fr; }
+    .list-filters { grid-template-columns: 1fr 1fr; }
+    .receipt-row { grid-template-columns: 90px 1fr auto auto; }
+    .receipt-row .rr-del { display: none; }
+  }
+
+  /* Print — for Print Summary export */
+  @media print {
+    body { background: #fff; padding: 0; }
+    .top-bar, .app-header, .view-toggle, .storage-note, .footer-line, .premium-banner, .list-filters, .list-actions { display: none !important; }
+    .print-summary { display: block !important; }
+    .view { display: none !important; }
+    .receipt-row { border: 1px solid #ccc; box-shadow: none; }
+  }
+  .print-summary { display: none; }
+</style>
+</head>
+<body>
+
+<div class="mobile-gate">
+  <div class="turtle">🐢</div>
+  <h2 data-i18n="gate_h">Smart Receipt Box runs on your desktop.</h2>
+  <p data-i18n="gate_p">This tool uses local AI on your Mac to read receipts. Open it on desktop after installing Terrapin.</p>
+  <a href="/#tools" data-i18n="gate_cta">Browse free tools</a>
+</div>
+
+<div class="container">
+  <div class="top-bar">
+    <a href="https://terrapin.tools" class="back-link" data-i18n="back">&#8592; Back to Terrapin Tools</a>
+    <div class="lang-toggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-es" onclick="setLang('es')">ES</button>
+    </div>
+  </div>
+
+  <div class="app-header">
+    <h1 data-i18n="h1">Smart Receipt Box</h1>
+    <p data-i18n="sub">Snap a photo. The AI reads everything. All on your machine.</p>
+  </div>
+
+  <div class="premium-banner" data-i18n="premium_note">🔒 Premium tool — your images never leave this computer. Receipts go to Gemma 4 on localhost.</div>
+
+  <div class="view-toggle">
+    <button id="tab-scan" class="active" onclick="switchView('scan')" data-i18n="tab_scan">Scan</button>
+    <button id="tab-list" onclick="switchView('list')" data-i18n="tab_list">My Receipts</button>
+  </div>
+
+  <!-- VIEW 1: CAPTURE -->
+  <div class="view active" id="view-capture">
+    <div class="drop-zone" id="drop-zone">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title" data-i18n="dz_title">Drop a receipt here</div>
+      <div class="dz-sub" data-i18n="dz_sub">JPG or PNG. Drag and drop, or click to browse.</div>
+      <span class="dz-browse" data-i18n="dz_browse">Browse files</span>
+      <input type="file" id="file-input" accept="image/*">
+    </div>
+
+    <div class="preview-wrap" id="preview-wrap">
+      <img id="preview-img" alt="Receipt preview">
+      <div class="preview-actions">
+        <button class="btn btn-primary" id="scan-btn" onclick="scanReceipt()" data-i18n="scan_btn">Scan receipt</button>
+        <button class="btn btn-secondary" onclick="resetCapture()" data-i18n="choose_another">Choose another</button>
+      </div>
+    </div>
+
+    <div id="capture-error"></div>
+  </div>
+
+  <!-- VIEW 2: PROCESSING -->
+  <div class="view" id="view-processing">
+    <div class="processing">
+      <img id="proc-img" alt="Scanning">
+      <div class="thinking">
+        <div class="turtle">🐢</div>
+        <div class="thinking-phrase" id="thinking-phrase">Reading your receipt...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 3: REVIEW -->
+  <div class="view" id="view-review">
+    <div class="review">
+      <div class="r-image">
+        <img id="review-img" alt="Receipt">
+        <p style="font-size:12px;color:#999;margin-top:10px;" data-i18n="review_img_note">Double-check the extracted data against the image.</p>
+      </div>
+      <div class="r-form">
+        <h2 data-i18n="review_h">Review and save</h2>
+
+        <div class="two-col">
+          <div class="field">
+            <label data-i18n="l_vendor">Vendor</label>
+            <input type="text" id="f-vendor">
+          </div>
+          <div class="field">
+            <label data-i18n="l_date">Date</label>
+            <input type="date" id="f-date">
+          </div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="l_items">Items</label>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th data-i18n="th_item">Item</th>
+                <th class="col-qty" data-i18n="th_qty">Qty</th>
+                <th class="col-price" data-i18n="th_price">Price</th>
+                <th class="col-del"></th>
+              </tr>
+            </thead>
+            <tbody id="items-tbody"></tbody>
+          </table>
+          <button class="btn-add-row" onclick="addItemRow()" data-i18n="add_item">+ Add item</button>
+        </div>
+
+        <div class="three-col">
+          <div class="field">
+            <label data-i18n="l_subtotal">Subtotal</label>
+            <input type="number" step="0.01" id="f-subtotal">
+          </div>
+          <div class="field">
+            <label data-i18n="l_tax">Tax</label>
+            <input type="number" step="0.01" id="f-tax">
+          </div>
+          <div class="field">
+            <label data-i18n="l_total">Total</label>
+            <input type="number" step="0.01" id="f-total">
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label data-i18n="l_payment">Payment</label>
+            <input type="text" id="f-payment" placeholder="Visa, Cash, ...">
+          </div>
+          <div class="field">
+            <label data-i18n="l_category">Category</label>
+            <select id="f-category">
+              <option value="Supplies">Supplies</option>
+              <option value="Food">Food</option>
+              <option value="Fuel">Fuel</option>
+              <option value="Labor">Labor</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Materials">Materials</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label data-i18n="l_notes">Notes</label>
+          <textarea id="f-notes" rows="2"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveReceipt()" data-i18n="save_btn">Save receipt</button>
+          <button class="btn btn-secondary" onclick="resetCapture(); switchView('scan');" data-i18n="scan_another">Scan another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 4: LIST -->
+  <div class="view" id="view-list">
+    <div class="list-filters">
+      <div class="field">
+        <label data-i18n="l_filter_from">From</label>
+        <input type="date" id="filter-from" onchange="renderList()">
+      </div>
+      <div class="field">
+        <label data-i18n="l_filter_to">To</label>
+        <input type="date" id="filter-to" onchange="renderList()">
+      </div>
+      <div class="field">
+        <label data-i18n="l_filter_cat">Category</label>
+        <select id="filter-category" onchange="renderList()">
+          <option value="" data-i18n="all_categories">All</option>
+          <option value="Supplies">Supplies</option>
+          <option value="Food">Food</option>
+          <option value="Fuel">Fuel</option>
+          <option value="Labor">Labor</option>
+          <option value="Rent">Rent</option>
+          <option value="Utilities">Utilities</option>
+          <option value="Materials">Materials</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="l_sort">Sort</label>
+        <select id="filter-sort" onchange="renderList()">
+          <option value="date-desc" data-i18n="sort_date_desc">Newest first</option>
+          <option value="date-asc" data-i18n="sort_date_asc">Oldest first</option>
+          <option value="amount-desc" data-i18n="sort_amount_desc">Largest first</option>
+          <option value="amount-asc" data-i18n="sort_amount_asc">Smallest first</option>
+          <option value="vendor" data-i18n="sort_vendor">Vendor A–Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="list-totals">
+      <span id="list-total-text" data-i18n="no_receipts_yet">No receipts yet</span>
+      <div class="list-actions">
+        <button class="btn-mini" onclick="exportCSV()" data-i18n="export_csv">Export CSV</button>
+        <button class="btn-mini" onclick="openPrintSummary()" data-i18n="print_summary">Print summary</button>
+      </div>
+    </div>
+
+    <div id="receipt-list"></div>
+    <div id="list-empty" class="empty-state" style="display:none">
+      <div class="turtle">🐢</div>
+      <p data-i18n="empty_p">No receipts match those filters.</p>
+      <small data-i18n="empty_sub">Try clearing the filters or scan a new receipt.</small>
+    </div>
+  </div>
+
+  <p class="storage-note" data-i18n="storage">Your data saves in this browser on this device. <a href="../agent-setup.html">For permanent storage set up the Terrapin agent.</a></p>
+
+  <div class="footer-line">
+    <a href="https://terrapin.tools" data-i18n="footer">A Terrapin Tool — terrapin.tools</a>
+  </div>
+</div>
+
+<!-- Print summary (hidden, populated on demand) -->
+<div class="print-summary" id="print-summary"></div>
+
+<!-- Hidden result for agent -->
+<div id="terrapin-result" style="display:none"></div>
+
+<!-- Paywall overlay -->
+<div class="paywall-overlay" id="paywall-overlay">
+  <div class="paywall-modal">
+    <button class="paywall-close" onclick="hidePaywall()" aria-label="Close">&times;</button>
+    <div class="turtle">🐢</div>
+    <h2 data-i18n="pw_title">Unlock Smart Receipt Box</h2>
+    <p class="lede" data-i18n="pw_lede">One-time purchase. Pay once, own it forever. No subscription.</p>
+    <div class="paywall-price">$29<small data-i18n="pw_once">pay once</small></div>
+    <ul class="paywall-features">
+      <li data-i18n="pw_f1">Unlimited receipts, on your Mac</li>
+      <li data-i18n="pw_f2">Local Gemma 4 vision — no cloud</li>
+      <li data-i18n="pw_f3">CSV + printable tax summaries</li>
+      <li data-i18n="pw_f4">Activates on up to 3 Macs</li>
+    </ul>
+    <a class="paywall-buy" id="paywall-buy-btn" href="https://strategist5710.gumroad.com/l/qdtca" target="_blank" rel="noopener" data-i18n="pw_buy">Get it for $29</a>
+    <span class="paywall-activate-link" onclick="toggleActivateForm()" data-i18n="pw_have_key">Already have a license key? Activate &rarr;</span>
+
+    <div class="paywall-activate-form" id="paywall-activate-form">
+      <label data-i18n="pw_label">Paste your license key</label>
+      <input type="text" id="paywall-key" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false">
+      <div class="row">
+        <button class="btn-cancel" onclick="toggleActivateForm()" data-i18n="pw_cancel">Cancel</button>
+        <button class="btn-activate" id="pw-activate-btn" onclick="activateLicense()" data-i18n="pw_activate">Activate</button>
+      </div>
+      <div class="paywall-activate-status" id="pw-activate-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Activated toast -->
+<div class="toast-activated" id="toast-activated" data-i18n="pw_toast">🎉 Smart Receipt Box activated!</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  PRIVACY PROMISE
+//  The only fetch() in this tool goes to http://localhost:7777.
+//  No analytics. No CDN trackers. No external API with user data.
+//  Images are proxied to Ollama on the user's machine — never cloud.
+// ════════════════════════════════════════════════════════════════
+
+const AGENT = 'http://localhost:7777';
+const STORAGE_KEY = 'terrapin_receipts';
+const LANG_KEY = 'terrapin-language';
+
+// ── IndexedDB ──
+const IDB_NAME = 'terrapin-receipts';
+const IDB_STORE = 'data';
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbGet(key) {
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const r = tx.objectStore(IDB_STORE).get(key);
+    r.onsuccess = () => resolve(r.result || null);
+    r.onerror = () => reject(r.error);
+  }));
+}
+function idbSet(key, val) {
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
+// ── State ──
+let receipts = [];
+let currentImageBase64 = null;  // full-res base64 (no data: prefix) awaiting scan
+let currentImageDataUrl = null; // data URL for preview
+let currentScanResult = null;   // { id, image_url } from agent after scan
+let licensed = false;           // premium unlock state
+
+// ── Thinking phrases ──
+const THINKING_EN = [
+  'Reading your receipt...',
+  'Decoding the line items...',
+  'Matching the vendor...',
+  'Adding up the totals...',
+  'Sorting out the tax...',
+  'Double-checking the date...'
+];
+const THINKING_ES = [
+  'Leyendo tu recibo...',
+  'Descifrando los artículos...',
+  'Identificando el proveedor...',
+  'Sumando los totales...',
+  'Revisando los impuestos...',
+  'Verificando la fecha...'
+];
+
+// ── View switching ──
+function switchView(which) {
+  document.getElementById('tab-scan').classList.toggle('active', which === 'scan' || which === 'processing' || which === 'review');
+  document.getElementById('tab-list').classList.toggle('active', which === 'list');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const viewId = which === 'processing' ? 'view-processing' : which === 'review' ? 'view-review' : which === 'list' ? 'view-list' : 'view-capture';
+  const el = document.getElementById(viewId);
+  if (el) el.classList.add('active');
+  if (which === 'list') renderList();
+}
+
+// ── Capture ──
+function resetCapture() {
+  currentImageBase64 = null;
+  currentImageDataUrl = null;
+  currentScanResult = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('preview-wrap').classList.remove('show');
+  document.getElementById('capture-error').innerHTML = '';
+}
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) handleFile(f);
+});
+
+const dz = document.getElementById('drop-zone');
+['dragenter','dragover'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag-over'); }));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+function handleFile(file) {
+  const name = (file.name || '').toLowerCase();
+  const isHeic = name.endsWith('.heic') || name.endsWith('.heif') ||
+                 file.type === 'image/heic' || file.type === 'image/heif';
+  if (isHeic) {
+    showError(T[currentLang()].err_heic, true);
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    showError(T[currentLang()].err_image_only);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const downscaled = await downscaleImage(reader.result, 1600, 0.85);
+      currentImageDataUrl = downscaled.dataUrl;
+      currentImageBase64 = downscaled.base64;
+      document.getElementById('preview-img').src = currentImageDataUrl;
+      document.getElementById('preview-wrap').classList.add('show');
+      document.getElementById('capture-error').innerHTML = '';
+    } catch(e) {
+      showError(T[currentLang()].err_read + ' ' + e.message);
+    }
+  };
+  reader.onerror = () => showError(T[currentLang()].err_read);
+  reader.readAsDataURL(file);
+}
+
+function downscaleImage(dataUrl, maxEdge, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (Math.max(w, h) > maxEdge) {
+        const scale = maxEdge / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = canvas.toDataURL('image/jpeg', quality);
+      resolve({ dataUrl: out, base64: out.split(',')[1] });
+    };
+    img.onerror = () => reject(new Error('could not load image'));
+    img.src = dataUrl;
+  });
+}
+
+function makeThumbnail(dataUrl, maxEdge) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (Math.max(w, h) > maxEdge) {
+        const scale = maxEdge / Math.max(w, h);
+        w = Math.round(w * scale); h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+// ── Scan ──
+async function scanReceipt() {
+  if (!currentImageBase64) return;
+  if (!licensed) { showPaywall(); return; }
+  document.getElementById('proc-img').src = currentImageDataUrl;
+  switchView('processing');
+  rotateThinkingPhrases();
+
+  try {
+    const res = await fetch(AGENT + '/api/receipt-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: currentImageBase64 })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      stopThinkingPhrases();
+      switchView('scan');
+      showError(data.error || T[currentLang()].err_scan_failed);
+      return;
+    }
+
+    currentScanResult = { id: data.id, image_url: AGENT + data.image_url };
+    populateReview(data.extracted || {});
+    stopThinkingPhrases();
+    switchView('review');
+
+    postResult('success', data.id, data.extracted);
+  } catch(e) {
+    stopThinkingPhrases();
+    switchView('scan');
+    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      showError(T[currentLang()].err_agent_offline);
+    } else {
+      showError(e.message);
+    }
+  }
+}
+
+let thinkingTimer = null;
+function rotateThinkingPhrases() {
+  const phrases = currentLang() === 'es' ? THINKING_ES : THINKING_EN;
+  let i = 0;
+  const el = document.getElementById('thinking-phrase');
+  el.textContent = phrases[0];
+  thinkingTimer = setInterval(() => {
+    i = (i + 1) % phrases.length;
+    el.textContent = phrases[i];
+  }, 2400);
+}
+function stopThinkingPhrases() {
+  if (thinkingTimer) { clearInterval(thinkingTimer); thinkingTimer = null; }
+}
+
+function showError(msg, rawHtml) {
+  const body = rawHtml ? msg : escapeHtml(msg);
+  document.getElementById('capture-error').innerHTML = '<div class="error-msg">' + body + '</div>';
+}
+
+// ── Review ──
+function populateReview(extracted) {
+  document.getElementById('review-img').src = currentImageDataUrl;
+  document.getElementById('f-vendor').value = extracted.vendor || '';
+  document.getElementById('f-date').value = normalizeDate(extracted.date);
+  document.getElementById('f-subtotal').value = num(extracted.subtotal);
+  document.getElementById('f-tax').value = num(extracted.tax);
+  document.getElementById('f-total').value = num(extracted.total);
+  document.getElementById('f-payment').value = extracted.payment_method || '';
+
+  const cat = extracted.suggested_category;
+  const allowed = ['Supplies','Food','Fuel','Labor','Rent','Utilities','Materials','Marketing','Other'];
+  document.getElementById('f-category').value = allowed.includes(cat) ? cat : 'Other';
+  document.getElementById('f-notes').value = '';
+
+  const tbody = document.getElementById('items-tbody');
+  tbody.innerHTML = '';
+  const items = Array.isArray(extracted.items) ? extracted.items : [];
+  if (items.length === 0) items.push({ name: '', qty: 1, price: 0 });
+  items.forEach(it => addItemRow(it));
+}
+
+function addItemRow(data) {
+  const tbody = document.getElementById('items-tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td><input type="text" value="' + escapeAttr(data?.name || '') + '"></td>' +
+    '<td class="col-qty"><input type="number" step="1" value="' + (data?.qty ?? 1) + '"></td>' +
+    '<td class="col-price"><input type="number" step="0.01" value="' + num(data?.price) + '"></td>' +
+    '<td class="col-del"><button class="del-row" onclick="this.closest(\'tr\').remove()">×</button></td>';
+  tbody.appendChild(tr);
+}
+
+function collectItems() {
+  const rows = document.querySelectorAll('#items-tbody tr');
+  const out = [];
+  rows.forEach(r => {
+    const inputs = r.querySelectorAll('input');
+    const name = inputs[0].value.trim();
+    const qty = parseFloat(inputs[1].value) || 0;
+    const price = parseFloat(inputs[2].value) || 0;
+    if (name || qty || price) out.push({ name, qty, price });
+  });
+  return out;
+}
+
+function normalizeDate(s) {
+  if (!s) return todayISO();
+  const m = String(s).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return todayISO();
+  return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+}
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function num(x) {
+  const n = parseFloat(x);
+  return isFinite(n) ? String(n) : '';
+}
+
+// ── Save ──
+async function saveReceipt() {
+  const id = currentScanResult?.id || ('rcpt_' + todayISO().replace(/-/g,'') + '_' + Math.random().toString(36).slice(2,8));
+  const thumb = await makeThumbnail(currentImageDataUrl, 300);
+  const entry = {
+    id,
+    created: new Date().toISOString(),
+    date: document.getElementById('f-date').value || todayISO(),
+    vendor: document.getElementById('f-vendor').value.trim(),
+    items: collectItems(),
+    subtotal: parseFloat(document.getElementById('f-subtotal').value) || null,
+    tax: parseFloat(document.getElementById('f-tax').value) || null,
+    total: parseFloat(document.getElementById('f-total').value) || 0,
+    payment_method: document.getElementById('f-payment').value.trim(),
+    category: document.getElementById('f-category').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    thumbnail: thumb,
+    image_url: currentScanResult?.image_url || null
+  };
+
+  const idx = receipts.findIndex(r => r.id === id);
+  if (idx > -1) receipts[idx] = entry; else receipts.push(entry);
+  await persist(entry);
+  resetCapture();
+  switchView('list');
+}
+
+async function persist(entry) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(receipts));
+  idbSet('main', receipts).catch(() => {});
+  try {
+    await fetch(AGENT + '/data/receipts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+      signal: AbortSignal.timeout(3000)
+    });
+  } catch(e) { /* stays local, syncs next time agent is online */ }
+}
+
+// ── Load ──
+async function loadFromIDB() {
+  try {
+    const saved = await idbGet('main');
+    if (Array.isArray(saved)) receipts = saved;
+  } catch(e) {}
+  if (!receipts.length) {
+    try {
+      const ls = localStorage.getItem(STORAGE_KEY);
+      if (ls) receipts = JSON.parse(ls) || [];
+    } catch(e) {}
+  }
+}
+
+async function loadFromServer() {
+  try {
+    const res = await fetch(AGENT + '/data/receipts', { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) return;
+    const server = await res.json();
+    if (!Array.isArray(server)) return;
+    const byId = new Map(receipts.map(r => [r.id, r]));
+    server.forEach(s => byId.set(s.id, s));
+    receipts = Array.from(byId.values());
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(receipts));
+    idbSet('main', receipts).catch(() => {});
+    renderList();
+  } catch(e) { /* offline, use local */ }
+}
+
+// ── List render ──
+function filteredSortedReceipts() {
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+  const cat = document.getElementById('filter-category').value;
+  const sort = document.getElementById('filter-sort').value;
+  let out = receipts.filter(r => {
+    if (from && (r.date || '') < from) return false;
+    if (to && (r.date || '') > to) return false;
+    if (cat && r.category !== cat) return false;
+    return true;
+  });
+  if (sort === 'date-desc') out.sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  else if (sort === 'date-asc') out.sort((a,b) => (a.date || '').localeCompare(b.date || ''));
+  else if (sort === 'amount-desc') out.sort((a,b) => (b.total || 0) - (a.total || 0));
+  else if (sort === 'amount-asc') out.sort((a,b) => (a.total || 0) - (b.total || 0));
+  else if (sort === 'vendor') out.sort((a,b) => (a.vendor || '').localeCompare(b.vendor || ''));
+  return out;
+}
+
+function renderList() {
+  const list = filteredSortedReceipts();
+  const wrap = document.getElementById('receipt-list');
+  const empty = document.getElementById('list-empty');
+  const totals = document.getElementById('list-total-text');
+
+  if (!list.length) {
+    wrap.innerHTML = '';
+    empty.style.display = 'block';
+    totals.textContent = receipts.length === 0 ? T[currentLang()].no_receipts_yet : T[currentLang()].no_match;
+    return;
+  }
+  empty.style.display = 'none';
+
+  const total = list.reduce((s, r) => s + (Number(r.total) || 0), 0);
+  totals.innerHTML = '<strong>' + list.length + '</strong> ' +
+    (list.length === 1 ? T[currentLang()].receipt_single : T[currentLang()].receipt_plural) +
+    ' — <strong>$' + total.toFixed(2) + '</strong> ' + T[currentLang()].total_label;
+
+  wrap.innerHTML = list.map(r => {
+    const cat = r.category || 'Other';
+    return '<div class="receipt-row" onclick="openReceipt(\'' + r.id + '\')">' +
+      '<div class="rr-date">' + (r.date || '') + '</div>' +
+      '<div>' +
+        '<div class="rr-vendor">' + escapeHtml(r.vendor || T[currentLang()].unknown_vendor) + '</div>' +
+        (r.notes ? '<div class="rr-vendor-sub">' + escapeHtml(r.notes) + '</div>' : '') +
+      '</div>' +
+      '<div class="rr-total">$' + (Number(r.total) || 0).toFixed(2) + '</div>' +
+      '<span class="cat-pill cat-' + cat + '">' + cat + '</span>' +
+      '<button class="rr-del" onclick="event.stopPropagation(); deleteReceipt(\'' + r.id + '\')">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+function openReceipt(id) {
+  const r = receipts.find(x => x.id === id);
+  if (!r) return;
+  currentScanResult = { id: r.id, image_url: r.image_url };
+  currentImageDataUrl = r.image_url || r.thumbnail || '';
+  populateReview({
+    vendor: r.vendor, date: r.date, items: r.items,
+    subtotal: r.subtotal, tax: r.tax, total: r.total,
+    payment_method: r.payment_method, suggested_category: r.category
+  });
+  document.getElementById('f-notes').value = r.notes || '';
+  switchView('review');
+}
+
+async function deleteReceipt(id) {
+  if (!confirm(T[currentLang()].confirm_delete)) return;
+  receipts = receipts.filter(r => r.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(receipts));
+  idbSet('main', receipts).catch(() => {});
+  try {
+    await fetch(AGENT + '/data/receipts/' + encodeURIComponent(id), { method: 'DELETE', signal: AbortSignal.timeout(2000) });
+  } catch(e) {}
+  renderList();
+}
+
+// ── Export ──
+function exportCSV() {
+  const list = filteredSortedReceipts();
+  if (!list.length) return;
+  const header = ['Date','Vendor','Subtotal','Tax','Total','Payment','Category','Notes'];
+  const rows = [header];
+  list.forEach(r => {
+    rows.push([
+      r.date || '',
+      r.vendor || '',
+      r.subtotal ?? '',
+      r.tax ?? '',
+      r.total ?? '',
+      r.payment_method || '',
+      r.category || '',
+      r.notes || ''
+    ]);
+  });
+  const csv = rows.map(row => row.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'terrapin-receipts-' + todayISO() + '.csv';
+  a.click();
+}
+
+function openPrintSummary() {
+  const list = filteredSortedReceipts();
+  if (!list.length) return;
+
+  const byCat = {};
+  list.forEach(r => {
+    const c = r.category || 'Other';
+    if (!byCat[c]) byCat[c] = { total: 0, items: [] };
+    byCat[c].total += Number(r.total) || 0;
+    byCat[c].items.push(r);
+  });
+
+  const grand = list.reduce((s, r) => s + (Number(r.total) || 0), 0);
+  const lang = currentLang();
+  const now = new Date();
+  const range = (document.getElementById('filter-from').value || '') + (document.getElementById('filter-to').value ? ' → ' + document.getElementById('filter-to').value : '');
+
+  let html = '<div style="padding:40px;font-family:Lora,serif;max-width:800px;margin:0 auto;">';
+  html += '<h1 style="font-size:26px;color:#2C3E2D;margin-bottom:6px;">' + T[lang].print_title + '</h1>';
+  html += '<p style="font-size:13px;color:#6B6B6B;margin-bottom:24px;">' + T[lang].print_generated + ' ' + now.toLocaleDateString() + (range ? ' · ' + range : '') + '</p>';
+
+  Object.keys(byCat).sort().forEach(cat => {
+    const sec = byCat[cat];
+    html += '<h2 style="font-family:Lora,serif;font-size:18px;color:#2C3E2D;margin:22px 0 8px;border-bottom:1px solid #E8E0D0;padding-bottom:6px;">' + cat + ' — $' + sec.total.toFixed(2) + '</h2>';
+    html += '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:13px;">';
+    html += '<tr style="color:#6B6B6B;text-align:left;"><th style="padding:6px 8px;">Date</th><th style="padding:6px 8px;">Vendor</th><th style="padding:6px 8px;text-align:right;">Total</th></tr>';
+    sec.items.forEach(r => {
+      html += '<tr><td style="padding:4px 8px;">' + (r.date || '') + '</td><td style="padding:4px 8px;">' + escapeHtml(r.vendor || '') + '</td><td style="padding:4px 8px;text-align:right;">$' + (Number(r.total) || 0).toFixed(2) + '</td></tr>';
+    });
+    html += '</table>';
+  });
+  html += '<h2 style="font-family:Lora,serif;font-size:20px;color:#2C3E2D;margin:32px 0 8px;border-top:2px solid #2C3E2D;padding-top:12px;text-align:right;">' + T[lang].grand_total + ': $' + grand.toFixed(2) + '</h2>';
+  html += '<p style="font-size:11px;color:#999;margin-top:24px;text-align:center;">terrapin.tools</p>';
+  html += '</div>';
+
+  const w = window.open('', '_blank');
+  w.document.write('<!DOCTYPE html><html><head><title>' + T[lang].print_title + '</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans&family=Lora&display=swap" rel="stylesheet"></head><body style="background:#fff;margin:0;">' + html + '</body></html>');
+  w.document.close();
+  setTimeout(() => { w.print(); }, 500);
+}
+
+// ── License / Paywall ──
+async function checkLicense() {
+  try {
+    const res = await fetch(AGENT + '/data/license/smart-receipt-box', { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) { showPaywall(); return; }
+    const data = await res.json();
+    licensed = !!data.licensed;
+    updateLicenseUI();
+    if (!licensed) showPaywall();
+  } catch(e) { showPaywall(); }
+}
+
+function updateLicenseUI() {
+  const header = document.querySelector('.app-header h1');
+  const existing = document.getElementById('license-badge');
+  if (licensed) {
+    if (!existing && header) {
+      const b = document.createElement('span');
+      b.id = 'license-badge';
+      b.className = 'license-badge';
+      b.textContent = 'Activated';
+      header.appendChild(b);
+    }
+    document.getElementById('paywall-overlay').classList.remove('open');
+  }
+}
+
+function showPaywall() {
+  document.getElementById('paywall-overlay').classList.add('open');
+}
+function hidePaywall() {
+  document.getElementById('paywall-overlay').classList.remove('open');
+}
+function toggleActivateForm() {
+  const form = document.getElementById('paywall-activate-form');
+  form.classList.toggle('open');
+  if (form.classList.contains('open')) {
+    document.getElementById('paywall-key').focus();
+    document.getElementById('pw-activate-status').textContent = '';
+    document.getElementById('pw-activate-status').className = 'paywall-activate-status';
+  }
+}
+async function activateLicense() {
+  const input = document.getElementById('paywall-key');
+  const btn = document.getElementById('pw-activate-btn');
+  const status = document.getElementById('pw-activate-status');
+  const key = input.value.trim();
+  if (!key) { status.textContent = T[currentLang()].pw_err_empty; status.className = 'paywall-activate-status error'; return; }
+
+  btn.disabled = true;
+  status.textContent = T[currentLang()].pw_verifying;
+  status.className = 'paywall-activate-status';
+
+  try {
+    const res = await fetch(AGENT + '/api/license/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_id: 'smart-receipt-box', license_key: key })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      status.textContent = data.error || T[currentLang()].pw_err_generic;
+      status.className = 'paywall-activate-status error';
+      btn.disabled = false;
+      return;
+    }
+
+    status.textContent = T[currentLang()].pw_success;
+    status.className = 'paywall-activate-status success';
+    licensed = true;
+    setTimeout(() => {
+      hidePaywall();
+      updateLicenseUI();
+      const toast = document.getElementById('toast-activated');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }, 600);
+  } catch(e) {
+    status.textContent = T[currentLang()].pw_err_network;
+    status.className = 'paywall-activate-status error';
+    btn.disabled = false;
+  }
+}
+
+// ── Helpers ──
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+function postResult(status, receiptId, extracted) {
+  const result = { type: 'terrapin-tool-result', tool: 'smart-receipt-box', status, receiptId, extracted };
+  const r = document.getElementById('terrapin-result');
+  r.textContent = JSON.stringify({ tool: 'smart-receipt-box', status, receiptId, extracted, timestamp: new Date().toISOString() });
+  if (window.parent !== window) {
+    try { window.parent.postMessage(result, '*'); } catch(e) {}
+  }
+}
+
+// ── i18n ──
+const T = {
+  en: {
+    back: '← Back to Terrapin Tools',
+    h1: 'Smart Receipt Box',
+    sub: 'Snap a photo. The AI reads everything. All on your machine.',
+    premium_note: '🔒 Premium tool — your images never leave this computer. Receipts go to Gemma 4 on localhost.',
+    tab_scan: 'Scan',
+    tab_list: 'My Receipts',
+    dz_title: 'Drop a receipt here',
+    dz_sub: 'JPG or PNG. Drag and drop, or click to browse.',
+    dz_browse: 'Browse files',
+    scan_btn: 'Scan receipt',
+    choose_another: 'Choose another',
+    review_h: 'Review and save',
+    review_img_note: 'Double-check the extracted data against the image.',
+    l_vendor: 'Vendor', l_date: 'Date', l_items: 'Items',
+    th_item: 'Item', th_qty: 'Qty', th_price: 'Price',
+    add_item: '+ Add item',
+    l_subtotal: 'Subtotal', l_tax: 'Tax', l_total: 'Total',
+    l_payment: 'Payment', l_category: 'Category', l_notes: 'Notes',
+    save_btn: 'Save receipt', scan_another: 'Scan another',
+    l_filter_from: 'From', l_filter_to: 'To', l_filter_cat: 'Category', l_sort: 'Sort',
+    all_categories: 'All',
+    sort_date_desc: 'Newest first', sort_date_asc: 'Oldest first',
+    sort_amount_desc: 'Largest first', sort_amount_asc: 'Smallest first', sort_vendor: 'Vendor A–Z',
+    export_csv: 'Export CSV', print_summary: 'Print summary',
+    no_receipts_yet: 'No receipts yet',
+    no_match: 'No receipts match those filters',
+    receipt_single: 'receipt', receipt_plural: 'receipts', total_label: 'total',
+    empty_p: 'No receipts match those filters.',
+    empty_sub: 'Try clearing the filters or scan a new receipt.',
+    storage: 'Your data saves in this browser on this device.',
+    footer: 'A Terrapin Tool — terrapin.tools',
+    unknown_vendor: 'Unknown vendor',
+    confirm_delete: 'Delete this receipt? This cannot be undone.',
+    err_image_only: 'Please choose an image file (JPG or PNG).',
+    err_heic: '<strong>iPhone HEIC not supported yet.</strong> Your browser can\'t read Apple\'s HEIC format.<br><br><strong>Quick fix:</strong> open the receipt in Photos → File → Export → Format: JPEG. Then upload the JPG.<br><br><strong>Or in Terminal:</strong> <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px;">sips -s format jpeg receipt.HEIC --out receipt.jpg</code><br><br><strong>Permanent fix on iPhone:</strong> Settings → Camera → Formats → Most Compatible.',
+    err_read: 'Could not read that file.',
+    err_scan_failed: 'The AI could not read that receipt. Try a sharper photo.',
+    err_agent_offline: 'The Terrapin agent is not running. Start the agent and try again.',
+    print_title: 'Receipt summary',
+    print_generated: 'Generated',
+    grand_total: 'Grand total',
+    gate_h: 'Smart Receipt Box runs on your desktop.',
+    gate_p: 'This tool uses local AI on your Mac to read receipts. Open it on desktop after installing Terrapin.',
+    gate_cta: 'Browse free tools',
+    pw_title: 'Unlock Smart Receipt Box',
+    pw_lede: 'One-time purchase. Pay once, own it forever. No subscription.',
+    pw_once: 'pay once',
+    pw_f1: 'Unlimited receipts, on your Mac',
+    pw_f2: 'Local Gemma 4 vision — no cloud',
+    pw_f3: 'CSV + printable tax summaries',
+    pw_f4: 'Activates on up to 3 Macs',
+    pw_buy: 'Get it for $29',
+    pw_have_key: 'Already have a license key? Activate →',
+    pw_label: 'Paste your license key',
+    pw_cancel: 'Cancel',
+    pw_activate: 'Activate',
+    pw_verifying: 'Verifying with Gumroad...',
+    pw_success: '🎉 License activated — enjoy!',
+    pw_err_empty: 'Please paste your license key.',
+    pw_err_generic: 'Could not activate. Check your key and try again.',
+    pw_err_network: 'Could not reach Gumroad. Check your internet and try again.',
+    pw_toast: '🎉 Smart Receipt Box activated!'
+  },
+  es: {
+    back: '← Volver a Terrapin Tools',
+    h1: 'Caja de Recibos Inteligente',
+    sub: 'Toma una foto. La IA lo lee todo. Todo en tu computadora.',
+    premium_note: '🔒 Herramienta premium — tus imágenes no salen de tu computadora. Los recibos van a Gemma 4 en localhost.',
+    tab_scan: 'Escanear',
+    tab_list: 'Mis Recibos',
+    dz_title: 'Suelta un recibo aquí',
+    dz_sub: 'JPG o PNG. Arrastra y suelta, o haz clic para buscar.',
+    dz_browse: 'Buscar archivos',
+    scan_btn: 'Escanear recibo',
+    choose_another: 'Elegir otro',
+    review_h: 'Revisar y guardar',
+    review_img_note: 'Verifica los datos extraídos con la imagen.',
+    l_vendor: 'Proveedor', l_date: 'Fecha', l_items: 'Artículos',
+    th_item: 'Artículo', th_qty: 'Cant', th_price: 'Precio',
+    add_item: '+ Agregar artículo',
+    l_subtotal: 'Subtotal', l_tax: 'Impuesto', l_total: 'Total',
+    l_payment: 'Pago', l_category: 'Categoría', l_notes: 'Notas',
+    save_btn: 'Guardar recibo', scan_another: 'Escanear otro',
+    l_filter_from: 'Desde', l_filter_to: 'Hasta', l_filter_cat: 'Categoría', l_sort: 'Orden',
+    all_categories: 'Todas',
+    sort_date_desc: 'Más reciente primero', sort_date_asc: 'Más antiguo primero',
+    sort_amount_desc: 'Mayor primero', sort_amount_asc: 'Menor primero', sort_vendor: 'Proveedor A–Z',
+    export_csv: 'Exportar CSV', print_summary: 'Imprimir resumen',
+    no_receipts_yet: 'Sin recibos aún',
+    no_match: 'Ningún recibo coincide con esos filtros',
+    receipt_single: 'recibo', receipt_plural: 'recibos', total_label: 'total',
+    empty_p: 'Ningún recibo coincide con esos filtros.',
+    empty_sub: 'Limpia los filtros o escanea un nuevo recibo.',
+    storage: 'Tus datos se guardan en este navegador en este dispositivo.',
+    footer: 'Una Herramienta Terrapin — terrapin.tools',
+    unknown_vendor: 'Proveedor desconocido',
+    confirm_delete: '¿Eliminar este recibo? Esto no se puede deshacer.',
+    err_image_only: 'Por favor elige un archivo de imagen (JPG o PNG).',
+    err_heic: '<strong>HEIC del iPhone no soportado aún.</strong> Tu navegador no puede leer el formato HEIC de Apple.<br><br><strong>Arreglo rápido:</strong> abre el recibo en Fotos → Archivo → Exportar → Formato: JPEG. Luego sube el JPG.<br><br><strong>O en Terminal:</strong> <code style="background:#f5f0e8;padding:2px 6px;border-radius:4px;">sips -s format jpeg recibo.HEIC --out recibo.jpg</code><br><br><strong>Arreglo permanente en iPhone:</strong> Ajustes → Cámara → Formatos → Más compatible.',
+    err_read: 'No se pudo leer ese archivo.',
+    err_scan_failed: 'La IA no pudo leer ese recibo. Prueba con una foto más nítida.',
+    err_agent_offline: 'El agente Terrapin no está corriendo. Inícialo e intenta de nuevo.',
+    print_title: 'Resumen de recibos',
+    print_generated: 'Generado',
+    grand_total: 'Total general',
+    gate_h: 'Caja de Recibos Inteligente funciona en tu escritorio.',
+    gate_p: 'Esta herramienta usa IA local en tu Mac para leer recibos. Ábrela en escritorio después de instalar Terrapin.',
+    gate_cta: 'Ver herramientas gratis',
+    pw_title: 'Desbloquea Caja de Recibos',
+    pw_lede: 'Compra única. Paga una vez, tuyo para siempre. Sin suscripción.',
+    pw_once: 'pago único',
+    pw_f1: 'Recibos ilimitados, en tu Mac',
+    pw_f2: 'Gemma 4 local — sin nube',
+    pw_f3: 'Resúmenes CSV e imprimibles para impuestos',
+    pw_f4: 'Activa hasta en 3 Macs',
+    pw_buy: 'Obtener por $29',
+    pw_have_key: '¿Ya tienes una licencia? Activar →',
+    pw_label: 'Pega tu clave de licencia',
+    pw_cancel: 'Cancelar',
+    pw_activate: 'Activar',
+    pw_verifying: 'Verificando con Gumroad...',
+    pw_success: '🎉 Licencia activada — ¡disfruta!',
+    pw_err_empty: 'Por favor pega tu clave de licencia.',
+    pw_err_generic: 'No se pudo activar. Revisa tu clave e intenta de nuevo.',
+    pw_err_network: 'No se pudo conectar con Gumroad. Revisa tu internet e intenta de nuevo.',
+    pw_toast: '🎉 ¡Caja de Recibos activada!'
+  }
+};
+
+function currentLang() { return localStorage.getItem(LANG_KEY) === 'es' ? 'es' : 'en'; }
+function setLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (T[lang] && T[lang][k]) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = T[lang][k];
+      else el.textContent = T[lang][k];
+    }
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+  localStorage.setItem(LANG_KEY, lang);
+  document.documentElement.lang = lang;
+  renderList();
+}
+
+(function autoLang() {
+  const saved = localStorage.getItem(LANG_KEY);
+  if (saved) { setLang(saved); return; }
+  const n = (navigator.language || '').toLowerCase();
+  if (n.startsWith('es')) setLang('es');
+})();
+
+// ── Boot ──
+(async function init() {
+  await loadFromIDB();
+  renderList();
+  loadFromServer();
+  checkLicense();
+
+  // URL params — action=scan|list|export, autorun=true
+  const params = new URLSearchParams(location.search);
+  const action = params.get('action');
+  if (action === 'list') switchView('list');
+  else if (action === 'export') { switchView('list'); setTimeout(exportCSV, 200); }
+  else switchView('scan');
+})();
+</script>
+</body>
+</html>

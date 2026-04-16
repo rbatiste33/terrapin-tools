@@ -135,6 +135,22 @@
       "output": "Calendar event saved",
       "can_email": false,
       "agent_ready": true
+    },
+    {
+      "name": "Smart Receipt Box",
+      "id": "smart-receipt-box",
+      "type": "data",
+      "description": "Photograph any receipt and local Gemma 4 vision extracts vendor, date, line items, totals, and suggests a category. You already have all receipts loaded — answer spending questions directly without opening this tool. Only use this tool to SCAN a new receipt.",
+      "file": "tools/smart-receipt-box.html",
+      "category": "all",
+      "required_params": [],
+      "optional_params": ["action"],
+      "actions": ["scan", "list", "export"],
+      "output": "Receipt saved to ~/.terrapin/receipts/ with extracted structured data",
+      "can_email": false,
+      "agent_ready": true,
+      "tier": "premium",
+      "price_usd": 29
     }
   ]
 }

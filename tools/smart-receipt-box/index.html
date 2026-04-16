@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Receipt Box — Snap. Extract. Done. | Terrapin Tools</title>
+<meta name="description" content="Take a photo of any receipt. Local AI (Gemma 4) reads every detail and saves it. No cloud. No subscription. $29, one-time.">
+<link rel="canonical" href="https://terrapin.tools/tools/smart-receipt-box/">
+<meta property="og:title" content="Smart Receipt Box — AI receipt scanner that runs on your machine">
+<meta property="og:description" content="Snap a photo. The AI extracts vendor, date, line items, totals. Categorizes. Stores locally. $29, pay once.">
+<meta property="og:image" content="https://terrapin.tools/turtle-optimized.png">
+<meta property="og:url" content="https://terrapin.tools/tools/smart-receipt-box/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Smart Receipt Box — AI receipt scanner that runs on your machine">
+<meta name="twitter:description" content="Snap a photo. The AI extracts vendor, date, line items, totals. Categorizes. Stores locally. $29, pay once.">
+<meta name="twitter:image" content="https://terrapin.tools/turtle-optimized.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Smart Receipt Box",
+  "description": "Photograph any receipt. Local AI extracts vendor, date, line items, totals, and auto-categorizes. Stores on your machine. One-time purchase.",
+  "url": "https://terrapin.tools/tools/smart-receipt-box/",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Any (Web Browser + Ollama)",
+  "offers": {
+    "@type": "Offer",
+    "price": "29",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Terrapin Tools",
+    "url": "https://terrapin.tools"
+  }
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#1A1A1A;min-height:100vh;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.container{max-width:740px;margin:0 auto;padding:0 24px}
+nav{padding:16px 0;display:flex;align-items:center;justify-content:space-between}
+nav a.brand{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#2C3E2D;text-decoration:none}
+nav a.browse{font-family:'DM Sans',sans-serif;font-size:14px;color:#6B6B6B;text-decoration:none}
+nav a.browse:hover{color:#2C3E2D}
+.badge-row{display:flex;justify-content:center;margin-bottom:12px;padding-top:24px}
+.premium-tag{background:#C9A84C;color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;padding:5px 12px;border-radius:6px}
+.hero{padding:20px 0 40px;text-align:center}
+.hero h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#2C3E2D;line-height:1.2;margin-bottom:16px}
+.hero p{font-size:17px;color:#6B6B6B;max-width:560px;margin:0 auto 28px;line-height:1.6}
+.cta{display:inline-block;background:#C9A84C;color:#1A1A1A;padding:16px 32px;border-radius:8px;font-size:17px;font-weight:600;text-decoration:none;transition:opacity .15s}
+.cta:hover{opacity:.85}
+.price-note{display:block;font-size:13px;color:#6B6B6B;margin-top:10px;font-family:'DM Mono',monospace}
+.pills{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:32px 0;border-top:1px solid #E8E0D0;border-bottom:1px solid #E8E0D0;margin:0 0 48px}
+.pill{background:#fff;border:1px solid #E8E0D0;border-radius:8px;padding:10px 18px;font-size:13px;color:#2C3E2D;font-weight:500}
+.steps{padding:0 0 48px}
+.steps h2{font-family:'Playfair Display',serif;font-size:24px;color:#2C3E2D;text-align:center;margin-bottom:28px}
+.step{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+.step-num{width:32px;height:32px;background:#2C3E2D;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:14px;font-weight:600;flex-shrink:0}
+.step-text{font-size:15px;color:#1A1A1A;padding-top:5px}
+.story{padding:24px 0 48px;background:#FDFAF4;border:1px solid #E8E0D0;border-radius:12px;padding:28px 32px;margin-bottom:40px}
+.story p{font-size:15px;color:#1A1A1A;line-height:1.7;margin-bottom:12px}
+.story p:last-child{margin-bottom:0}
+.story em{color:#2C3E2D;font-style:normal;font-weight:600}
+.who{padding:0 0 48px}
+.who h2{font-family:'Playfair Display',serif;font-size:24px;color:#2C3E2D;text-align:center;margin-bottom:28px}
+.who-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.who-card{background:#fff;border:1px solid #E8E0D0;border-radius:12px;padding:20px 12px;text-align:center}
+.who-card .icon{font-size:28px;margin-bottom:8px}
+.who-card .label{font-size:13px;color:#2C3E2D;font-weight:500}
+.privacy-block{padding:24px;background:#FDFAF4;border:1px solid #C9A84C;border-radius:12px;margin-bottom:40px}
+.privacy-block h3{font-family:'Playfair Display',serif;font-size:18px;color:#2C3E2D;margin-bottom:10px}
+.privacy-block p{font-size:14px;color:#6B6B6B;line-height:1.6}
+.mascot{text-align:center;padding:24px 0 40px}
+.mascot img{width:120px;height:auto}
+.footer{text-align:center;padding:24px 0 32px}
+.footer a{font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none}
+.footer a:hover{color:#2C3E2D}
+@media(max-width:600px){
+.hero h1{font-size:28px}
+.who-grid{grid-template-columns:repeat(2,1fr)}
+.pills{gap:8px}
+.pill{padding:8px 14px;font-size:12px}
+}
+.lang-toggle{position:fixed;top:16px;right:16px;z-index:200;display:flex;font-family:'DM Mono',monospace;font-size:12px;background:#fff;border:1px solid #E8E0D0;border-radius:6px;overflow:hidden}
+.lang-toggle button{padding:6px 12px;border:none;cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;color:#6B6B6B;transition:all .15s}
+.lang-toggle button.active{background:#2C3E2D;color:#C9A84C}
+</style>
+</head>
+<body>
+<div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
+<div class="container">
+<nav>
+<a href="https://terrapin.tools" class="brand" data-i18n="nav_brand">Terrapin Tools</a>
+<a href="https://terrapin.tools#tools" class="browse" data-i18n="nav_browse">Browse All Tools</a>
+</nav>
+<div class="badge-row"><span class="premium-tag" data-i18n="premium">Premium · $29 once</span></div>
+<div class="hero">
+<h1 data-i18n="h1">Snap a photo. Get structured data. On your machine.</h1>
+<p data-i18n="body">Stop typing receipts into spreadsheets. Point your camera, and the local AI extracts the vendor, date, line items, totals, and suggests a category. Your images never leave your computer.</p>
+<a href="../smart-receipt-box.html" class="cta" data-i18n="cta">Open Smart Receipt Box &rarr;</a>
+<span class="price-note" data-i18n="price">One-time $29 · Pay once, own forever</span>
+</div>
+<div class="pills">
+<span class="pill" data-i18n="pill1">No login ever</span>
+<span class="pill" data-i18n="pill2">Runs on your computer</span>
+<span class="pill" data-i18n="pill3">One-time $29</span>
+</div>
+<div class="steps">
+<h2 data-i18n="how">How it works</h2>
+<div class="step"><span class="step-num">1</span><span class="step-text"><span data-i18n="step1">Upload a photo of the receipt &mdash; JPG or PNG, from your camera roll or scanner</span></span></div>
+<div class="step"><span class="step-num">2</span><span class="step-text"><span data-i18n="step2">Local Gemma 4 reads it &mdash; extracts vendor, date, items, totals, suggests a category</span></span></div>
+<div class="step"><span class="step-num">3</span><span class="step-text"><span data-i18n="step3">Review, edit if needed, save &mdash; exports CSV or a printable summary for tax time</span></span></div>
+</div>
+<div class="story">
+<p data-i18n="story1"><em>Your mom sorts through a shoebox of receipts at tax time.</em> You know the drill. Crumpled paper, fading ink, hours of typing. Receipts she meant to log. Receipts she forgot about.</p>
+<p data-i18n="story2">Now she takes a photo and the AI handles it. On her machine. No cloud. No subscription. No account. $29, once, and it works forever.</p>
+</div>
+<div class="privacy-block">
+<h3 data-i18n="priv_h">Your receipts never leave your computer.</h3>
+<p data-i18n="priv_p">The image is sent only to Ollama running on your machine &mdash; the same Gemma 4 model that powers the rest of Terrapin. Your receipt data is stored in ~/.terrapin/ on your disk. We can't see it. Nobody can.</p>
+</div>
+<div class="who">
+<h2 data-i18n="built">Built for</h2>
+<div class="who-grid">
+<div class="who-card"><div class="icon">🔨</div><div class="label" data-i18n="who0">Contractors</div></div>
+<div class="who-card"><div class="icon">🚚</div><div class="label" data-i18n="who1">Food trucks</div></div>
+<div class="who-card"><div class="icon">💼</div><div class="label" data-i18n="who2">Freelancers</div></div>
+<div class="who-card"><div class="icon">🛒</div><div class="label" data-i18n="who3">Small shops</div></div>
+</div>
+</div>
+<div class="mascot"><img src="https://terrapin.tools/turtle-optimized.png" alt="Terrapin Tools" width="120" height="120"></div>
+<div class="footer"><a href="https://terrapin.tools"><span data-i18n="footer">A Terrapin Tool &mdash; terrapin.tools</span></a></div>
+</div>
+
+<script>
+const T = {
+  en: {
+    nav_brand: 'Terrapin Tools', nav_browse: 'Browse All Tools',
+    premium: 'Premium · $29 once',
+    h1: 'Snap a photo. Get structured data. On your machine.',
+    body: "Stop typing receipts into spreadsheets. Point your camera, and the local AI extracts the vendor, date, line items, totals, and suggests a category. Your images never leave your computer.",
+    cta: 'Open Smart Receipt Box →',
+    price: 'One-time $29 · Pay once, own forever',
+    pill1: 'No login ever', pill2: 'Runs on your computer', pill3: 'One-time $29',
+    how: 'How it works',
+    step1: 'Upload a photo of the receipt — JPG or PNG, from your camera roll or scanner',
+    step2: 'Local Gemma 4 reads it — extracts vendor, date, items, totals, suggests a category',
+    step3: 'Review, edit if needed, save — exports CSV or a printable summary for tax time',
+    story1: 'Your mom sorts through a shoebox of receipts at tax time. You know the drill. Crumpled paper, fading ink, hours of typing. Receipts she meant to log. Receipts she forgot about.',
+    story2: 'Now she takes a photo and the AI handles it. On her machine. No cloud. No subscription. No account. $29, once, and it works forever.',
+    priv_h: 'Your receipts never leave your computer.',
+    priv_p: "The image is sent only to Ollama running on your machine — the same Gemma 4 model that powers the rest of Terrapin. Your receipt data is stored in ~/.terrapin/ on your disk. We can't see it. Nobody can.",
+    built: 'Built for',
+    who0: 'Contractors', who1: 'Food trucks', who2: 'Freelancers', who3: 'Small shops',
+    footer: 'A Terrapin Tool — terrapin.tools'
+  },
+  es: {
+    nav_brand: 'Terrapin Tools', nav_browse: 'Ver Todas las Herramientas',
+    premium: 'Premium · $29 una vez',
+    h1: 'Toma una foto. Obtén datos estructurados. En tu computadora.',
+    body: 'Deja de escribir recibos en hojas de cálculo. Apunta tu cámara y la IA local extrae el proveedor, la fecha, los artículos, los totales y sugiere una categoría. Tus imágenes nunca salen de tu computadora.',
+    cta: 'Abrir Caja de Recibos →',
+    price: 'Pago único $29 · Paga una vez, tuyo para siempre',
+    pill1: 'Sin registro nunca', pill2: 'Funciona en tu computadora', pill3: 'Pago único $29',
+    how: 'Cómo funciona',
+    step1: 'Sube una foto del recibo — JPG o PNG, desde tu rollo de cámara o escáner',
+    step2: 'Gemma 4 local lo lee — extrae proveedor, fecha, artículos, totales, sugiere categoría',
+    step3: 'Revisa, edita si hace falta, guarda — exporta CSV o un resumen imprimible para impuestos',
+    story1: 'Tu mamá revisa una caja de recibos en época de impuestos. Ya sabes. Papel arrugado, tinta desvanecida, horas escribiendo. Recibos que quería registrar. Recibos que olvidó.',
+    story2: 'Ahora toma una foto y la IA lo resuelve. En su computadora. Sin nube. Sin suscripción. Sin cuenta. $29, una vez, y funciona para siempre.',
+    priv_h: 'Tus recibos nunca salen de tu computadora.',
+    priv_p: 'La imagen se envía solo a Ollama corriendo en tu máquina — el mismo modelo Gemma 4 que impulsa el resto de Terrapin. Tus datos se guardan en ~/.terrapin/ en tu disco. No podemos verlos. Nadie puede.',
+    built: 'Hecho para',
+    who0: 'Contratistas', who1: 'Food trucks', who2: 'Freelancers', who3: 'Tiendas pequeñas',
+    footer: 'Una Herramienta Terrapin — terrapin.tools'
+  }
+};
+function setLang(lang){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(T[lang]&&T[lang][k])el.innerHTML=T[lang][k]});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-es').classList.toggle('active',lang==='es');localStorage.setItem('terrapin-language',lang);document.documentElement.lang=lang}
+(function(){var s=localStorage.getItem('terrapin-language');if(s){setLang(s);return}var n=(navigator.language||'').toLowerCase();if(n.startsWith('es'))setLang('es')})();
+</script>
+</body>
+</html>
