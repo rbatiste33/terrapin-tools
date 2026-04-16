@@ -480,6 +480,17 @@ html, body {
   border-radius: 8px;
 }
 
+.premium-badge-small {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--gold);
+  padding: 2px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+
 .modal-profile-link {
   display: block;
   font-size: 13px;
@@ -642,7 +653,8 @@ var ALL_TOOLS = [
   {id: "street-vendor-order-log", name: "Street Vendor Order Log", nameEs: "Registro de Pedidos", description: "Track orders, totals, and daily sales", descriptionEs: "Registra pedidos, totales y ventas del d\u00eda", category: "restaurants", file: "tools/street-vendor-order-log.html"},
   {id: "qr-code-generator", name: "QR Code Generator", nameEs: "Generador de C\u00f3digos QR", description: "Create QR codes for URLs, text, WiFi, and more", descriptionEs: "Crea c\u00f3digos QR para URLs, texto, WiFi y m\u00e1s", category: "all", file: "tools/qr-code-generator.html"},
   {id: "job-site-daily-log", name: "Job Site Daily Log", nameEs: "Bit\u00e1cora de Obra", description: "Log daily work, weather, notes for job sites", descriptionEs: "Registra trabajo diario, clima y notas de obra", category: "contractors", file: "tools/job-site-daily-log.html"},
-  {id: "simple-calendar", name: "Simple Calendar", nameEs: "Calendario Simple", description: "Track appointments, deadlines, and events", descriptionEs: "Registra citas, fechas l\u00edmite y eventos", category: "all", file: "tools/simple-calendar.html", widget: true}
+  {id: "simple-calendar", name: "Simple Calendar", nameEs: "Calendario Simple", description: "Track appointments, deadlines, and events", descriptionEs: "Registra citas, fechas l\u00edmite y eventos", category: "all", file: "tools/simple-calendar.html", widget: true},
+  {id: "smart-receipt-box", name: "Smart Receipt Box", nameEs: "Caja de Recibos Inteligente", description: "Snap a receipt, local AI extracts everything", descriptionEs: "Toma una foto, la IA local extrae todo", category: "all", file: "tools/smart-receipt-box.html", widget: true, premium: true, price_usd: 29}
 ];
 
 // ══════════════════════════════════════
@@ -1189,10 +1201,11 @@ function openSettings() {
     var name = lang === 'es' && tool.nameEs ? tool.nameEs : tool.name;
     var desc = lang === 'es' && tool.descriptionEs ? tool.descriptionEs : tool.description;
 
+    var premiumBadge = tool.premium ? '<span class="premium-badge-small">$' + (tool.price_usd || 29) + '</span>' : '';
     html += '<div class="tool-toggle' + (isActive ? ' active' : '') + (isLocked ? ' locked' : '') + '" data-tool-id="' + tool.id + '"' + (isLocked ? '' : ' onclick="toggleTool(this)"') + '>' +
       '<div class="toggle-check">\u2713</div>' +
       '<div class="toggle-info"><div class="toggle-name">' + escHtml(name) + '</div><div class="toggle-desc">' + escHtml(desc) + '</div></div>' +
-      (isLocked ? '<span class="locked-badge">' + t('always_on') + '</span>' : '') +
+      (isLocked ? '<span class="locked-badge">' + t('always_on') + '</span>' : premiumBadge) +
       '</div>';
   });
 

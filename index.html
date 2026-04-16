@@ -453,6 +453,8 @@
       .tool-card.premium .btn-primary,
       .btn-buy { width: 100%; text-align: center; }
     }
+    .premium-mobile-note { display: none; font-size: 12px; color: var(--gold); font-weight: 600; margin-bottom: 10px; padding: 6px 10px; background: rgba(201, 168, 76, 0.1); border-radius: 6px; }
+    @media (max-width: 768px) { .premium-mobile-note { display: block; } }
 
     .coming-soon-badge {
       position: absolute;
@@ -953,6 +955,7 @@
           <div class="tool-card premium">
             <span class="premium-badge" data-i18n="badge_premium">Premium · $29</span>
             <h3 data-i18n="t_receipt">Smart Receipt Box</h3>
+            <p class="premium-mobile-note" data-i18n="prem_mobile">🖥 Desktop-only for now — save for your laptop.</p>
             <p class="tool-desc" data-i18n="t_receipt_d">Snap a photo of any receipt. Local Gemma 4 extracts vendor, date, line items, totals — on your Mac. Auto-categorizes. Exports CSV + printable summary for tax time.</p>
             <p class="premium-requires" data-i18n="prem_requires">⚡ Requires the free Terrapin agent — one command to install.</p>
             <div class="premium-cta-row">
@@ -1124,6 +1127,7 @@ const T = {
     prem_label: 'Premium tools',
     prem_title: 'Pay once. Own it forever. No subscription.',
     prem_requires: '⚡ Requires the free Terrapin agent — one command to install.',
+    prem_mobile: '🖥 Desktop-only for now — save for your laptop.',
     prem_learn: 'Learn more',
     prem_buy: 'Buy for $29'
   },
@@ -1206,6 +1210,7 @@ const T = {
     prem_label: 'Herramientas premium',
     prem_title: 'Paga una vez. Tuyo para siempre. Sin suscripci\u00f3n.',
     prem_requires: '\u26a1 Requiere el agente Terrapin gratuito \u2014 un solo comando para instalar.',
+    prem_mobile: '\ud83d\udda5 Solo escritorio por ahora \u2014 gu\u00e1rdalo para tu laptop.',
     prem_learn: 'M\u00e1s informaci\u00f3n',
     prem_buy: 'Comprar por $29'
   }

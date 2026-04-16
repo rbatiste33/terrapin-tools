@@ -78,6 +78,9 @@ nav a.browse:hover{color:#2C3E2D}
 .footer{text-align:center;padding:24px 0 32px}
 .footer a{font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none}
 .footer a:hover{color:#2C3E2D}
+.mobile-notice{display:none;background:linear-gradient(135deg,#FDFAF4 0%,#F5EDD8 100%);border:1px solid #C9A84C;border-radius:10px;padding:14px 18px;margin:16px 0 0;text-align:center;font-size:13.5px;color:#2C3E2D;line-height:1.5}
+.mobile-notice strong{display:block;margin-bottom:4px;font-size:14px}
+@media(max-width:768px){.mobile-notice{display:block}}
 @media(max-width:600px){
 .hero h1{font-size:28px}
 .who-grid{grid-template-columns:repeat(2,1fr)}
@@ -96,6 +99,7 @@ nav a.browse:hover{color:#2C3E2D}
 <a href="https://terrapin.tools" class="brand" data-i18n="nav_brand">Terrapin Tools</a>
 <a href="https://terrapin.tools#tools" class="browse" data-i18n="nav_browse">Browse All Tools</a>
 </nav>
+<div class="mobile-notice"><strong data-i18n="mob_h">🖥 Desktop-only for now</strong><span data-i18n="mob_p">Smart Receipt Box runs local AI on your Mac — it can't run on a phone yet. Bookmark this page and buy from your laptop.</span></div>
 <div class="badge-row"><span class="premium-tag" data-i18n="premium">Premium · $29 once</span></div>
 <div class="hero">
 <h1 data-i18n="h1">Snap a photo. Get structured data. On your machine.</h1>
@@ -155,7 +159,9 @@ const T = {
     priv_p: "The image is sent only to Ollama running on your machine — the same Gemma 4 model that powers the rest of Terrapin. Your receipt data is stored in ~/.terrapin/ on your disk. We can't see it. Nobody can.",
     built: 'Built for',
     who0: 'Contractors', who1: 'Food trucks', who2: 'Freelancers', who3: 'Small shops',
-    footer: 'A Terrapin Tool — terrapin.tools'
+    footer: 'A Terrapin Tool — terrapin.tools',
+    mob_h: '🖥 Desktop-only for now',
+    mob_p: "Smart Receipt Box runs local AI on your Mac — it can't run on a phone yet. Bookmark this page and buy from your laptop."
   },
   es: {
     nav_brand: 'Terrapin Tools', nav_browse: 'Ver Todas las Herramientas',
@@ -175,7 +181,9 @@ const T = {
     priv_p: 'La imagen se envía solo a Ollama corriendo en tu máquina — el mismo modelo Gemma 4 que impulsa el resto de Terrapin. Tus datos se guardan en ~/.terrapin/ en tu disco. No podemos verlos. Nadie puede.',
     built: 'Hecho para',
     who0: 'Contratistas', who1: 'Food trucks', who2: 'Freelancers', who3: 'Tiendas pequeñas',
-    footer: 'Una Herramienta Terrapin — terrapin.tools'
+    footer: 'Una Herramienta Terrapin — terrapin.tools',
+    mob_h: '🖥 Solo escritorio por ahora',
+    mob_p: 'Caja de Recibos usa IA local en tu Mac — aún no funciona en teléfono. Guarda esta página y compra desde tu laptop.'
   }
 };
 function setLang(lang){document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(T[lang]&&T[lang][k])el.innerHTML=T[lang][k]});document.getElementById('btn-en').classList.toggle('active',lang==='en');document.getElementById('btn-es').classList.toggle('active',lang==='es');localStorage.setItem('terrapin-language',lang);document.documentElement.lang=lang}

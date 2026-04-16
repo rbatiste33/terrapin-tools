@@ -302,6 +302,19 @@
     color: var(--text);
     margin-bottom: 2px;
   }
+  .wizard-premium-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    background: #C9A84C;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
   .tool-desc {
     font-size: 13px;
     color: var(--text-secondary);
@@ -562,18 +575,19 @@ var TOOLS = [
   {id: "street-vendor-order-log", name: "Street Vendor Order Log", description: "Track orders, totals, and daily sales", category: "restaurants", file: "tools/street-vendor-order-log.html"},
   {id: "qr-code-generator", name: "QR Code Generator", description: "Create QR codes for URLs, text, WiFi, and more", category: "all", file: "tools/qr-code-generator.html"},
   {id: "job-site-daily-log", name: "Job Site Daily Log", description: "Log daily work, weather, notes for job sites", category: "contractors", file: "tools/job-site-daily-log.html"},
-  {id: "simple-calendar", name: "Simple Calendar", description: "Track appointments, deadlines, and events", category: "all", file: "tools/simple-calendar.html"}
+  {id: "simple-calendar", name: "Simple Calendar", description: "Track appointments, deadlines, and events", category: "all", file: "tools/simple-calendar.html"},
+  {id: "smart-receipt-box", name: "Smart Receipt Box", description: "Snap a receipt, local AI extracts everything (premium — $29 one-time)", category: "all", file: "tools/smart-receipt-box.html", premium: true, price_usd: 29}
 ];
 
 var SUGGESTIONS = {
-  "Contractor": ["contractor-invoice-generator", "job-site-daily-log", "simple-crm", "simple-calendar", "qr-code-generator"],
-  "Restaurant / Cafe": ["tip-calculator", "street-vendor-order-log", "simple-calendar"],
-  "Food Truck": ["street-vendor-order-log", "tip-calculator", "qr-code-generator"],
-  "Catering": ["catering-quote-builder", "simple-crm", "simple-calendar"],
-  "Freelancer": ["simple-crm", "simple-calendar", "qr-code-generator"],
-  "Retail": ["simple-crm", "qr-code-generator", "simple-calendar"],
-  "Bar / Venue": ["tip-calculator", "simple-calendar"],
-  "Other": ["simple-crm", "simple-calendar", "qr-code-generator"]
+  "Contractor": ["contractor-invoice-generator", "job-site-daily-log", "simple-crm", "simple-calendar", "qr-code-generator", "smart-receipt-box"],
+  "Restaurant / Cafe": ["tip-calculator", "street-vendor-order-log", "simple-calendar", "smart-receipt-box"],
+  "Food Truck": ["street-vendor-order-log", "tip-calculator", "qr-code-generator", "smart-receipt-box"],
+  "Catering": ["catering-quote-builder", "simple-crm", "simple-calendar", "smart-receipt-box"],
+  "Freelancer": ["simple-crm", "simple-calendar", "qr-code-generator", "smart-receipt-box"],
+  "Retail": ["simple-crm", "qr-code-generator", "simple-calendar", "smart-receipt-box"],
+  "Bar / Venue": ["tip-calculator", "simple-calendar", "smart-receipt-box"],
+  "Other": ["simple-crm", "simple-calendar", "qr-code-generator", "smart-receipt-box"]
 };
 
 var CATEGORY_LABELS = {
@@ -798,8 +812,9 @@ function renderToolCards() {
     var catKey = 'cat_' + tool.category;
     var catLabel = tr(catKey) || CATEGORY_LABELS[tool.category] || tool.category;
 
+    var premiumTag = tool.premium ? ' <span class="wizard-premium-tag">Premium · $' + (tool.price_usd || 29) + '</span>' : '';
     var html = '<div class="tool-info">' +
-      '<div class="tool-name">' + tool.name + '</div>' +
+      '<div class="tool-name">' + tool.name + premiumTag + '</div>' +
       '<div class="tool-desc">' + tool.description + '</div>' +
       '<span class="tool-badge">' + catLabel + '</span>';
 
