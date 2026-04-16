@@ -528,7 +528,15 @@ html, body {
 .dash-footer a:hover { color: var(--gold); }
 
 /* ── RESPONSIVE ── */
+/* Mobile gate — dashboard is desktop only */
+.mobile-gate { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; background: var(--bg); }
+.mobile-gate h2 { font-family: 'Lora', serif; font-size: 22px; color: var(--dark); margin-bottom: 12px; }
+.mobile-gate p { font-size: 15px; color: var(--text-secondary); max-width: 320px; margin-bottom: 24px; line-height: 1.5; }
+.mobile-gate a { display: inline-block; background: var(--dark); color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+
 @media (max-width: 768px) {
+  .mobile-gate { display: flex; }
+  .container { display: none; }
   .widgets-grid {
     grid-template-columns: 1fr;
   }
@@ -563,6 +571,12 @@ html, body {
 </style>
 </head>
 <body>
+
+<div class="mobile-gate">
+  <h2>Dashboard is desktop only</h2>
+  <p>Your Terrapin dashboard runs on your computer. Open it on your laptop or desktop.</p>
+  <a href="index.html">Browse Free Tools</a>
+</div>
 
 <div class="container">
   <!-- Header -->
