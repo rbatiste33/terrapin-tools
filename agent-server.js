@@ -22,6 +22,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const cron = require('node-cron');
 
 const PORT = 7777;
 const TERRAPIN_VERSION = require('./package.json').version;
@@ -37,6 +38,7 @@ const DATA_FILES = {
   calendar: path.join(TERRAPIN_DIR, 'calendar-events.json'),
   knowledge: path.join(TERRAPIN_DIR, 'knowledge.json'),
   dashboard: path.join(TERRAPIN_DIR, 'dashboard.json'),
+  schedules: path.join(TERRAPIN_DIR, 'schedules.json'),
   logsDir: path.join(TERRAPIN_DIR, 'daily-logs')
 };
 
@@ -228,7 +230,11 @@ HOW TO RESPOND — you must ALWAYS reply with exactly one JSON object, nothing e
 3. To send an email (you can compose and send emails directly):
    {"email": {"to": "recipient@example.com", "subject": "Subject line", "body": "Email body text"}}
 
-4. To ask for missing info before using a tool:
+4. To set up a scheduled reminder:
+   {"schedule": {"type": "morning_briefing", "time": "07:00", "days": ["mon","tue","wed","thu","fri"]}}
+   {"schedule": {"type": "appointment_reminders", "enabled": true, "minutes_before": 60}}
+
+5. To ask for missing info before using a tool:
    {"question": "what you need to know"}
 
 NEVER return any other format. No markdown. No tool_calls. No function calls. Just one JSON object.
@@ -281,6 +287,11 @@ Tip calculator:
 Emails — compose and send directly from chat. Look up the recipient's email from CRM contacts or business profile:
   {"email": {"to": "sarah@test.com", "subject": "Following up on our meeting", "body": "Hi Sarah,\\n\\nJust following up on our conversation today. Let me know if you have any questions.\\n\\nBest,\\n${ownerName || 'Me'}"}}
   {"email": {"to": "mike@example.com", "subject": "Project update", "body": "Hi Mike,\\n\\nWanted to give you a quick update on the project. Everything is on track.\\n\\nThanks,\\n${ownerName || 'Me'}"}}
+
+Reminders — set up scheduled emails:
+  {"schedule": {"type": "morning_briefing", "time": "07:00", "days": ["mon","tue","wed","thu","fri"]}}
+  {"schedule": {"type": "appointment_reminders", "enabled": true, "minutes_before": 60}}
+  To turn off: {"schedule": {"type": "morning_briefing", "enabled": false}}
 
 Turtle Shell — save business knowledge automatically when the owner mentions it:
   {"tool_id": "turtle-shell", "params": {"action": "add", "category": "hours", "note": "Closed on Mondays"}}
@@ -359,6 +370,219 @@ function autoSaveKnowledge(knowledge) {
     console.error('  → Knowledge auto-save failed:', e.message);
     return null;
   }
+}
+
+// ══════════════════════════════════════
+//  SCHEDULER — Morning Briefing + Appointment Reminders
+// ══════════════════════════════════════
+let activeCrons = [];
+
+function loadSchedules() {
+  try {
+    if (fs.existsSync(DATA_FILES.schedules)) {
+      return JSON.parse(fs.readFileSync(DATA_FILES.schedules, 'utf8'));
+    }
+  } catch(e) {}
+  return { morning_briefing: { enabled: false }, appointment_reminders: { enabled: false }, sent_log: [] };
+}
+
+function saveSchedules(config) {
+  fs.writeFileSync(DATA_FILES.schedules, JSON.stringify(config, null, 2));
+}
+
+function getOwnerInfo() {
+  let name = 'there';
+  let email = '';
+  try {
+    const profile = JSON.parse(fs.readFileSync(DATA_FILES.profile, 'utf8'));
+    if (profile.ownerName) name = profile.ownerName.split(' ')[0];
+    if (profile.email) email = profile.email;
+  } catch(e) {}
+  // Fallback email from schedules config
+  if (!email) {
+    const sched = loadSchedules();
+    email = sched.morning_briefing?.email || sched.appointment_reminders?.email || '';
+  }
+  return { name, email };
+}
+
+function formatTime12(time24) {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return h12 + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+async function checkMorningBriefing() {
+  const config = loadSchedules();
+  if (!config.morning_briefing?.enabled) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const todayDay = dayNames[new Date().getDay()];
+
+  // Check if today is a scheduled day
+  const days = config.morning_briefing.days || ['mon', 'tue', 'wed', 'thu', 'fri'];
+  if (!days.includes(todayDay)) return;
+
+  // Check if already sent today
+  const logKey = today + '_briefing';
+  if ((config.sent_log || []).includes(logKey)) return;
+
+  const { name, email } = getOwnerInfo();
+  const sendTo = config.morning_briefing.email || email;
+  if (!sendTo) { console.log('  Scheduler: No email for morning briefing'); return; }
+
+  // Read calendar events for today
+  let events = [];
+  try { events = JSON.parse(fs.readFileSync(DATA_FILES.calendar, 'utf8')); } catch(e) {}
+  const todayEvents = events
+    .filter(e => e.date === today)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  let body = `Good morning ${name},\n\n`;
+  if (todayEvents.length === 0) {
+    body += `You have nothing scheduled for today. Enjoy the clear day!\n`;
+  } else {
+    body += `Here's what you have today:\n\n`;
+    todayEvents.forEach(e => {
+      body += `  • ${e.time ? formatTime12(e.time) : 'All day'} — ${e.title || 'Untitled'}`;
+      if (e.notes) body += ` (${e.notes})`;
+      body += '\n';
+    });
+  }
+  body += `\nHave a great day!\n— Terrapin`;
+
+  try {
+    const res = await fetch(MAIL_URL + '/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: sendTo, subject: `Your schedule for ${dateStr}`, body })
+    });
+    const data = await res.json();
+    if (data.success) {
+      console.log(`  Scheduler: Morning briefing sent to ${sendTo}`);
+      config.sent_log = config.sent_log || [];
+      config.sent_log.push(logKey);
+      saveSchedules(config);
+    } else {
+      console.error('  Scheduler: Morning briefing failed:', data.error);
+    }
+  } catch(e) {
+    console.error('  Scheduler: Morning briefing error:', e.message);
+  }
+}
+
+async function checkAppointmentReminders() {
+  const config = loadSchedules();
+  if (!config.appointment_reminders?.enabled) return;
+
+  const { name, email } = getOwnerInfo();
+  const sendTo = config.appointment_reminders.email || email;
+  if (!sendTo) return;
+
+  const minsBefore = config.appointment_reminders.minutes_before || 60;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  let events = [];
+  try { events = JSON.parse(fs.readFileSync(DATA_FILES.calendar, 'utf8')); } catch(e) {}
+
+  const todayEvents = events.filter(e => e.date === today && e.time);
+
+  for (const event of todayEvents) {
+    const [h, m] = event.time.split(':').map(Number);
+    const eventTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    const diffMins = (eventTime - now) / 60000;
+
+    // Check if event is within the reminder window (5-min tolerance)
+    if (diffMins > minsBefore - 5 && diffMins <= minsBefore + 5) {
+      const logKey = today + '_' + event.id;
+      if ((config.sent_log || []).includes(logKey)) continue;
+
+      const timeStr = formatTime12(event.time);
+      try {
+        const res = await fetch(MAIL_URL + '/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: sendTo,
+            subject: `Reminder: ${event.title || 'Event'} in ${minsBefore} minutes`,
+            body: `Hey ${name},\n\nHeads up — you have "${event.title || 'Event'}" at ${timeStr} today.${event.notes ? '\n\nNotes: ' + event.notes : ''}\n\n— Terrapin`
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          console.log(`  Scheduler: Reminder sent for "${event.title}" at ${timeStr}`);
+          config.sent_log = config.sent_log || [];
+          config.sent_log.push(logKey);
+          saveSchedules(config);
+        }
+      } catch(e) {
+        console.error('  Scheduler: Reminder error:', e.message);
+      }
+    }
+  }
+}
+
+function clearSentLog() {
+  const config = loadSchedules();
+  config.sent_log = [];
+  saveSchedules(config);
+  console.log('  Scheduler: Sent log cleared for new day');
+}
+
+function initScheduler() {
+  // Stop any existing cron jobs
+  activeCrons.forEach(job => job.stop());
+  activeCrons = [];
+
+  const config = loadSchedules();
+
+  if (config.morning_briefing?.enabled && config.morning_briefing?.time) {
+    const [hour, min] = config.morning_briefing.time.split(':');
+    const job = cron.schedule(`${parseInt(min)} ${parseInt(hour)} * * *`, checkMorningBriefing);
+    activeCrons.push(job);
+    console.log(`  Scheduler: Morning briefing at ${config.morning_briefing.time}`);
+  }
+
+  if (config.appointment_reminders?.enabled) {
+    const job = cron.schedule('*/5 * * * *', checkAppointmentReminders);
+    activeCrons.push(job);
+    console.log('  Scheduler: Appointment reminders active (every 5 min)');
+  }
+
+  // Clear sent_log at midnight
+  const midnightJob = cron.schedule('0 0 * * *', clearSentLog);
+  activeCrons.push(midnightJob);
+}
+
+function updateSchedule(scheduleUpdate) {
+  const config = loadSchedules();
+  const { name, email } = getOwnerInfo();
+
+  if (scheduleUpdate.type === 'morning_briefing') {
+    config.morning_briefing = {
+      enabled: scheduleUpdate.enabled !== false,
+      time: scheduleUpdate.time || config.morning_briefing?.time || '06:00',
+      email: scheduleUpdate.email || config.morning_briefing?.email || email,
+      days: scheduleUpdate.days || config.morning_briefing?.days || ['mon', 'tue', 'wed', 'thu', 'fri']
+    };
+  } else if (scheduleUpdate.type === 'appointment_reminders') {
+    config.appointment_reminders = {
+      enabled: scheduleUpdate.enabled !== false,
+      minutes_before: scheduleUpdate.minutes_before || config.appointment_reminders?.minutes_before || 60,
+      email: scheduleUpdate.email || config.appointment_reminders?.email || email
+    };
+  }
+
+  if (!config.sent_log) config.sent_log = [];
+  saveSchedules(config);
+  initScheduler(); // Re-register cron jobs with new config
+  return config;
 }
 
 // ══════════════════════════════════════
@@ -722,6 +946,28 @@ function parseAgentResponse(raw, businessProfile, crmContacts, calendarEvents, d
     return { action: 'call_tool', tool_id: json.tool_id, params, url };
   }
 
+  // Schedule — set up reminders
+  if (json.schedule) {
+    const updated = updateSchedule(json.schedule);
+    const type = json.schedule.type;
+    let msg = '';
+    if (type === 'morning_briefing') {
+      if (json.schedule.enabled === false) {
+        msg = 'Morning briefing turned off.';
+      } else {
+        msg = 'Morning briefing set for ' + formatTime12(updated.morning_briefing.time) + ', ' + (updated.morning_briefing.days || []).join('/');
+      }
+    } else if (type === 'appointment_reminders') {
+      if (json.schedule.enabled === false) {
+        msg = 'Appointment reminders turned off.';
+      } else {
+        msg = 'Appointment reminders enabled — ' + (updated.appointment_reminders.minutes_before || 60) + ' minutes before each event.';
+      }
+    }
+    console.log('  → Schedule updated:', msg);
+    return { action: 'schedule_set', message: msg, schedule: json.schedule };
+  }
+
   // Email — compose and send directly
   if (json.email && json.email.to) {
     // Resolve recipient email from CRM/profile if needed
@@ -1083,9 +1329,26 @@ app.post('/data/dashboard', (req, res) => {
   }
 });
 
+// ── SCHEDULES ──
+app.get('/data/schedules', (req, res) => {
+  res.json(loadSchedules());
+});
+
+app.post('/data/schedules', (req, res) => {
+  try {
+    saveSchedules(req.body);
+    initScheduler(); // Re-register crons with new config
+    console.log('  → Schedules updated');
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ── START ──
 loadTools();
 initDataDir();
+initScheduler();
 
 app.listen(PORT, '127.0.0.1', async () => {
   console.log('');

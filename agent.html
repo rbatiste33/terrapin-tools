@@ -893,6 +893,16 @@ async function handleAgentResponse(data) {
   }
 
   switch (data.action) {
+    case 'schedule_set':
+      var es_s = currentLang === 'es';
+      var schedMsg = data.message || (es_s ? 'Recordatorio configurado' : 'Reminder configured');
+      var schedHTML = '<div class="action-card">';
+      schedHTML += '<div class="card-label">' + (es_s ? 'Recordatorio' : 'Reminder') + '</div>';
+      schedHTML += '<div class="card-title" style="color:var(--green);">' + escapeHTML(schedMsg) + ' \u2713</div>';
+      schedHTML += '<div class="card-status sent">' + new Date().toLocaleTimeString() + '</div>';
+      schedHTML += '</div>';
+      addCard(schedHTML);
+      break;
     case 'call_tool':
       await handleToolCall(data);
       break;
