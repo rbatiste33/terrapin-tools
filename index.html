@@ -458,6 +458,79 @@
     .premium-mobile-note { display: none; font-size: 12px; color: var(--gold); font-weight: 600; margin-bottom: 10px; padding: 6px 10px; background: rgba(201, 168, 76, 0.1); border-radius: 6px; }
     @media (max-width: 768px) { .premium-mobile-note { display: block; } }
 
+    /* Made by Ryan */
+    .made-by { padding: 80px 0; background: #FDFAF4; border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+    .made-by-inner { display: flex; gap: 40px; align-items: center; max-width: 820px; margin: 0 auto; }
+    .made-by-photo { border-radius: 16px; object-fit: cover; width: 180px; height: 180px; flex-shrink: 0; box-shadow: 0 6px 24px rgba(44, 62, 45, 0.12); border: 4px solid #fff; }
+    .made-by-copy { flex: 1; }
+    .made-by-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+    .made-by-headline { font-family: 'Lora', 'Playfair Display', serif; font-size: 30px; color: var(--dark); margin-bottom: 14px; font-weight: 700; letter-spacing: -0.01em; }
+    .made-by-copy p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 12px; }
+    .made-by-links { display: flex; gap: 14px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
+    .made-by-link { font-size: 14px; color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+    .made-by-link:hover { color: var(--dark); }
+    .made-by-link.primary { background: var(--dark); color: #fff; padding: 10px 18px; border-radius: 8px; font-weight: 600; }
+    .made-by-link.primary:hover { background: #3A5240; color: #fff; }
+    @media (max-width: 640px) {
+      .made-by-inner { flex-direction: column; text-align: center; gap: 24px; }
+      .made-by-headline { font-size: 26px; }
+      .made-by-links { justify-content: center; }
+    }
+
+    /* FAQ */
+    .faq { padding: 80px 0; }
+    .faq .section-title { margin-bottom: 32px; }
+    .faq-list { max-width: 720px; margin: 0 auto; }
+    .faq-item {
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .faq-item[open] { border-color: var(--dark); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    .faq-item summary {
+      padding: 18px 22px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--dark);
+      list-style: none;
+      position: relative;
+      padding-right: 48px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: '+';
+      position: absolute;
+      right: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text-secondary);
+      transition: transform 0.2s;
+    }
+    .faq-item[open] summary::after { content: '\2212'; color: var(--dark); }
+    .faq-answer {
+      padding: 0 22px 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+    .faq-answer code {
+      font-family: 'DM Mono', monospace;
+      background: #F5F0E8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .faq-answer a { color: var(--dark); font-weight: 500; }
+    @media (max-width: 640px) {
+      .faq-item summary { font-size: 14px; padding: 16px 18px; padding-right: 44px; }
+    }
+
     .coming-soon-badge {
       position: absolute;
       top: 16px;
@@ -1006,6 +1079,76 @@
     </div>
   </section>
 
+  <!-- MADE BY RYAN -->
+  <section class="made-by">
+    <div class="container">
+      <div class="made-by-inner">
+        <img src="ryan-optimized.jpg" alt="Ryan Batiste, Terrapin creator" class="made-by-photo" width="180" height="180">
+        <div class="made-by-copy">
+          <p class="made-by-label" data-i18n="mb_label">Made by a human, not a team.</p>
+          <h2 class="made-by-headline" data-i18n="mb_h2">Hi, I'm Ryan.</h2>
+          <p data-i18n="mb_p1">My mom ran a catering business for twenty years. She did it on paper. The tools that existed were built for people with IT departments — she needed something that just worked.</p>
+          <p data-i18n="mb_p2">Then I met a Spanish-speaking taco vendor with no POS system, handling cash out of a metal box. That's when Terrapin stopped being a side project and became a mission — local-first software for the people who built America.</p>
+          <p data-i18n="mb_p3">I read every email. If Terrapin helps you, saves you time, or breaks in a weird way, tell me.</p>
+          <div class="made-by-links">
+            <a href="mailto:support@terrapin.tools" class="made-by-link primary" data-i18n="mb_email">support@terrapin.tools</a>
+            <a href="/about" class="made-by-link" data-i18n="mb_more">Read the longer story &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <p class="section-label" data-i18n="faq_label">Questions</p>
+      <h2 class="section-title" data-i18n="faq_title">The stuff people ask before installing</h2>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary data-i18n="faq_q1">What happens if I install and don't like it?</summary>
+          <div class="faq-answer" data-i18n="faq_a1">Uninstall is one line in Terminal. Every file Terrapin creates lives in the folder <code>~/.terrapin/</code> on your Mac. Delete that folder and everything is gone — profile, receipts, CRM, everything. You're not locked in.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q2">Is it really free?</summary>
+          <div class="faq-answer" data-i18n="faq_a2">Every core tool is free forever. No account, no subscription, no trial. Some tools are premium — one-time purchase ($29 today, may vary per tool). You buy once and own it forever. No recurring charges, ever.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q3">Do I need to be technical?</summary>
+          <div class="faq-answer" data-i18n="faq_a3">You need to paste one line into Terminal to install. After that, everything is point-and-click in your browser. If you got through "install the App Store," you can handle this.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q4">What if Terrapin shuts down or goes out of business?</summary>
+          <div class="faq-answer" data-i18n="faq_a4">Your data doesn't depend on us. It's in open JSON and text files on your Mac. You can open them in any text editor. If we disappear tomorrow, your business data is still yours and still readable forever.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q5">Does any of my business data leave my computer?</summary>
+          <div class="faq-answer" data-i18n="faq_a5">No. The AI runs on your Mac via Ollama. Your receipts, invoices, CRM, calendar — all local. The only exceptions: sending email goes through your own Gmail account, and clicking the "Did this help?" feedback button on any tool sends your message to Ryan. Both require your explicit action.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q6">Why do I need to install something? Can't it just run in the browser?</summary>
+          <div class="faq-answer" data-i18n="faq_a6">Most tools already run in the browser alone — no install needed. Install is only required for the local AI (Gemma 4 via Ollama) and for persistent storage of your data. If you want an AI that never sees the cloud, you need to run it on your machine.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q7">What's the difference between free and premium tools?</summary>
+          <div class="faq-answer" data-i18n="faq_a7">Free tools do structured work — invoices, CRM, calendar, QR codes, order logs. Premium tools use AI heavily and save you real time. Smart Receipt Box (our first premium) reads a photo of a receipt and extracts every detail in 10 seconds. That's worth $29 once.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q8">Windows or Linux?</summary>
+          <div class="faq-answer" data-i18n="faq_a8">Mac only for now. Windows installer is in the queue. Linux is on the list after that.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q9">Where does my payment go if I buy a premium tool?</summary>
+          <div class="faq-answer" data-i18n="faq_a9">Through Gumroad, a trusted indie-software payment processor. Gumroad emails you a license key. You paste it into the tool. Done. We don't handle your card details directly. Refunds are available through Gumroad.</div>
+        </details>
+        <details class="faq-item">
+          <summary data-i18n="faq_q10">What if I have a question or something breaks?</summary>
+          <div class="faq-answer" data-i18n="faq_a10">Email <a href="mailto:support@terrapin.tools">support@terrapin.tools</a> — I (Ryan) read every message and reply personally. You can also use the "Did this help?" button at the bottom of any tool.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- AGENT LAYER -->
   <section class="agent-layer">
     <div class="container">
@@ -1043,7 +1186,7 @@
       <div class="footer-inner">
         <p class="footer-tagline" data-i18n="footer_tagline">terrapin.tools &mdash; simple tools. real work.</p>
         <p style="font-size: 13px; color: #6B6B6B; margin-bottom: 12px;" data-i18n="footer_humans">Built for humans. Ready for what's next. 🐢</p>
-        <p style="margin-bottom: 12px;"><a href="privacy.html" data-i18n="footer_privacy" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;transition:color 0.15s;">Privacy Promise</a> &nbsp;&middot;&nbsp; <a href="agent-setup.html" data-i18n="footer_setup" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;transition:color 0.15s;">Agent Setup</a></p>
+        <p style="margin-bottom: 12px;"><a href="/about" data-i18n="footer_about" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;">About</a> &nbsp;&middot;&nbsp; <a href="#faq" data-i18n="footer_faq" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;">FAQ</a> &nbsp;&middot;&nbsp; <a href="mailto:support@terrapin.tools" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;">support@terrapin.tools</a> &nbsp;&middot;&nbsp; <a href="privacy.html" data-i18n="footer_privacy" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;">Privacy Promise</a> &nbsp;&middot;&nbsp; <a href="agent-setup.html" data-i18n="footer_setup" style="font-family:'DM Mono',monospace;font-size:12px;color:#6B6B6B;text-decoration:none;">Agent Setup</a></p>
         <p class="footer-easter-egg" title="What a long strange trip it's been">&#9785;&#65039;&#9889;</p>
       </div>
     </div>
@@ -1094,6 +1237,8 @@ const T = {
     footer_humans: 'Built for humans. Ready for what\'s next. \ud83d\udc22',
     footer_privacy: 'Privacy Promise',
     footer_setup: 'Agent Setup',
+    footer_about: 'About',
+    footer_faq: 'FAQ',
     badge_start: 'Start Here',
     badge_foundation: 'Agent Brain',
     badge_open: 'Open',
@@ -1132,7 +1277,36 @@ const T = {
     prem_requires: '⚡ Requires the free Terrapin agent — one command to install.',
     prem_mobile: '🖥 Desktop-only for now — save for your laptop.',
     prem_learn: 'Learn more',
-    prem_buy: 'Buy for $29'
+    prem_buy: 'Buy for $29',
+    mb_label: 'Made by a human, not a team.',
+    mb_h2: "Hi, I'm Ryan.",
+    mb_p1: 'My mom ran a catering business for twenty years. She did it on paper. The tools that existed were built for people with IT departments — she needed something that just worked.',
+    mb_p2: "Then I met a Spanish-speaking taco vendor with no POS system, handling cash out of a metal box. That's when Terrapin stopped being a side project and became a mission — local-first software for the people who built America.",
+    mb_p3: 'I read every email. If Terrapin helps you, saves you time, or breaks in a weird way, tell me.',
+    mb_email: 'support@terrapin.tools',
+    mb_more: 'Read the longer story →',
+    faq_label: 'Questions',
+    faq_title: 'The stuff people ask before installing',
+    faq_q1: "What happens if I install and don't like it?",
+    faq_a1: "Uninstall is one line in Terminal. Every file Terrapin creates lives in the folder <code>~/.terrapin/</code> on your Mac. Delete that folder and everything is gone — profile, receipts, CRM, everything. You're not locked in.",
+    faq_q2: 'Is it really free?',
+    faq_a2: 'Every core tool is free forever. No account, no subscription, no trial. Some tools are premium — one-time purchase ($29 today, may vary per tool). You buy once and own it forever. No recurring charges, ever.',
+    faq_q3: 'Do I need to be technical?',
+    faq_a3: 'You need to paste one line into Terminal to install. After that, everything is point-and-click in your browser. If you got through "install the App Store," you can handle this.',
+    faq_q4: 'What if Terrapin shuts down or goes out of business?',
+    faq_a4: "Your data doesn't depend on us. It's in open JSON and text files on your Mac. You can open them in any text editor. If we disappear tomorrow, your business data is still yours and still readable forever.",
+    faq_q5: 'Does any of my business data leave my computer?',
+    faq_a5: 'No. The AI runs on your Mac via Ollama. Your receipts, invoices, CRM, calendar — all local. The only exceptions: sending email goes through your own Gmail account, and clicking the "Did this help?" feedback button on any tool sends your message to Ryan. Both require your explicit action.',
+    faq_q6: "Why do I need to install something? Can't it just run in the browser?",
+    faq_a6: 'Most tools already run in the browser alone — no install needed. Install is only required for the local AI (Gemma 4 via Ollama) and for persistent storage of your data. If you want an AI that never sees the cloud, you need to run it on your machine.',
+    faq_q7: "What's the difference between free and premium tools?",
+    faq_a7: 'Free tools do structured work — invoices, CRM, calendar, QR codes, order logs. Premium tools use AI heavily and save you real time. Smart Receipt Box (our first premium) reads a photo of a receipt and extracts every detail in 10 seconds. That\'s worth $29 once.',
+    faq_q8: 'Windows or Linux?',
+    faq_a8: 'Mac only for now. Windows installer is in the queue. Linux is on the list after that.',
+    faq_q9: 'Where does my payment go if I buy a premium tool?',
+    faq_a9: "Through Gumroad, a trusted indie-software payment processor. Gumroad emails you a license key. You paste it into the tool. Done. We don't handle your card details directly. Refunds are available through Gumroad.",
+    faq_q10: 'What if I have a question or something breaks?',
+    faq_a10: 'Email <a href="mailto:support@terrapin.tools">support@terrapin.tools</a> — I (Ryan) read every message and reply personally. You can also use the "Did this help?" button at the bottom of any tool.'
   },
   es: {
     hero_h1: 'Deja de administrar tus herramientas.<br>Empieza a administrar tu negocio.',
@@ -1177,6 +1351,8 @@ const T = {
     footer_humans: 'Hecho para humanos. Listo para lo que viene. \ud83d\udc22',
     footer_privacy: 'Promesa de Privacidad',
     footer_setup: 'Configurar Agente',
+    footer_about: 'Acerca',
+    footer_faq: 'Preguntas',
     badge_start: 'Empieza Aqu\u00ed',
     badge_foundation: 'Cerebro del Agente',
     badge_open: 'Abrir',
@@ -1215,7 +1391,36 @@ const T = {
     prem_requires: '\u26a1 Requiere el agente Terrapin gratuito \u2014 un solo comando para instalar.',
     prem_mobile: '\ud83d\udda5 Solo escritorio por ahora \u2014 gu\u00e1rdalo para tu laptop.',
     prem_learn: 'M\u00e1s informaci\u00f3n',
-    prem_buy: 'Comprar por $29'
+    prem_buy: 'Comprar por $29',
+    mb_label: 'Hecho por un humano, no un equipo.',
+    mb_h2: 'Hola, soy Ryan.',
+    mb_p1: 'Mi mam\u00e1 tuvo un negocio de catering por veinte a\u00f1os. Todo lo llevaba en papel. Las herramientas que exist\u00edan estaban hechas para gente con equipo de TI \u2014 ella necesitaba algo que simplemente funcionara.',
+    mb_p2: 'Luego conoc\u00ed a un vendedor de tacos hispanohablante sin punto de venta, manejando efectivo en una caja de metal. Ah\u00ed Terrapin dej\u00f3 de ser un proyecto y se convirti\u00f3 en una misi\u00f3n \u2014 software local-first para la gente que construye Am\u00e9rica.',
+    mb_p3: 'Leo cada correo. Si Terrapin te ayuda, te ahorra tiempo o falla de forma rara, cu\u00e9ntame.',
+    mb_email: 'support@terrapin.tools',
+    mb_more: 'Lee la historia completa \u2192',
+    faq_label: 'Preguntas',
+    faq_title: 'Lo que la gente pregunta antes de instalar',
+    faq_q1: '\u00bfQu\u00e9 pasa si instalo y no me gusta?',
+    faq_a1: 'Desinstalar es una l\u00ednea en Terminal. Cada archivo que Terrapin crea vive en la carpeta <code>~/.terrapin/</code> en tu Mac. Borra esa carpeta y todo desaparece \u2014 perfil, recibos, CRM, todo. No est\u00e1s atrapado.',
+    faq_q2: '\u00bfDe verdad es gratis?',
+    faq_a2: 'Cada herramienta b\u00e1sica es gratis para siempre. Sin cuenta, sin suscripci\u00f3n, sin prueba. Algunas herramientas son premium \u2014 pago \u00fanico ($29 hoy, puede variar por herramienta). Compras una vez y es tuya para siempre. Nunca cobros recurrentes.',
+    faq_q3: '\u00bfNecesito saber de tecnolog\u00eda?',
+    faq_a3: 'Solo pegas una l\u00ednea en Terminal para instalar. Despu\u00e9s, todo es clic-clic en tu navegador. Si pudiste con "instala el App Store", puedes con esto.',
+    faq_q4: '\u00bfQu\u00e9 pasa si Terrapin cierra o desaparece?',
+    faq_a4: 'Tus datos no dependen de nosotros. Est\u00e1n en archivos JSON y de texto abiertos en tu Mac. Los puedes abrir en cualquier editor de texto. Si desaparecemos ma\u00f1ana, tus datos siguen siendo tuyos y legibles para siempre.',
+    faq_q5: '\u00bfSale algo de mis datos de mi computadora?',
+    faq_a5: 'No. La IA corre en tu Mac v\u00eda Ollama. Tus recibos, facturas, CRM, calendario \u2014 todo local. Las \u00fanicas excepciones: mandar correo pasa por tu propia cuenta de Gmail, y hacer clic en el bot\u00f3n "\u00bfTe ayud\u00f3?" en cualquier herramienta env\u00eda tu mensaje a Ryan. Ambas requieren tu acci\u00f3n expl\u00edcita.',
+    faq_q6: '\u00bfPor qu\u00e9 tengo que instalar algo? \u00bfNo puede correr en el navegador?',
+    faq_a6: 'La mayor\u00eda de las herramientas ya corren solo en el navegador \u2014 sin instalar. Instalar solo hace falta para la IA local (Gemma 4 v\u00eda Ollama) y para guardar tus datos permanentemente. Si quieres una IA que nunca vea la nube, tiene que correr en tu m\u00e1quina.',
+    faq_q7: '\u00bfCu\u00e1l es la diferencia entre herramientas gratis y premium?',
+    faq_a7: 'Las gratis hacen trabajo estructurado \u2014 facturas, CRM, calendario, c\u00f3digos QR, registros. Las premium usan IA fuerte y te ahorran tiempo real. Smart Receipt Box (la primera premium) lee una foto de un recibo y extrae todo en 10 segundos. Eso vale $29 una vez.',
+    faq_q8: '\u00bfWindows o Linux?',
+    faq_a8: 'Solo Mac por ahora. El instalador de Windows est\u00e1 en la cola. Linux viene despu\u00e9s.',
+    faq_q9: '\u00bfAd\u00f3nde va mi pago si compro una herramienta premium?',
+    faq_a9: 'V\u00eda Gumroad, un procesador de pagos indie confiable. Gumroad te manda una clave de licencia por correo. La pegas en la herramienta. Listo. Nosotros no manejamos datos de tu tarjeta directamente. Los reembolsos est\u00e1n disponibles v\u00eda Gumroad.',
+    faq_q10: '\u00bfQu\u00e9 hago si tengo una pregunta o algo falla?',
+    faq_a10: 'Escribe a <a href="mailto:support@terrapin.tools">support@terrapin.tools</a> \u2014 yo (Ryan) leo cada mensaje y respondo personalmente. Tambi\u00e9n puedes usar el bot\u00f3n "\u00bfTe ayud\u00f3?" al fondo de cualquier herramienta.'
   }
 };
 
