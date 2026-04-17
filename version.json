@@ -1,11 +1,11 @@
 {
-  "latest": "1.2.6",
+  "latest": "1.3.0",
   "released": "2026-04-17",
   "min_supported": "1.0.0",
   "update_url": "https://terrapin.tools/install.sh",
   "changelog_url": "https://github.com/rbatiste33/terrapin-tools/releases",
-  "notes": "Mail stays online after every restart and update. Fixes a race where mail-server booted before the network hostname resolved, causing the encryption key to mismatch.",
-  "notes_es": "El servicio de correo permanece activo después de cada reinicio y actualización. Corrige una condición de carrera al arrancar.",
+  "notes": "Tell Ryan what you think — every tool now has a small feedback button at the bottom. Heart it, request a feature, or report an issue. Opt-in only, nothing sends unless you click Send.",
+  "notes_es": "Dile a Ryan qué piensas — cada herramienta ahora tiene un botón de comentarios al fondo. Dale corazón, pide una función o reporta un problema. Todo opcional, nada se envía a menos que hagas clic en Enviar.",
   "tools": {
     "smart-receipt-box": {
       "latest": "1.0.0",

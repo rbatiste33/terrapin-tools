@@ -1,6 +1,6 @@
 {
   "name": "terrapin-tools",
-  "version": "1.2.6",
+  "version": "1.3.0",
   "description": "Simple tools for people who work — terrapin.tools",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
     "dev:start": "launchctl unload ~/Library/LaunchAgents/tools.terrapin.agent.plist 2>/dev/null; npx nodemon --watch agent-server.js --watch tools.json agent-server.js",
     "dev:stop": "launchctl load ~/Library/LaunchAgents/tools.terrapin.agent.plist",
     "bump": "node scripts/bump-version.js",
-    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ index.html agent.html agent-setup.html dashboard.html setup-wizard.html privacy.html turtle-optimized.png update.sh"
+    "create-package": "tar -czf agent-package.tar.gz agent-server.js mail-server.js mail-setup.js package.json tools.json tools/ feedback.js index.html agent.html agent-setup.html dashboard.html setup-wizard.html privacy.html turtle-optimized.png update.sh"
   },
   "dependencies": {
     "express": "^4.21.0",
