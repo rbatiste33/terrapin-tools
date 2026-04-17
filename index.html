@@ -479,7 +479,8 @@
 
     /* FAQ */
     .faq { padding: 80px 0; }
-    .faq .section-title { margin-bottom: 32px; }
+    .faq .section-label { text-align: center; }
+    .faq .section-title { text-align: center; margin-bottom: 32px; }
     .faq-list { max-width: 720px; margin: 0 auto; }
     .faq-item {
       background: #fff;
@@ -1045,6 +1046,21 @@
     </div>
   </section>
 
+  <!-- EMAIL SIGNUP -->
+  <section class="signup">
+    <div class="container">
+      <div class="signup-inner">
+        <h2 data-i18n="signup_h2">New tools drop every week.</h2>
+        <p class="subline" data-i18n="signup_sub">Built for the coffee shop, the dry cleaner, the contractor.</p>
+        <form class="signup-form" onsubmit="var e=this.querySelector('input').value.trim();if(e){window.open('https://ryanbatiste.substack.com/subscribe?email='+encodeURIComponent(e),'_blank');var m=document.getElementById('signup-confirm');m.style.display='block';setTimeout(function(){m.style.display='none'},5000)}return false;">
+          <input type="email" placeholder="your@email.com" aria-label="Email address" required>
+          <button type="submit" class="btn-primary" data-i18n="signup_btn">Notify Me</button>
+        </form>
+        <p id="signup-confirm" style="display:none;font-family:'DM Mono',monospace;font-size:13px;color:#4A7C59;margin-top:12px;">Opening Substack — finish signing up there ✓</p>
+      </div>
+    </div>
+  </section>
+
   <!-- WHY TERRAPIN -->
   <section class="why">
     <div class="container">
@@ -1161,21 +1177,6 @@
           <a href="https://ai.google.dev/gemma" target="_blank" data-i18n="agent_link2">Learn about local AI &rarr;</a>
         </div>
         <p class="agent-footnote" data-i18n="agent_footnote">Requires Ollama + Gemma 4. Free to run. Works offline.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- EMAIL SIGNUP -->
-  <section class="signup">
-    <div class="container">
-      <div class="signup-inner">
-        <h2 data-i18n="signup_h2">New tools drop every week.</h2>
-        <p class="subline" data-i18n="signup_sub">Built for the coffee shop, the dry cleaner, the contractor.</p>
-        <form class="signup-form" onsubmit="var e=this.querySelector('input').value.trim();if(e){window.open('https://ryanbatiste.substack.com/subscribe?email='+encodeURIComponent(e),'_blank');var m=document.getElementById('signup-confirm');m.style.display='block';setTimeout(function(){m.style.display='none'},5000)}return false;">
-          <input type="email" placeholder="your@email.com" aria-label="Email address" required>
-          <button type="submit" class="btn-primary" data-i18n="signup_btn">Notify Me</button>
-        </form>
-        <p id="signup-confirm" style="display:none;font-family:'DM Mono',monospace;font-size:13px;color:#4A7C59;margin-top:12px;">Opening Substack — finish signing up there ✓</p>
       </div>
     </div>
   </section>
