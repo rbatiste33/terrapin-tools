@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About Ryan — the human behind Terrapin Tools</title>
-<meta name="description" content="Why I built Terrapin — a local-first tool library for immigrant-owned small businesses. Mom stories, taco stands, and a promise never to phone home.">
+<meta name="description" content="Why I'm building Terrapin — a library of small tools for people who work. No subscriptions. No logins. Runs on your computer.">
 <link rel="canonical" href="https://terrapin.tools/about">
 <meta property="og:title" content="About Ryan — the human behind Terrapin Tools">
-<meta property="og:description" content="Why I built Terrapin — a local-first tool library for the people who built America.">
+<meta property="og:description" content="Why I'm building Terrapin. A library of small tools that save time on unsexy tasks.">
 <meta property="og:image" content="https://terrapin.tools/ryan-optimized.jpg">
 <meta property="og:url" content="https://terrapin.tools/about">
 <meta property="og:type" content="website">
@@ -21,9 +21,9 @@
   }
   body {
     font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
-    font-size: 17px; line-height: 1.7; min-height: 100vh; -webkit-font-smoothing: antialiased;
+    font-size: 17px; line-height: 1.75; min-height: 100vh; -webkit-font-smoothing: antialiased;
   }
-  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .container { max-width: 680px; margin: 0 auto; padding: 0 24px; }
 
   nav { padding: 18px 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); }
   nav .brand { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 700; color: var(--dark); text-decoration: none; }
@@ -34,30 +34,21 @@
   .lang-toggle button { padding: 6px 12px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: var(--text-secondary); }
   .lang-toggle button.active { background: var(--dark); color: var(--gold); }
 
-  .hero { padding: 60px 0 40px; text-align: center; }
+  .hero { padding: 56px 0 32px; text-align: center; }
   .hero img { width: 180px; height: 180px; border-radius: 16px; object-fit: cover; box-shadow: 0 6px 24px rgba(44,62,45,0.15); border: 4px solid #fff; margin-bottom: 24px; }
-  .hero h1 { font-family: 'Playfair Display', serif; font-size: 44px; color: var(--dark); line-height: 1.15; margin-bottom: 14px; letter-spacing: -0.015em; }
-  .hero .sub { font-size: 18px; color: var(--text-secondary); max-width: 540px; margin: 0 auto; }
+  .hero h1 { font-family: 'Playfair Display', serif; font-size: 42px; color: var(--dark); line-height: 1.15; margin-bottom: 12px; letter-spacing: -0.015em; }
+  .hero .sub { font-size: 17px; color: var(--text-secondary); max-width: 480px; margin: 0 auto; }
 
-  article { padding: 40px 0 60px; }
-  article h2 { font-family: 'Lora', serif; font-size: 26px; color: var(--dark); margin: 40px 0 16px; font-weight: 700; letter-spacing: -0.01em; }
+  article { padding: 24px 0 40px; }
+  article h2 { font-family: 'Lora', serif; font-size: 26px; color: var(--dark); margin: 44px 0 12px; font-weight: 700; letter-spacing: -0.01em; }
   article h2:first-child { margin-top: 0; }
-  article p { font-size: 17px; color: var(--text); margin-bottom: 18px; line-height: 1.75; }
-  article blockquote {
-    border-left: 3px solid var(--gold);
-    padding: 6px 0 6px 20px;
-    margin: 24px 0;
-    font-family: 'Lora', serif;
-    font-style: italic;
-    color: var(--dark);
-    font-size: 19px;
-    line-height: 1.6;
-  }
-  article em { color: var(--dark); font-style: normal; font-weight: 600; }
+  article p { font-size: 17px; color: var(--text); margin-bottom: 16px; line-height: 1.75; }
+  article p.tight { margin-bottom: 4px; }
+  article p.callout { font-family: 'Lora', serif; font-size: 19px; color: var(--dark); font-style: italic; margin-top: 14px; padding: 8px 0 8px 20px; border-left: 3px solid var(--gold); }
 
-  .cta-block { background: #FDFAF4; border: 1px solid var(--gold); border-radius: 14px; padding: 28px; margin: 48px 0 24px; text-align: center; }
-  .cta-block p { margin-bottom: 14px; }
-  .cta-block a.btn { display: inline-block; background: var(--dark); color: #fff; padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px; }
+  .cta-block { background: #FDFAF4; border: 1px solid var(--gold); border-radius: 14px; padding: 26px; margin: 44px 0 20px; text-align: center; }
+  .cta-block p { margin-bottom: 14px; font-size: 16px; }
+  .cta-block a.btn { display: inline-block; background: var(--dark); color: #fff; padding: 12px 26px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px; }
   .cta-block a.btn:hover { background: #3A5240; }
   .cta-block a.btn-secondary { background: transparent; color: var(--dark); border: 1px solid var(--dark); margin-left: 8px; }
   .cta-block a.btn-secondary:hover { background: rgba(44,62,45,0.05); }
@@ -70,7 +61,7 @@
     .hero .sub { font-size: 16px; }
     article h2 { font-size: 22px; }
     article p { font-size: 16px; }
-    article blockquote { font-size: 17px; }
+    article p.callout { font-size: 17px; }
     .cta-block a.btn-secondary { display: block; margin: 10px auto 0; max-width: 240px; }
   }
 </style>
@@ -92,33 +83,49 @@
   <div class="hero">
     <img src="../ryan-optimized.jpg" alt="Ryan Batiste">
     <h1 data-i18n="h1">Hi, I'm Ryan.</h1>
-    <p class="sub" data-i18n="sub">I built Terrapin for the people I grew up watching work.</p>
+    <p class="sub" data-i18n="sub">Let's be honest. I'm a nerd. A pretty cool one though.</p>
   </div>
 
   <article>
-    <h2 data-i18n="h_mom">The shoebox of receipts</h2>
-    <p data-i18n="p_mom_1">My mom is a Filipino immigrant. She ran a catering business for twenty years, almost entirely on paper. At tax time she'd sit at the kitchen table with a shoebox of receipts, a calculator, and a legal pad. It would take her days.</p>
-    <p data-i18n="p_mom_2">There were tools out there. None of them were built for her. They assumed you had an IT department, or at minimum a comfort with software that she didn't have time to learn. They were built for "businesses" in the abstract — not for the woman who'd been up since 4am baking lumpia for a wedding she was catering that night.</p>
-    <p data-i18n="p_mom_3">She didn't need enterprise software. She needed a tool that opened, did one thing well, and got out of her way.</p>
+    <h2 data-i18n="h_me">Who I am</h2>
+    <p data-i18n="p_me_1">Brown belt in jiu jitsu. Dad with a multitude of joint issues. Beer connoisseur. Tech fiend.</p>
+    <p data-i18n="p_me_2">I've been using LLMs since they were shitty. I'm a non-technical rage builder. I once tried to learn to code by building a side-scroller game in Python. The main character was a squirrel.</p>
+    <p data-i18n="p_me_3">I switch up direction a lot. Honestly it's my superpower. A single look at my non-existent resume would turn a niche-maxer to stone.</p>
 
-    <h2 data-i18n="h_taco">The taco stand</h2>
-    <p data-i18n="p_taco_1">Years later I met a Spanish-speaking taco vendor working out of a metal cart near a busy corner in LA. He had no POS system. No card reader. He handled cash out of a locked metal box and kept track of orders with a paper notepad. His business ran on memory and hustle.</p>
-    <p data-i18n="p_taco_2">I asked if he'd want a simple order-logging app. He said yes, but only if it worked without an account, without the internet, and without charging him monthly — because his cousin had tried an app once and it drained his phone plan and then charged him $9.99 a month for something he never used.</p>
-    <p data-i18n="p_taco_3">That moment is when Terrapin stopped being a side project and became a mission.</p>
+    <h2 data-i18n="h_know">Here's what I know for certain</h2>
+    <p data-i18n="p_know_1">From all the people I've worked for and all the businesses I've frequented — they truly do not care about your CRM with 5000 features and an AI assistant.</p>
+    <p data-i18n="p_know_2">They care about time, resources, ease of use. They operate on one problem at a time.</p>
+    <p data-i18n="p_know_3">When you explain your workflow to them their eyes glaze over like that episode of Black Mirror where two bros boink each other in a video game.</p>
 
-    <h2 data-i18n="h_mission">The mission, in plain terms</h2>
-    <p data-i18n="p_mission_1">Terrapin is a library of small tools for the people who built America. Immigrant-owned businesses. Contractors. Caterers. Food truck owners. Freelancers. The people whose businesses run out of a truck, a shop, or a kitchen table.</p>
-    <p data-i18n="p_mission_2">Every tool works in English and Spanish. Every tool runs on your computer. Your data never leaves your machine. There's nothing to leak. Nothing to breach. Nothing to sell.</p>
-    <blockquote data-i18n="quote">Privacy isn't a feature. It's the architecture.</blockquote>
+    <h2 data-i18n="h_curve">The learning curve nobody talks about</h2>
+    <p data-i18n="p_curve_1">That's not to say SaaS isn't helpful to small businesses.</p>
+    <p data-i18n="p_curve_2">But if there's a learning curve, you have to understand something.</p>
+    <p class="callout" data-i18n="p_curve_3">They just don't have the time.</p>
 
-    <h2 data-i18n="h_money">How I make money</h2>
-    <p data-i18n="p_money_1">Every core tool is free. Always. No login, no subscription, no trial.</p>
-    <p data-i18n="p_money_2">Premium tools are one-time purchases. You buy once and own it forever. Smart Receipt Box is the first — $29, snap a photo of any receipt, local AI extracts every detail in ten seconds. I make money from the tool, not from your data. That alignment matters.</p>
-    <p data-i18n="p_money_3">I chose the harder business model on purpose.</p>
+    <h2 data-i18n="h_moment">The moment that changed everything</h2>
+    <p data-i18n="p_moment_1">The other day my mom was spending hours writing quotes for her catering business and asked me to help her.</p>
+    <p data-i18n="p_moment_2">She had a calculator. She was copy-pasting old quotes and filling out the new numbers. Not even a hot key was used.</p>
+    <p data-i18n="p_moment_3">I wasn't going to sit there and do the same thing. So what did I do?</p>
+    <p data-i18n="p_moment_4">I popped open Claude Code and spun up a quote generator — all her menu items, pricing, and service charges. Ran locally on her desktop for her to always have access to.</p>
+    <p data-i18n="p_moment_5">Saved her 5 hours of time. Made me look like I performed voodoo magic.</p>
+    <p class="callout" data-i18n="p_moment_6">No subscription. No login. Not even an internet connection. Simplicity at its finest.</p>
 
-    <h2 data-i18n="h_human">The human part</h2>
-    <p data-i18n="p_human_1">I'm one person building this. No team, no VC, no data-science consultancy pretending to be AI. I answer every support email myself. I read every piece of feedback.</p>
-    <p data-i18n="p_human_2">If Terrapin helps you, I want to know. If it breaks, I want to know more. If you have an idea for the next tool, tell me.</p>
+    <h2 data-i18n="h_wrong">I've been solving the wrong problems</h2>
+    <p data-i18n="p_wrong_1">It took me weeks to realize it.</p>
+    <p data-i18n="p_wrong_2">I'll let the tech bros build web3 apps, agentic web scrapers, and the next vybe coding IDE.</p>
+    <p data-i18n="p_wrong_3">I want to solve problems for the people who don't have the time to set up Open WebUI and build their personal AI assistant.</p>
+
+    <h2 data-i18n="h_why">Why I'm building Terrapin</h2>
+    <p data-i18n="p_why_1">A simple web app built for people who work.</p>
+    <p data-i18n="p_why_2">A library of tools that save hours on unsexy tasks.</p>
+    <p data-i18n="p_why_3">Built for humans first. No login. No expensive subscription. You can run almost all of the tools locally on your computer.</p>
+    <p class="callout" data-i18n="p_why_4">Caterers, dry cleaners, coffee shops, street vendors, bars, restaurants, farmers market purveyors — I'm here to build for you.</p>
+    <p data-i18n="p_why_5">You are the destinations that make a day a day and a night a night.</p>
+
+    <h2 data-i18n="h_ai">AI can work for you</h2>
+    <p data-i18n="p_ai_1">It doesn't have to be complicated to make an impact on your business.</p>
+    <p data-i18n="p_ai_2">First we start with you. And when the time is right I'll let the agents through the door.</p>
+    <p data-i18n="p_ai_3">But first we start by saving you time. 🐢</p>
 
     <div class="cta-block">
       <p data-i18n="cta_p"><strong data-i18n="cta_strong">Got a question or a story?</strong><br>I read every email.</p>
@@ -127,9 +134,8 @@
     </div>
 
     <h2 data-i18n="h_dead">The Grateful Dead thing</h2>
-    <p data-i18n="p_dead_1">Terrapin Station is a Grateful Dead album. The name is a nod to the origin of this project — which grew out of a conversation about building a personal wiki. The Dead built a community around free tape trading. Terrapin builds a library around free tools. Distribution is the product.</p>
-    <p data-i18n="p_dead_2">The lightning bolt on the turtle's shell is for the people who get it. Everyone else just sees a reliable turtle with a tool belt.</p>
-    <p style="text-align:center; margin-top: 30px; color: var(--text-secondary); font-size: 15px;" data-i18n="p_dead_3">🐢 Tantalizing terrapin terraforming agentic planetary contributions.</p>
+    <p data-i18n="p_dead_1">Terrapin Station is a Grateful Dead album. The name is a nod to how this started — a conversation about building a personal wiki. The Dead built a community around free tape trading. Terrapin builds a library around free tools. Distribution is the product.</p>
+    <p data-i18n="p_dead_2">The lightning bolt on the turtle's shell is for the people who get it.</p>
   </article>
 
   <footer>
@@ -142,67 +148,93 @@ const T = {
   en: {
     brand: 'Terrapin Tools', nav_tools: 'Tools', nav_faq: 'FAQ',
     h1: "Hi, I'm Ryan.",
-    sub: 'I built Terrapin for the people I grew up watching work.',
-    h_mom: 'The shoebox of receipts',
-    p_mom_1: "My mom is a Filipino immigrant. She ran a catering business for twenty years, almost entirely on paper. At tax time she'd sit at the kitchen table with a shoebox of receipts, a calculator, and a legal pad. It would take her days.",
-    p_mom_2: 'There were tools out there. None of them were built for her. They assumed you had an IT department, or at minimum a comfort with software that she didn\'t have time to learn. They were built for "businesses" in the abstract — not for the woman who\'d been up since 4am baking lumpia for a wedding she was catering that night.',
-    p_mom_3: "She didn't need enterprise software. She needed a tool that opened, did one thing well, and got out of her way.",
-    h_taco: 'The taco stand',
-    p_taco_1: 'Years later I met a Spanish-speaking taco vendor working out of a metal cart near a busy corner in LA. He had no POS system. No card reader. He handled cash out of a locked metal box and kept track of orders with a paper notepad. His business ran on memory and hustle.',
-    p_taco_2: "I asked if he'd want a simple order-logging app. He said yes, but only if it worked without an account, without the internet, and without charging him monthly — because his cousin had tried an app once and it drained his phone plan and then charged him $9.99 a month for something he never used.",
-    p_taco_3: 'That moment is when Terrapin stopped being a side project and became a mission.',
-    h_mission: 'The mission, in plain terms',
-    p_mission_1: 'Terrapin is a library of small tools for the people who built America. Immigrant-owned businesses. Contractors. Caterers. Food truck owners. Freelancers. The people whose businesses run out of a truck, a shop, or a kitchen table.',
-    p_mission_2: "Every tool works in English and Spanish. Every tool runs on your computer. Your data never leaves your machine. There's nothing to leak. Nothing to breach. Nothing to sell.",
-    quote: "Privacy isn't a feature. It's the architecture.",
-    h_money: 'How I make money',
-    p_money_1: 'Every core tool is free. Always. No login, no subscription, no trial.',
-    p_money_2: 'Premium tools are one-time purchases. You buy once and own it forever. Smart Receipt Box is the first — $29, snap a photo of any receipt, local AI extracts every detail in ten seconds. I make money from the tool, not from your data. That alignment matters.',
-    p_money_3: 'I chose the harder business model on purpose.',
-    h_human: 'The human part',
-    p_human_1: "I'm one person building this. No team, no VC, no data-science consultancy pretending to be AI. I answer every support email myself. I read every piece of feedback.",
-    p_human_2: 'If Terrapin helps you, I want to know. If it breaks, I want to know more. If you have an idea for the next tool, tell me.',
+    sub: "Let's be honest. I'm a nerd. A pretty cool one though.",
+    h_me: 'Who I am',
+    p_me_1: 'Brown belt in jiu jitsu. Dad with a multitude of joint issues. Beer connoisseur. Tech fiend.',
+    p_me_2: "I've been using LLMs since they were shitty. I'm a non-technical rage builder. I once tried to learn to code by building a side-scroller game in Python. The main character was a squirrel.",
+    p_me_3: "I switch up direction a lot. Honestly it's my superpower. A single look at my non-existent resume would turn a niche-maxer to stone.",
+    h_know: "Here's what I know for certain",
+    p_know_1: "From all the people I've worked for and all the businesses I've frequented — they truly do not care about your CRM with 5000 features and an AI assistant.",
+    p_know_2: 'They care about time, resources, ease of use. They operate on one problem at a time.',
+    p_know_3: 'When you explain your workflow to them their eyes glaze over like that episode of Black Mirror where two bros boink each other in a video game.',
+    h_curve: 'The learning curve nobody talks about',
+    p_curve_1: "That's not to say SaaS isn't helpful to small businesses.",
+    p_curve_2: "But if there's a learning curve, you have to understand something.",
+    p_curve_3: "They just don't have the time.",
+    h_moment: 'The moment that changed everything',
+    p_moment_1: 'The other day my mom was spending hours writing quotes for her catering business and asked me to help her.',
+    p_moment_2: 'She had a calculator. She was copy-pasting old quotes and filling out the new numbers. Not even a hot key was used.',
+    p_moment_3: "I wasn't going to sit there and do the same thing. So what did I do?",
+    p_moment_4: 'I popped open Claude Code and spun up a quote generator — all her menu items, pricing, and service charges. Ran locally on her desktop for her to always have access to.',
+    p_moment_5: 'Saved her 5 hours of time. Made me look like I performed voodoo magic.',
+    p_moment_6: 'No subscription. No login. Not even an internet connection. Simplicity at its finest.',
+    h_wrong: "I've been solving the wrong problems",
+    p_wrong_1: 'It took me weeks to realize it.',
+    p_wrong_2: "I'll let the tech bros build web3 apps, agentic web scrapers, and the next vybe coding IDE.",
+    p_wrong_3: "I want to solve problems for the people who don't have the time to set up Open WebUI and build their personal AI assistant.",
+    h_why: "Why I'm building Terrapin",
+    p_why_1: 'A simple web app built for people who work.',
+    p_why_2: 'A library of tools that save hours on unsexy tasks.',
+    p_why_3: 'Built for humans first. No login. No expensive subscription. You can run almost all of the tools locally on your computer.',
+    p_why_4: "Caterers, dry cleaners, coffee shops, street vendors, bars, restaurants, farmers market purveyors — I'm here to build for you.",
+    p_why_5: 'You are the destinations that make a day a day and a night a night.',
+    h_ai: 'AI can work for you',
+    p_ai_1: "It doesn't have to be complicated to make an impact on your business.",
+    p_ai_2: "First we start with you. And when the time is right I'll let the agents through the door.",
+    p_ai_3: 'But first we start by saving you time. 🐢',
     cta_p: 'I read every email.',
     cta_strong: 'Got a question or a story?',
     cta_btn: 'support@terrapin.tools',
     cta_back: 'Back to Terrapin',
     h_dead: 'The Grateful Dead thing',
-    p_dead_1: 'Terrapin Station is a Grateful Dead album. The name is a nod to the origin of this project — which grew out of a conversation about building a personal wiki. The Dead built a community around free tape trading. Terrapin builds a library around free tools. Distribution is the product.',
-    p_dead_2: "The lightning bolt on the turtle's shell is for the people who get it. Everyone else just sees a reliable turtle with a tool belt.",
-    p_dead_3: '🐢 Tantalizing terrapin terraforming agentic planetary contributions.',
+    p_dead_1: 'Terrapin Station is a Grateful Dead album. The name is a nod to how this started — a conversation about building a personal wiki. The Dead built a community around free tape trading. Terrapin builds a library around free tools. Distribution is the product.',
+    p_dead_2: "The lightning bolt on the turtle's shell is for the people who get it.",
     footer_tag: 'simple tools for people who work'
   },
   es: {
     brand: 'Terrapin Tools', nav_tools: 'Herramientas', nav_faq: 'Preguntas',
     h1: 'Hola, soy Ryan.',
-    sub: 'Construí Terrapin para la gente que crecí viendo trabajar.',
-    h_mom: 'La caja de recibos',
-    p_mom_1: 'Mi mamá es una inmigrante filipina. Tuvo un negocio de catering por veinte años, casi todo en papel. En época de impuestos se sentaba en la mesa de la cocina con una caja de recibos, una calculadora y un cuaderno. Le tomaba días.',
-    p_mom_2: 'Había herramientas. Ninguna estaba hecha para ella. Asumían que tenías un equipo de TI, o al menos comodidad con software que ella no tenía tiempo de aprender. Estaban hechas para "negocios" en abstracto — no para la mujer que llevaba despierta desde las 4am horneando lumpia para una boda que catering esa misma noche.',
-    p_mom_3: 'Ella no necesitaba software empresarial. Necesitaba una herramienta que se abriera, hiciera una cosa bien, y se quitara de su camino.',
-    h_taco: 'El puesto de tacos',
-    p_taco_1: 'Años después conocí a un vendedor de tacos hispanohablante trabajando de un carrito de metal cerca de una esquina concurrida en LA. No tenía punto de venta. Ni lector de tarjetas. Manejaba efectivo en una caja de metal con llave y llevaba las órdenes en un cuaderno de papel. Su negocio corría en memoria y hustle.',
-    p_taco_2: 'Le pregunté si querría una app simple para registrar órdenes. Dijo que sí, pero solo si funcionaba sin cuenta, sin internet y sin cobrarle mensualmente — porque su primo había probado una app una vez y le vació el plan del celular y luego le cobró $9.99 al mes por algo que nunca usó.',
-    p_taco_3: 'Ahí Terrapin dejó de ser un proyecto y se convirtió en una misión.',
-    h_mission: 'La misión, en pocas palabras',
-    p_mission_1: 'Terrapin es una biblioteca de herramientas pequeñas para la gente que construye América. Negocios de inmigrantes. Contratistas. Cateradores. Dueños de food trucks. Freelancers. La gente cuyos negocios corren desde un camión, un local, o una mesa de cocina.',
-    p_mission_2: 'Cada herramienta funciona en inglés y español. Cada herramienta corre en tu computadora. Tus datos nunca salen de tu máquina. No hay nada que filtrar. Nada que hackear. Nada que vender.',
-    quote: 'La privacidad no es una función. Es la arquitectura.',
-    h_money: 'Cómo gano dinero',
-    p_money_1: 'Cada herramienta básica es gratis. Siempre. Sin registro, sin suscripción, sin prueba.',
-    p_money_2: 'Las herramientas premium son pagos únicos. Compras una vez y es tuya para siempre. Smart Receipt Box es la primera — $29, tomas una foto de un recibo, la IA local extrae todo en diez segundos. Gano dinero de la herramienta, no de tus datos. Esa alineación importa.',
-    p_money_3: 'Elegí el modelo de negocio más difícil a propósito.',
-    h_human: 'La parte humana',
-    p_human_1: 'Soy una persona construyendo esto. Sin equipo, sin capital de riesgo, sin una consultoría de ciencia de datos fingiendo ser IA. Yo contesto cada correo de soporte. Leo cada pedazo de feedback.',
-    p_human_2: 'Si Terrapin te ayuda, quiero saber. Si falla, quiero saber más. Si tienes una idea para la próxima herramienta, cuéntame.',
+    sub: 'Seré honesto. Soy un nerd. Uno medio cool, eso sí.',
+    h_me: 'Quién soy',
+    p_me_1: 'Cinta marrón en jiu jitsu. Papá con varios problemas en las articulaciones. Fan de la buena cerveza. Fan obsesivo de la tecnología.',
+    p_me_2: 'Uso LLMs desde que eran malísimos. Soy un builder no técnico que construye por rabia. Una vez intenté aprender a programar haciendo un juego tipo side-scroller en Python. El personaje principal era una ardilla.',
+    p_me_3: 'Cambio de dirección mucho. Honestamente es mi superpoder. Un solo vistazo a mi currículum inexistente volvería piedra a un experto en nichos.',
+    h_know: 'Esto lo tengo claro',
+    p_know_1: 'De toda la gente para la que he trabajado y todos los negocios que he frecuentado — realmente no les importa tu CRM con 5000 funciones y un asistente de IA.',
+    p_know_2: 'Les importa el tiempo, los recursos, la facilidad de uso. Operan con un problema a la vez.',
+    p_know_3: 'Cuando les explicas tu workflow, sus ojos se nublan como ese episodio de Black Mirror donde dos bros se lo hacen en un videojuego.',
+    h_curve: 'La curva de aprendizaje de la que nadie habla',
+    p_curve_1: 'No es que el SaaS no ayude a los negocios pequeños.',
+    p_curve_2: 'Pero si hay una curva de aprendizaje, tienes que entender algo.',
+    p_curve_3: 'Simplemente no tienen tiempo.',
+    h_moment: 'El momento que cambió todo',
+    p_moment_1: 'El otro día mi mamá estaba pasando horas escribiendo cotizaciones para su negocio de catering y me pidió ayuda.',
+    p_moment_2: 'Tenía una calculadora. Copiaba y pegaba cotizaciones viejas y llenaba los números nuevos. Ni siquiera un atajo de teclado.',
+    p_moment_3: 'Yo no me iba a sentar ahí a hacer lo mismo. ¿Qué hice?',
+    p_moment_4: 'Abrí Claude Code y monté un generador de cotizaciones — con todos sus platillos, precios y cargos por servicio. Corre local en su escritorio para que siempre lo tenga.',
+    p_moment_5: 'Le ahorré 5 horas. Parecía que hice magia vudú.',
+    p_moment_6: 'Sin suscripción. Sin registro. Ni siquiera conexión a internet. Simplicidad en su mejor forma.',
+    h_wrong: 'He estado resolviendo los problemas equivocados',
+    p_wrong_1: 'Me tomó semanas darme cuenta.',
+    p_wrong_2: 'Que los tech bros construyan apps de web3, web scrapers agénticos, y el próximo vybe coding IDE.',
+    p_wrong_3: 'Yo quiero resolver problemas para la gente que no tiene tiempo de configurar Open WebUI y armar su propio asistente de IA.',
+    h_why: 'Por qué estoy construyendo Terrapin',
+    p_why_1: 'Una web app simple hecha para gente que trabaja.',
+    p_why_2: 'Una biblioteca de herramientas que te ahorran horas en tareas poco glamorosas.',
+    p_why_3: 'Hecho para humanos primero. Sin registro. Sin suscripción cara. Puedes correr casi todas las herramientas en tu computadora.',
+    p_why_4: 'Cateradores, tintorerías, cafeterías, vendedores ambulantes, bares, restaurantes, puestos de mercado — aquí estoy construyendo para ustedes.',
+    p_why_5: 'Ustedes son los lugares que hacen un día un día y una noche una noche.',
+    h_ai: 'La IA puede trabajar para ti',
+    p_ai_1: 'No tiene que ser complicada para tener un impacto en tu negocio.',
+    p_ai_2: 'Primero empezamos contigo. Y cuando sea el momento dejaré pasar a los agentes.',
+    p_ai_3: 'Pero primero empezamos ahorrándote tiempo. 🐢',
     cta_p: 'Leo cada correo.',
     cta_strong: '¿Tienes una pregunta o una historia?',
     cta_btn: 'support@terrapin.tools',
     cta_back: 'Volver a Terrapin',
     h_dead: 'Lo del Grateful Dead',
-    p_dead_1: 'Terrapin Station es un álbum de los Grateful Dead. El nombre es un guiño al origen de este proyecto — que salió de una conversación sobre construir una wiki personal. Los Dead construyeron una comunidad alrededor del intercambio libre de cintas. Terrapin construye una biblioteca alrededor de herramientas libres. La distribución es el producto.',
-    p_dead_2: 'El rayo en el caparazón de la tortuga es para los que entienden. Los demás solo ven una tortuga confiable con un cinturón de herramientas.',
-    p_dead_3: '🐢 Tortuga terraformante tentadoramente contribuyendo agentes planetarios.',
+    p_dead_1: 'Terrapin Station es un álbum de los Grateful Dead. El nombre es un guiño a cómo empezó esto — una conversación sobre construir una wiki personal. Los Dead construyeron una comunidad alrededor del intercambio libre de cintas. Terrapin construye una biblioteca alrededor de herramientas libres. La distribución es el producto.',
+    p_dead_2: 'El rayo en el caparazón de la tortuga es para los que entienden.',
     footer_tag: 'herramientas simples para quien trabaja'
   }
 };

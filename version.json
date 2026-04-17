@@ -1,11 +1,11 @@
 {
-  "latest": "1.3.1",
+  "latest": "1.3.2",
   "released": "2026-04-17",
   "min_supported": "1.0.0",
   "update_url": "https://terrapin.tools/install.sh",
   "changelog_url": "https://github.com/rbatiste33/terrapin-tools/releases",
-  "notes": "Trust package — new About page telling the story behind Terrapin, FAQ section answering the stuff people ask before installing, and a friendly 'Made by Ryan' on the landing page. support@terrapin.tools is now live.",
-  "notes_es": "Nueva página Acerca contando la historia detrás de Terrapin, sección de Preguntas respondiendo lo que la gente pregunta antes de instalar, y 'Hecho por Ryan' en la página de inicio. support@terrapin.tools ya está activo.",
+  "notes": "About page and landing intro rewritten in my actual voice — from the original Substack post. Quote generator story replaces fabricated fluff.",
+  "notes_es": "La página Acerca y la presentación en la portada fueron reescritas con mi voz real — basada en el post original de Substack.",
   "tools": {
     "smart-receipt-box": {
       "latest": "1.0.0",
