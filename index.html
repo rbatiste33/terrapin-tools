@@ -173,12 +173,14 @@
       margin-bottom: 8px;
       margin-left: auto;
       margin-right: auto;
-      animation: fadeIn 0.8s ease-in;
       border-radius: 24px;
       overflow: hidden;
       box-shadow: 0 8px 32px rgba(0,0,0,0.08);
       background: transparent;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
     }
+    .hero-mascot.ready { opacity: 1; }
 
     .hero h1 {
       font-size: 56px;
@@ -796,9 +798,10 @@
   <!-- HERO -->
   <section class="hero">
     <div class="container">
-      <video autoplay muted loop playsinline class="hero-mascot" poster="turtle-optimized.png">
+      <video autoplay muted loop playsinline preload="auto" class="hero-mascot" id="hero-mascot"
+             onloadeddata="this.classList.add('ready')" oncanplay="this.classList.add('ready')">
         <source src="terrapin-hero.mp4" type="video/mp4">
-        <img src="turtle-optimized.png" alt="Terrapin — a turtle with a tool belt">
+        <img src="turtle-optimized.png" alt="Terrapin — a turtle with a tool belt" onload="this.classList.add('ready')" class="hero-mascot">
       </video>
       <h1 data-i18n="hero_h1">Stop managing your tools.<br>Start managing your business.</h1>
       <p class="subline" data-i18n="hero_sub">Terrapin knows your clients, your rates, and your business. Just tell him what to do.</p>
