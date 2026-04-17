@@ -254,6 +254,27 @@ Users learn about new Terrapin versions via a gold banner in the dashboard.
 3. `npm run create-package` — rebuilds tarball
 4. Commit + push — Vercel deploys, users see banner within 24h or on next dashboard load
 
+**When NOT to bump the version (just push to git):**
+- Pure landing-page / marketing changes (copy edits, new sections on `index.html`, SEO pages)
+- Tweaks to `/about`, `/privacy`, or other Vercel-only pages
+- Fixing typos in public copy
+
+Vercel auto-deploys from git push. The installed agent doesn't serve these pages — users see the changes on terrapin.tools immediately. No banner needed, no install needed.
+
+**When to use `--silent`:**
+- Changes that ship in the tarball but don't require an urgent update (e.g., minor tool polish, added a new SEO page that also lives in `tools/`)
+- Users pick up silent releases passively next time they run `install.sh` for any reason
+
+Usage: `npm run bump -- --silent "EN note" "ES note"`
+
+**When to fire a real banner (default behavior):**
+- Agent-server code changes (new endpoints, bug fixes, mail, scheduler)
+- New tool added to `tools/`
+- Tool feature additions users would notice
+- Privacy or security-relevant changes
+
+Rule of thumb: "would a user notice this if they didn't update?" Yes → banner. No → silent or no bump.
+
 **Schema of `version.json`:**
 ```json
 {

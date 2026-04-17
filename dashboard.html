@@ -1090,6 +1090,9 @@ function checkForUpdate() {
 
 function applyUpdateCheck(data) {
   if (!data || !data.update_available || !data.remote) return;
+  // Silent releases deploy to Vercel but never fire the banner.
+  // Used for pure aesthetic/website changes where the installed agent doesn't need to update.
+  if (data.remote.silent) return;
   var dismissed = localStorage.getItem(DISMISSED_VERSION_KEY);
   if (dismissed === data.remote.latest) return; // user already dismissed this version
   showUpdateBanner(data);

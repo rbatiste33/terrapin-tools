@@ -1,6 +1,6 @@
 {
   "name": "terrapin-tools",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "Simple tools for people who work — terrapin.tools",
   "private": true,
   "scripts": {
