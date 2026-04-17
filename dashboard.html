@@ -1076,15 +1076,23 @@ function boot() {
 var DISMISSED_VERSION_KEY = 'terrapin-update-dismissed';
 
 function checkForUpdate() {
+  // Read cache immediately so any known update shows without a network delay...
   fetch('http://localhost:7777/health/updates')
     .then(function(r) { return r.ok ? r.json() : null; })
     .catch(function() { return null; })
-    .then(function(data) {
-      if (!data || !data.update_available || !data.remote) return;
-      var dismissed = localStorage.getItem(DISMISSED_VERSION_KEY);
-      if (dismissed === data.remote.latest) return; // user already dismissed this version
-      showUpdateBanner(data);
-    });
+    .then(function(data) { applyUpdateCheck(data); });
+  // ...then force a fresh check so newly-shipped versions appear right away
+  fetch('http://localhost:7777/health/updates?refresh=1')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; })
+    .then(function(data) { applyUpdateCheck(data); });
+}
+
+function applyUpdateCheck(data) {
+  if (!data || !data.update_available || !data.remote) return;
+  var dismissed = localStorage.getItem(DISMISSED_VERSION_KEY);
+  if (dismissed === data.remote.latest) return; // user already dismissed this version
+  showUpdateBanner(data);
 }
 
 function showUpdateBanner(data) {

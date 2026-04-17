@@ -69,7 +69,7 @@ const DATA_FILES = {
 //  Only external call besides Ollama (local) and Gumroad (license verify).
 // ══════════════════════════════════════
 const VERSION_URL = 'https://terrapin.tools/version.json';
-const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 function initDataDir() {
   if (!fs.existsSync(TERRAPIN_DIR)) fs.mkdirSync(TERRAPIN_DIR, { recursive: true });
