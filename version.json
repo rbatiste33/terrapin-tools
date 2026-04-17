@@ -1,11 +1,11 @@
 {
-  "latest": "1.2.4",
+  "latest": "1.2.5",
   "released": "2026-04-17",
   "min_supported": "1.0.0",
   "update_url": "https://terrapin.tools/install.sh",
   "changelog_url": "https://github.com/rbatiste33/terrapin-tools/releases",
-  "notes": "Update notifications end-to-end test — if you see this banner, the system works.",
-  "notes_es": "Prueba del sistema de notificaciones de actualización — si ves este banner, el sistema funciona.",
+  "notes": "Update notifications live only on the dashboard now — agent chat stays focused on your work.",
+  "notes_es": "Las notificaciones de actualización ahora viven solo en el dashboard — el chat se queda enfocado en tu trabajo.",
   "tools": {
     "smart-receipt-box": {
       "latest": "1.0.0",

@@ -343,21 +343,6 @@
   .mobile-gate .gate-toggle button { padding: 4px 8px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: transparent; color: rgba(255,255,255,0.4); }
   .mobile-gate .gate-toggle button.active { background: #2C3E2D; color: #C9A84C; }
 
-  /* ── UPDATE BANNER ── */
-  .update-banner {
-    display: none; padding: 10px 20px;
-    background: rgba(201, 168, 76, 0.15);
-    border-bottom: 1px solid rgba(201, 168, 76, 0.3);
-    font-family: 'DM Mono', monospace; font-size: 13px;
-    color: var(--gold); text-align: center;
-    flex-shrink: 0;
-  }
-  .update-banner code { font-family: 'DM Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
-  .update-banner .dismiss-update { background: none; border: none; color: var(--text-muted); cursor: pointer; margin-left: 12px; font-size: 14px; }
-  @media (max-width: 520px) {
-    .update-banner { font-size: 11px; padding: 8px 14px; }
-    .update-banner code { font-size: 10px; }
-  }
 </style>
 </head>
 <body>
@@ -393,9 +378,6 @@
       <div class="lang-toggle"><button id="btn-en" class="active" onclick="setLang('en')">EN</button><button id="btn-es" onclick="setLang('es')">ES</button></div>
     </div>
   </div>
-
-  <!-- UPDATE BANNER -->
-  <div class="update-banner" id="update-banner"></div>
 
   <!-- FILE:// NOTICE -->
   <div class="file-notice" id="file-notice">
@@ -1945,24 +1927,6 @@ async function checkStatus() {
       document.getElementById('mail-text').textContent = 'Mail ready';
     }
 
-    // Version check — once per session, no user data sent
-    if (data.version && !window._versionChecked) {
-      window._versionChecked = true;
-      try {
-        var vRes = await fetch('https://www.terrapin.tools/version.json', { signal: AbortSignal.timeout(3000) });
-        if (vRes.ok) {
-          var vData = await vRes.json();
-          if (vData.latest && vData.latest !== data.version) {
-            var banner = document.getElementById('update-banner');
-            var isEs = (typeof currentLang !== 'undefined' && currentLang === 'es');
-            banner.innerHTML = isEs
-              ? 'Actualizaci\u00f3n disponible (v' + vData.latest + ') \u2014 Ejecuta: <code>curl -fsSL https://terrapin.tools/install.sh | bash</code> <button class="dismiss-update" onclick="this.parentElement.style.display=\'none\'">\u2715</button>'
-              : 'Update available (v' + vData.latest + ') \u2014 Run: <code>curl -fsSL https://terrapin.tools/install.sh | bash</code> <button class="dismiss-update" onclick="this.parentElement.style.display=\'none\'">\u2715</button>';
-            banner.style.display = 'block';
-          }
-        }
-      } catch(ve) { /* version check failed — no problem */ }
-    }
   } catch(e) {
     agentReady = false;
     document.getElementById('status-text').textContent = 'Agent offline';
