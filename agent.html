@@ -1949,7 +1949,7 @@ async function checkStatus() {
     if (data.version && !window._versionChecked) {
       window._versionChecked = true;
       try {
-        var vRes = await fetch('https://terrapin.tools/version.json', { signal: AbortSignal.timeout(3000) });
+        var vRes = await fetch('https://www.terrapin.tools/version.json', { signal: AbortSignal.timeout(3000) });
         if (vRes.ok) {
           var vData = await vRes.json();
           if (vData.latest && vData.latest !== data.version) {

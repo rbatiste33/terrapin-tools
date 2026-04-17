@@ -68,7 +68,7 @@ const DATA_FILES = {
 //  trust terrapin.tools). No personal data sent. No analytics beacon.
 //  Only external call besides Ollama (local) and Gumroad (license verify).
 // ══════════════════════════════════════
-const VERSION_URL = 'https://terrapin.tools/version.json';
+const VERSION_URL = 'https://www.terrapin.tools/version.json'; // bypass apex->www redirect
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 function initDataDir() {

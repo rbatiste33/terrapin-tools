@@ -1,11 +1,11 @@
 {
-  "latest": "1.2.2",
+  "latest": "1.2.3",
   "released": "2026-04-17",
   "min_supported": "1.0.0",
   "update_url": "https://terrapin.tools/install.sh",
   "changelog_url": "https://github.com/rbatiste33/terrapin-tools/releases",
-  "notes": "New Terrapin versions now appear in your dashboard banner within seconds of shipping — no more 24-hour wait. Plus everything from v1.2.1 (reminders in Settings, smoother landing page, Smart Receipt Box promoted).",
-  "notes_es": "Las nuevas versiones de Terrapin aparecen en el banner del dashboard en segundos — sin espera de 24 horas. Incluye v1.2.1 (recordatorios en Configuración, página de inicio más fluida, Smart Receipt Box destacado).",
+  "notes": "Bypass the apex→www redirect when fetching version.json. Tiny internal improvement to make update notifications faster and more reliable.",
+  "notes_es": "Evita la redirección apex→www al consultar version.json. Mejora interna para que las notificaciones sean más rápidas y confiables.",
   "tools": {
     "smart-receipt-box": {
       "latest": "1.0.0",
