@@ -491,6 +491,154 @@ html, body {
   letter-spacing: 0.04em;
 }
 
+/* Reminders section in settings modal */
+.settings-section-divider {
+  height: 1px;
+  background: var(--card-border);
+  margin: 20px 0 18px;
+}
+.settings-section-title {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 4px;
+}
+.settings-section-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.reminder-card {
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+.reminder-card.active {
+  border-color: var(--dark);
+  background: #fefcf6;
+}
+.reminder-card.unknown {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.reminder-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.reminder-toggle {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: #d9d5cc;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.reminder-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: left 0.15s;
+}
+.reminder-toggle.on { background: var(--dark); }
+.reminder-toggle.on::after { left: 18px; }
+.reminder-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark);
+}
+.reminder-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.reminder-head > div:first-of-type { flex: 1; }
+.reminder-edit {
+  display: none;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--card-border);
+}
+.reminder-card.editing .reminder-edit { display: flex; }
+.reminder-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
+.reminder-field label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.reminder-field input, .reminder-field select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--dark);
+}
+.reminder-field input:focus, .reminder-field select:focus {
+  outline: none;
+  border-color: var(--dark);
+}
+.reminder-days {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.reminder-day {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+}
+.reminder-day.on {
+  background: var(--dark);
+  color: #fff;
+  border-color: var(--dark);
+}
+.reminder-edit-btn {
+  background: none;
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.reminder-edit-btn:hover { border-color: var(--dark); color: var(--dark); }
+.reminder-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: 10px 14px;
+  background: #f9f7f2;
+  border-radius: 8px;
+}
+
 .modal-profile-link {
   display: block;
   font-size: 13px;
@@ -750,6 +898,12 @@ html, body {
       <button class="modal-close" onclick="closeSettings()">&times;</button>
     </div>
     <div class="tool-toggle-list" id="toolToggleList"></div>
+
+    <div class="settings-section-divider"></div>
+    <div class="settings-section-title" data-i18n="reminders_title">Reminders</div>
+    <div class="settings-section-sub" data-i18n="reminders_sub">Tell Terrapin when to check in. You can also ask the agent in chat.</div>
+    <div class="reminder-list" id="reminderList"></div>
+
     <a href="tools/business-profile.html" class="modal-profile-link" data-i18n="edit_profile_link">Edit your business details &rarr;</a>
     <button class="modal-save-btn" onclick="saveSettings()" data-i18n="save_btn">Save</button>
   </div>
@@ -794,7 +948,24 @@ var STRINGS = {
     edit_profile_link: "Edit your business details \u2192",
     edit_profile_footer: "Edit your business profile \u2192",
     save_btn: "Save",
-    always_on: "Always on"
+    always_on: "Always on",
+    reminders_title: "Reminders",
+    reminders_sub: "Tell Terrapin when to check in. You can also ask the agent in chat.",
+    reminders_mb: "Morning briefing",
+    reminders_ar: "Appointment reminders",
+    reminders_off: "Off",
+    reminders_mb_status: "{days} at {time}",
+    reminders_ar_status: "{min} minutes before each event",
+    reminders_edit: "Edit",
+    reminders_time: "Time",
+    reminders_days: "Days",
+    reminders_minutes: "Minutes before",
+    reminders_weekdays: "Weekdays",
+    reminders_every_day: "Every day",
+    reminders_no_days: "No days picked",
+    reminders_loading: "Loading reminders\u2026",
+    reminders_offline: "Start the Terrapin agent to manage reminders.",
+    day_mon: "Mon", day_tue: "Tue", day_wed: "Wed", day_thu: "Thu", day_fri: "Fri", day_sat: "Sat", day_sun: "Sun"
   },
   es: {
     good_morning: "Buenos d\u00edas",
@@ -814,7 +985,24 @@ var STRINGS = {
     edit_profile_link: "Editar detalles de tu negocio \u2192",
     edit_profile_footer: "Editar tu perfil de negocio \u2192",
     save_btn: "Guardar",
-    always_on: "Siempre activo"
+    always_on: "Siempre activo",
+    reminders_title: "Recordatorios",
+    reminders_sub: "Dile a Terrapin cu\u00e1ndo avisarte. Tambi\u00e9n puedes pedirle al agente en el chat.",
+    reminders_mb: "Resumen matutino",
+    reminders_ar: "Recordatorios de citas",
+    reminders_off: "Apagado",
+    reminders_mb_status: "{days} a las {time}",
+    reminders_ar_status: "{min} minutos antes de cada evento",
+    reminders_edit: "Editar",
+    reminders_time: "Hora",
+    reminders_days: "D\u00edas",
+    reminders_minutes: "Minutos antes",
+    reminders_weekdays: "D\u00edas de semana",
+    reminders_every_day: "Todos los d\u00edas",
+    reminders_no_days: "Sin d\u00edas seleccionados",
+    reminders_loading: "Cargando recordatorios\u2026",
+    reminders_offline: "Inicia el agente Terrapin para administrar recordatorios.",
+    day_mon: "Lun", day_tue: "Mar", day_wed: "Mi\u00e9", day_thu: "Jue", day_fri: "Vie", day_sat: "S\u00e1b", day_sun: "Dom"
   }
 };
 
@@ -1405,6 +1593,9 @@ function openSettings() {
 
   list.innerHTML = html;
   modal.classList.add('open');
+
+  // Render reminders section
+  renderReminders();
 }
 
 function closeSettings() {
@@ -1413,6 +1604,214 @@ function closeSettings() {
 
 function toggleTool(el) {
   el.classList.toggle('active');
+}
+
+// ══════════════════════════════════════
+//  REMINDERS IN SETTINGS
+// ══════════════════════════════════════
+var schedulesDraft = null;     // in-memory edit copy; flushed on Save
+var DAY_ORDER = ['mon','tue','wed','thu','fri','sat','sun'];
+
+function renderReminders() {
+  var el = document.getElementById('reminderList');
+  if (!el) return;
+  el.innerHTML = '<div class="reminder-empty">' + t('reminders_loading') + '</div>';
+
+  fetch('http://localhost:7777/data/schedules', { signal: AbortSignal.timeout(2500) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (!data) {
+        el.innerHTML = '<div class="reminder-empty">' + t('reminders_offline') + '</div>';
+        return;
+      }
+      schedulesDraft = {
+        morning_briefing: Object.assign(
+          { enabled: false, time: '07:00', days: ['mon','tue','wed','thu','fri'] },
+          data.morning_briefing || {}
+        ),
+        appointment_reminders: Object.assign(
+          { enabled: false, minutes_before: 60 },
+          data.appointment_reminders || {}
+        )
+      };
+      if (data.email) schedulesDraft.email = data.email;
+      drawReminderCards();
+    })
+    .catch(function() {
+      el.innerHTML = '<div class="reminder-empty">' + t('reminders_offline') + '</div>';
+    });
+}
+
+function drawReminderCards() {
+  var el = document.getElementById('reminderList');
+  if (!el || !schedulesDraft) return;
+
+  var mb = schedulesDraft.morning_briefing;
+  var ar = schedulesDraft.appointment_reminders;
+
+  el.innerHTML =
+    mbCardHtml(mb) +
+    arCardHtml(ar);
+}
+
+function mbCardHtml(mb) {
+  var enabled = !!mb.enabled;
+  var days = Array.isArray(mb.days) ? mb.days : [];
+  var time = mb.time || '07:00';
+  var status = enabled
+    ? t('reminders_mb_status').replace('{days}', daysLabel(days)).replace('{time}', formatTime12(time))
+    : t('reminders_off');
+
+  var daysHtml = DAY_ORDER.map(function(d) {
+    var on = days.indexOf(d) !== -1;
+    return '<button type="button" class="reminder-day' + (on ? ' on' : '') + '" data-day="' + d + '" onclick="toggleMbDay(this)">' + t('day_' + d) + '</button>';
+  }).join('');
+
+  return '<div class="reminder-card' + (enabled ? ' active' : '') + '" id="reminder-mb">' +
+    '<div class="reminder-head">' +
+      '<div class="reminder-toggle' + (enabled ? ' on' : '') + '" onclick="toggleMb()"></div>' +
+      '<div><div class="reminder-title">' + t('reminders_mb') + '</div>' +
+        '<div class="reminder-status">' + escHtml(status) + '</div></div>' +
+      '<button class="reminder-edit-btn" onclick="toggleMbEdit(this)">' + t('reminders_edit') + '</button>' +
+    '</div>' +
+    '<div class="reminder-edit">' +
+      '<div class="reminder-field" style="flex:0 0 130px;"><label>' + t('reminders_time') + '</label>' +
+        '<input type="time" value="' + escAttr(time) + '" onchange="setMbTime(this.value)"></div>' +
+      '<div class="reminder-field"><label>' + t('reminders_days') + '</label>' +
+        '<div class="reminder-days">' + daysHtml + '</div></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function arCardHtml(ar) {
+  var enabled = !!ar.enabled;
+  var mins = ar.minutes_before || 60;
+  var status = enabled
+    ? t('reminders_ar_status').replace('{min}', mins)
+    : t('reminders_off');
+
+  return '<div class="reminder-card' + (enabled ? ' active' : '') + '" id="reminder-ar">' +
+    '<div class="reminder-head">' +
+      '<div class="reminder-toggle' + (enabled ? ' on' : '') + '" onclick="toggleAr()"></div>' +
+      '<div><div class="reminder-title">' + t('reminders_ar') + '</div>' +
+        '<div class="reminder-status">' + escHtml(status) + '</div></div>' +
+      '<button class="reminder-edit-btn" onclick="toggleArEdit(this)">' + t('reminders_edit') + '</button>' +
+    '</div>' +
+    '<div class="reminder-edit">' +
+      '<div class="reminder-field"><label>' + t('reminders_minutes') + '</label>' +
+        '<select onchange="setArMins(this.value)">' +
+          [15, 30, 60, 120, 240, 1440].map(function(m) {
+            return '<option value="' + m + '"' + (m === mins ? ' selected' : '') + '>' + arMinsLabel(m) + '</option>';
+          }).join('') +
+        '</select></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function arMinsLabel(m) {
+  var isEs = lang === 'es';
+  if (m === 15) return isEs ? '15 minutos antes' : '15 minutes before';
+  if (m === 30) return isEs ? '30 minutos antes' : '30 minutes before';
+  if (m === 60) return isEs ? '1 hora antes' : '1 hour before';
+  if (m === 120) return isEs ? '2 horas antes' : '2 hours before';
+  if (m === 240) return isEs ? '4 horas antes' : '4 hours before';
+  if (m === 1440) return isEs ? '1 día antes' : '1 day before';
+  return m + ' min';
+}
+
+function daysLabel(days) {
+  if (!days || !days.length) return t('reminders_no_days');
+  var weekdays = ['mon','tue','wed','thu','fri'];
+  var weekend = ['sat','sun'];
+  var set = new Set(days);
+  var allWeek = weekdays.every(function(d) { return set.has(d); }) && !set.has('sat') && !set.has('sun');
+  var everyDay = DAY_ORDER.every(function(d) { return set.has(d); });
+  if (everyDay) return t('reminders_every_day');
+  if (allWeek) return t('reminders_weekdays');
+  return days.map(function(d) { return t('day_' + d); }).join(', ');
+}
+
+function formatTime12(hhmm) {
+  var parts = (hhmm || '07:00').split(':');
+  var h = parseInt(parts[0], 10) || 0;
+  var m = parts[1] || '00';
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  var h12 = h % 12 || 12;
+  return h12 + ':' + m + ' ' + ampm;
+}
+
+function toggleMb() {
+  if (!schedulesDraft) return;
+  schedulesDraft.morning_briefing.enabled = !schedulesDraft.morning_briefing.enabled;
+  drawReminderCards();
+}
+function toggleAr() {
+  if (!schedulesDraft) return;
+  schedulesDraft.appointment_reminders.enabled = !schedulesDraft.appointment_reminders.enabled;
+  drawReminderCards();
+}
+function toggleMbEdit(btn) {
+  var card = document.getElementById('reminder-mb');
+  if (card) card.classList.toggle('editing');
+}
+function toggleArEdit(btn) {
+  var card = document.getElementById('reminder-ar');
+  if (card) card.classList.toggle('editing');
+}
+function setMbTime(v) {
+  if (!schedulesDraft) return;
+  schedulesDraft.morning_briefing.time = v || '07:00';
+  // Update status text without collapsing the editor
+  var statusEl = document.querySelector('#reminder-mb .reminder-status');
+  if (statusEl) {
+    var mb = schedulesDraft.morning_briefing;
+    statusEl.textContent = mb.enabled
+      ? t('reminders_mb_status').replace('{days}', daysLabel(mb.days)).replace('{time}', formatTime12(mb.time))
+      : t('reminders_off');
+  }
+}
+function toggleMbDay(btn) {
+  if (!schedulesDraft) return;
+  var day = btn.getAttribute('data-day');
+  var days = schedulesDraft.morning_briefing.days || [];
+  var idx = days.indexOf(day);
+  if (idx === -1) days.push(day); else days.splice(idx, 1);
+  schedulesDraft.morning_briefing.days = days;
+  btn.classList.toggle('on');
+  var mb = schedulesDraft.morning_briefing;
+  var statusEl = document.querySelector('#reminder-mb .reminder-status');
+  if (statusEl) {
+    statusEl.textContent = mb.enabled
+      ? t('reminders_mb_status').replace('{days}', daysLabel(mb.days)).replace('{time}', formatTime12(mb.time))
+      : t('reminders_off');
+  }
+}
+function setArMins(v) {
+  if (!schedulesDraft) return;
+  schedulesDraft.appointment_reminders.minutes_before = parseInt(v, 10) || 60;
+  var statusEl = document.querySelector('#reminder-ar .reminder-status');
+  if (statusEl) {
+    var ar = schedulesDraft.appointment_reminders;
+    statusEl.textContent = ar.enabled
+      ? t('reminders_ar_status').replace('{min}', ar.minutes_before)
+      : t('reminders_off');
+  }
+}
+
+function saveSchedulesIfChanged() {
+  if (!schedulesDraft) return Promise.resolve();
+  // Pull the email from the existing profile so the server can send if needed
+  var body = {
+    morning_briefing: schedulesDraft.morning_briefing,
+    appointment_reminders: schedulesDraft.appointment_reminders
+  };
+  if (schedulesDraft.email) body.email = schedulesDraft.email;
+  return fetch('http://localhost:7777/data/schedules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(3000)
+  }).catch(function() {});
 }
 
 function saveSettings() {
@@ -1445,6 +1844,7 @@ function saveSettings() {
   dashConfig.order = newOrder;
 
   saveConfig();
+  saveSchedulesIfChanged();
   closeSettings();
 
   // Reload widget data for any newly enabled tools, then re-render
@@ -1486,6 +1886,9 @@ function escHtml(str) {
   var div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
+}
+function escAttr(str) {
+  return escHtml(str).replace(/"/g, '&quot;');
 }
 
 // ── Visibility change (auto-refresh) ──
