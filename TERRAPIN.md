@@ -236,6 +236,42 @@ Track in AUDIT-LOG.md if created.
 
 ---
 
+## 10a. Update notifications
+
+Users learn about new Terrapin versions via a gold banner in the dashboard.
+
+**How it works:**
+- `version.json` at repo root is served by Vercel at `https://terrapin.tools/version.json`
+- Agent-server polls it on boot (2s after start) and every 24 hours
+- Cached to `~/.terrapin/update-check.json` so offline users still see the last known state
+- Dashboard calls `GET /health/updates` on load; if `update_available: true`, shows gold banner with release notes + one-click update
+- Banner is dismissible per-version (dismissed version saved to localStorage)
+- Same domain users already trust. No analytics, no personal data sent.
+
+**Ship a new version:**
+1. Bump `package.json` version (use `npm version patch|minor|major`)
+2. Run `npm run bump -- "EN release note" "ES release note"` — updates `version.json`
+3. `npm run create-package` — rebuilds tarball
+4. Commit + push — Vercel deploys, users see banner within 24h or on next dashboard load
+
+**Schema of `version.json`:**
+```json
+{
+  "latest": "1.2.0",
+  "released": "2026-04-16",
+  "min_supported": "1.0.0",
+  "update_url": "https://terrapin.tools/install.sh",
+  "changelog_url": "https://github.com/rbatiste33/terrapin-tools/releases",
+  "notes": "Smart Receipt Box shipped...",
+  "notes_es": "Caja de Recibos shipped...",
+  "tools": { "smart-receipt-box": { "latest": "1.0.0", "notes": "..." } }
+}
+```
+
+The `tools` block is reserved for per-tool version bumps (for future premium tools that may update independently of the agent version).
+
+---
+
 ## 10. Install
 
 One command for a non-technical user:

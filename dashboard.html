@@ -538,6 +538,103 @@ html, body {
 }
 .dash-footer a:hover { color: var(--gold); }
 
+/* Update banner */
+.update-banner {
+  background: linear-gradient(135deg, #FDFAF4 0%, #F5EDD8 100%);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin: 0 0 24px;
+  box-shadow: 0 2px 12px rgba(201, 168, 76, 0.12);
+}
+.update-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.update-arrow {
+  font-size: 20px;
+  color: var(--gold);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.update-text {
+  flex: 1;
+  min-width: 240px;
+}
+.update-text strong {
+  display: block;
+  font-size: 14px;
+  color: var(--dark);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.update-notes {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.update-btn {
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.update-btn:hover { opacity: 0.9; }
+.update-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.update-dismiss:hover { color: var(--dark); }
+.update-instructions {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(201, 168, 76, 0.3);
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.update-instructions code {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid var(--gold);
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--dark);
+  flex: 1;
+  min-width: 240px;
+  word-break: break-all;
+}
+.update-copy-btn {
+  background: var(--dark);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.update-copy-btn.copied { background: var(--success, #4A7C59); }
+
 /* ── RESPONSIVE ── */
 /* Mobile gate — dashboard is desktop only */
 .mobile-gate { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; background: var(--bg); }
@@ -590,6 +687,24 @@ html, body {
 </div>
 
 <div class="container">
+  <!-- Update banner (hidden until a newer version is detected) -->
+  <div id="update-banner" class="update-banner" style="display:none">
+    <div class="update-banner-inner">
+      <span class="update-arrow">⬆</span>
+      <div class="update-text">
+        <strong id="update-title">Update available</strong>
+        <span id="update-notes" class="update-notes"></span>
+      </div>
+      <button class="update-btn" onclick="showUpdateInstructions()" id="update-btn-action">Update now</button>
+      <button class="update-dismiss" onclick="dismissUpdate()" aria-label="Dismiss">&times;</button>
+    </div>
+    <div id="update-instructions" class="update-instructions" style="display:none">
+      <p id="update-instructions-text">Paste this in Terminal:</p>
+      <code>curl -fsSL https://terrapin.tools/install.sh | bash</code>
+      <button class="update-copy-btn" onclick="copyUpdateCmd(this)" id="update-copy-btn">Copy</button>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="header-bar">
     <div class="greeting" id="greeting"></div>
@@ -762,6 +877,85 @@ function boot() {
 
   // 4. Check agent health
   checkAgentHealth();
+
+  // 5. Check for Terrapin updates (cached, 1 call to agent-server; no external)
+  checkForUpdate();
+}
+
+// ══════════════════════════════════════
+//  UPDATE BANNER
+// ══════════════════════════════════════
+var DISMISSED_VERSION_KEY = 'terrapin-update-dismissed';
+
+function checkForUpdate() {
+  fetch('http://localhost:7777/health/updates')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .catch(function() { return null; })
+    .then(function(data) {
+      if (!data || !data.update_available || !data.remote) return;
+      var dismissed = localStorage.getItem(DISMISSED_VERSION_KEY);
+      if (dismissed === data.remote.latest) return; // user already dismissed this version
+      showUpdateBanner(data);
+    });
+}
+
+function showUpdateBanner(data) {
+  var banner = document.getElementById('update-banner');
+  if (!banner) return;
+  var isEs = (lang === 'es');
+  var title = document.getElementById('update-title');
+  var notes = document.getElementById('update-notes');
+  var btn = document.getElementById('update-btn-action');
+  var label = isEs ? 'Terrapin v' + data.remote.latest + ' disponible'
+                    : 'Terrapin v' + data.remote.latest + ' available';
+  title.textContent = label;
+  var noteText = isEs ? (data.remote.notes_es || data.remote.notes || '')
+                       : (data.remote.notes || '');
+  notes.textContent = noteText;
+  btn.textContent = isEs ? 'Actualizar' : 'Update now';
+  banner.style.display = 'block';
+}
+
+function showUpdateInstructions() {
+  var el = document.getElementById('update-instructions');
+  var isEs = (lang === 'es');
+  document.getElementById('update-instructions-text').textContent =
+    isEs ? 'Pega esto en Terminal:' : 'Paste this in Terminal:';
+  document.getElementById('update-copy-btn').textContent = isEs ? 'Copiar' : 'Copy';
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function copyUpdateCmd(btn) {
+  var cmd = 'curl -fsSL https://terrapin.tools/install.sh | bash';
+  var isEs = (lang === 'es');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cmd).then(function() {
+      btn.textContent = isEs ? 'Copiado ✓' : 'Copied ✓';
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.textContent = isEs ? 'Copiar' : 'Copy';
+        btn.classList.remove('copied');
+      }, 1800);
+    });
+  } else {
+    var t = document.createElement('textarea');
+    t.value = cmd; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(t);
+    btn.textContent = isEs ? 'Copiado ✓' : 'Copied ✓';
+  }
+}
+
+function dismissUpdate() {
+  var banner = document.getElementById('update-banner');
+  if (!banner) return;
+  banner.style.display = 'none';
+  // Remember which version was dismissed so we don't nag repeatedly for the same one
+  fetch('http://localhost:7777/health/updates').then(function(r) { return r.json(); }).then(function(d) {
+    if (d && d.remote && d.remote.latest) {
+      localStorage.setItem(DISMISSED_VERSION_KEY, d.remote.latest);
+    }
+  }).catch(function() {});
 }
 
 function afterConfigLoaded() {

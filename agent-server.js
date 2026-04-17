@@ -57,8 +57,19 @@ const DATA_FILES = {
   logsDir: path.join(TERRAPIN_DIR, 'daily-logs'),
   receiptsDir: path.join(TERRAPIN_DIR, 'receipts'),
   receiptsImagesDir: path.join(TERRAPIN_DIR, 'receipts', 'images'),
-  licenses: path.join(TERRAPIN_DIR, 'licenses.json')
+  licenses: path.join(TERRAPIN_DIR, 'licenses.json'),
+  updateCheck: path.join(TERRAPIN_DIR, 'update-check.json')
 };
+
+// ══════════════════════════════════════
+//  UPDATE NOTIFICATIONS
+//  Poll terrapin.tools/version.json at boot + every 24h.
+//  Same-origin for most users (tools load from localhost, but they already
+//  trust terrapin.tools). No personal data sent. No analytics beacon.
+//  Only external call besides Ollama (local) and Gumroad (license verify).
+// ══════════════════════════════════════
+const VERSION_URL = 'https://terrapin.tools/version.json';
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function initDataDir() {
   if (!fs.existsSync(TERRAPIN_DIR)) fs.mkdirSync(TERRAPIN_DIR, { recursive: true });
@@ -1553,6 +1564,73 @@ Rules:
 //  LICENSING — Gumroad verify + local storage
 // ══════════════════════════════════════
 
+// ══════════════════════════════════════
+//  UPDATE CHECK HELPERS
+// ══════════════════════════════════════
+function parseSemver(v) {
+  if (!v || typeof v !== 'string') return [0, 0, 0];
+  const parts = v.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+  return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
+}
+
+function semverCompare(a, b) {
+  const pa = parseSemver(a), pb = parseSemver(b);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] > pb[i]) return 1;
+    if (pa[i] < pb[i]) return -1;
+  }
+  return 0;
+}
+
+function loadUpdateCache() {
+  try {
+    if (!fs.existsSync(DATA_FILES.updateCheck)) return null;
+    return JSON.parse(fs.readFileSync(DATA_FILES.updateCheck, 'utf8'));
+  } catch(e) { return null; }
+}
+
+function saveUpdateCache(payload) {
+  try {
+    fs.writeFileSync(DATA_FILES.updateCheck, JSON.stringify(payload, null, 2));
+  } catch(e) { console.error('  → Could not cache update check:', e.message); }
+}
+
+async function fetchVersionFile() {
+  try {
+    const res = await fetch(VERSION_URL, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.latest) return null;
+    return data;
+  } catch(e) { return null; }
+}
+
+async function checkForUpdate() {
+  // Try remote; fall back to cached if offline
+  let remote = await fetchVersionFile();
+  const cache = loadUpdateCache();
+
+  if (!remote && cache && cache.remote) remote = cache.remote;
+  if (!remote) return null;
+
+  const payload = {
+    checked_at: new Date().toISOString(),
+    current: TERRAPIN_VERSION,
+    remote: remote,
+    update_available: semverCompare(remote.latest, TERRAPIN_VERSION) > 0
+  };
+  saveUpdateCache(payload);
+
+  if (payload.update_available) {
+    console.log(`  → Update available: v${TERRAPIN_VERSION} → v${remote.latest}`);
+  }
+  return payload;
+}
+
+// Run on boot (non-blocking), then every 24h
+setTimeout(() => { checkForUpdate().catch(() => {}); }, 2000);
+setInterval(() => { checkForUpdate().catch(() => {}); }, UPDATE_CHECK_INTERVAL_MS);
+
 function loadLicenses() {
   try {
     if (!fs.existsSync(DATA_FILES.licenses)) return {};
@@ -1705,6 +1783,26 @@ app.post('/api/license/activate', async (req, res) => {
   }
 });
 
+// ── UPDATES ──
+// Returns the cached result fast (no network). Call /health/updates?refresh=1 to force a re-fetch.
+app.get('/health/updates', async (req, res) => {
+  if (req.query.refresh === '1') {
+    const fresh = await checkForUpdate();
+    if (fresh) return res.json(fresh);
+  }
+  const cache = loadUpdateCache();
+  if (cache) return res.json(cache);
+  // No cache yet — try live once; fall back to "no-info"
+  const live = await checkForUpdate();
+  if (live) return res.json(live);
+  res.json({
+    checked_at: null,
+    current: TERRAPIN_VERSION,
+    remote: null,
+    update_available: false
+  });
+});
+
 // ── SCHEDULES ──
 app.get('/data/schedules', (req, res) => {
   res.json(loadSchedules());
@@ -1747,6 +1845,7 @@ app.listen(PORT, '127.0.0.1', async () => {
   console.log('    POST /call-tool        — {tool_id, params} → tool URL');
   console.log('    POST /api/receipt-scan — {image: base64} → extracted receipt JSON');
   console.log('    POST /api/license/activate — {tool_id, license_key} → verify + save');
+  console.log('    GET  /health/updates       — cached version.json check');
   console.log('');
   console.log(`  Data:    ${TERRAPIN_DIR}`);
   console.log('  Privacy: All AI runs locally via ' + OLLAMA_URL);
