@@ -185,8 +185,15 @@ Privacy: Receipt images are sent ONLY to localhost:7777 (which proxies to the lo
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     position: relative;
   }
-  .paywall-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 22px; color: var(--text-mute); cursor: pointer; }
-  .paywall-close:hover { color: var(--dark); }
+  .paywall-exit-link { display: block; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--card-border); font-size: 13px; color: var(--text-mute); text-decoration: none; }
+  .paywall-exit-link:hover { color: var(--dark); text-decoration: underline; }
+  /* Lockdown state — when unlicensed, interactive controls are frozen under the paywall */
+  body.tool-locked .view-toggle button,
+  body.tool-locked .drop-zone,
+  body.tool-locked #scan-btn,
+  body.tool-locked #file-input,
+  body.tool-locked .preview-actions button { pointer-events: none; opacity: 0.55; filter: grayscale(0.4); }
+  body.tool-locked { overflow: hidden; }
   .paywall-modal .turtle { font-size: 52px; margin-bottom: 12px; }
   .paywall-modal h2 { font-family: 'Lora', serif; font-size: 26px; color: var(--dark); margin-bottom: 10px; letter-spacing: -0.01em; }
   .paywall-modal p.lede { font-size: 15px; color: var(--text-mute); margin-bottom: 20px; line-height: 1.55; }
@@ -482,10 +489,9 @@ Privacy: Receipt images are sent ONLY to localhost:7777 (which proxies to the lo
 <!-- Hidden result for agent -->
 <div id="terrapin-result" style="display:none"></div>
 
-<!-- Paywall overlay -->
+<!-- Paywall overlay (blocking — no close button) -->
 <div class="paywall-overlay" id="paywall-overlay">
   <div class="paywall-modal">
-    <button class="paywall-close" onclick="hidePaywall()" aria-label="Close">&times;</button>
     <div class="turtle">🐢</div>
     <h2 data-i18n="pw_title">Unlock Smart Receipt Box</h2>
     <p class="lede" data-i18n="pw_lede">One-time purchase. Pay once, own it forever. No subscription.</p>
@@ -508,6 +514,8 @@ Privacy: Receipt images are sent ONLY to localhost:7777 (which proxies to the lo
       </div>
       <div class="paywall-activate-status" id="pw-activate-status"></div>
     </div>
+
+    <a class="paywall-exit-link" href="/tools/tip-calculator/" data-i18n="pw_exit">Try the free Tip Calculator instead →</a>
   </div>
 </div>
 
@@ -692,7 +700,7 @@ async function scanReceipt() {
   rotateThinkingPhrases();
 
   try {
-    const res = await fetch(AGENT + '/api/receipt-scan', {
+    const res = await fetchWithLicenseCheck(AGENT + '/api/receipt-scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: currentImageBase64 })
@@ -835,7 +843,7 @@ async function persist(entry) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(receipts));
   idbSet('main', receipts).catch(() => {});
   try {
-    await fetch(AGENT + '/data/receipts', {
+    await fetchWithLicenseCheck(AGENT + '/data/receipts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry),
@@ -860,7 +868,7 @@ async function loadFromIDB() {
 
 async function loadFromServer() {
   try {
-    const res = await fetch(AGENT + '/data/receipts', { signal: AbortSignal.timeout(2000) });
+    const res = await fetchWithLicenseCheck(AGENT + '/data/receipts', { signal: AbortSignal.timeout(2000) });
     if (!res.ok) return;
     const server = await res.json();
     if (!Array.isArray(server)) return;
@@ -947,7 +955,7 @@ async function deleteReceipt(id) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(receipts));
   idbSet('main', receipts).catch(() => {});
   try {
-    await fetch(AGENT + '/data/receipts/' + encodeURIComponent(id), { method: 'DELETE', signal: AbortSignal.timeout(2000) });
+    await fetchWithLicenseCheck(AGENT + '/data/receipts/' + encodeURIComponent(id), { method: 'DELETE', signal: AbortSignal.timeout(2000) });
   } catch(e) {}
   renderList();
 }
@@ -1020,6 +1028,19 @@ function openPrintSummary() {
 }
 
 // ── License / Paywall ──
+// fetch wrapper that intercepts 402 (server-side license gate) and forces the
+// paywall back up. Defense-in-depth: if someone tampers with the `licensed`
+// boolean in the console, the server still blocks and we re-lock the UI.
+async function fetchWithLicenseCheck(url, opts) {
+  const res = await fetch(url, opts);
+  if (res.status === 402) {
+    licensed = false;
+    showPaywall();
+    throw new Error('license_required');
+  }
+  return res;
+}
+
 async function checkLicense() {
   try {
     const res = await fetch(AGENT + '/data/license/smart-receipt-box', { signal: AbortSignal.timeout(2000) });
@@ -1043,14 +1064,16 @@ function updateLicenseUI() {
       header.appendChild(b);
     }
     document.getElementById('paywall-overlay').classList.remove('open');
+    document.body.classList.remove('tool-locked');
   }
 }
 
+// Blocking paywall — no dismiss. Only a successful Gumroad activation removes it.
+// The exit link redirects to a free tool. Server-side /api/receipt-scan and
+// /data/receipts endpoints also return 402 if unlicensed (defense-in-depth).
 function showPaywall() {
   document.getElementById('paywall-overlay').classList.add('open');
-}
-function hidePaywall() {
-  document.getElementById('paywall-overlay').classList.remove('open');
+  document.body.classList.add('tool-locked');
 }
 function toggleActivateForm() {
   const form = document.getElementById('paywall-activate-form');
@@ -1090,7 +1113,8 @@ async function activateLicense() {
     status.className = 'paywall-activate-status success';
     licensed = true;
     setTimeout(() => {
-      hidePaywall();
+      document.getElementById('paywall-overlay').classList.remove('open');
+      document.body.classList.remove('tool-locked');
       updateLicenseUI();
       const toast = document.getElementById('toast-activated');
       toast.classList.add('show');
@@ -1180,7 +1204,8 @@ const T = {
     pw_err_empty: 'Please paste your license key.',
     pw_err_generic: 'Could not activate. Check your key and try again.',
     pw_err_network: 'Could not reach Gumroad. Check your internet and try again.',
-    pw_toast: '🎉 Smart Receipt Box activated!'
+    pw_toast: '🎉 Smart Receipt Box activated!',
+    pw_exit: 'Try the free Tip Calculator instead →'
   },
   es: {
     back: '← Volver a Terrapin Tools',
@@ -1244,7 +1269,8 @@ const T = {
     pw_err_empty: 'Por favor pega tu clave de licencia.',
     pw_err_generic: 'No se pudo activar. Revisa tu clave e intenta de nuevo.',
     pw_err_network: 'No se pudo conectar con Gumroad. Revisa tu internet e intenta de nuevo.',
-    pw_toast: '🎉 ¡Caja de Recibos activada!'
+    pw_toast: '🎉 ¡Caja de Recibos activada!',
+    pw_exit: 'Prueba la Calculadora de Propinas gratis →'
   }
 };
 
@@ -1273,10 +1299,14 @@ function setLang(lang) {
 
 // ── Boot ──
 (async function init() {
+  // Default to locked until server confirms license — prevents flash of usable UI
+  showPaywall();
   await loadFromIDB();
   renderList();
-  loadFromServer();
-  checkLicense();
+  await checkLicense();
+  // Only hit the premium receipts endpoint AFTER license is confirmed —
+  // otherwise every unlicensed load trips a 402 and re-shows the paywall needlessly
+  if (licensed) loadFromServer();
 
   // URL params — action=scan|list|export, autorun=true
   const params = new URLSearchParams(location.search);

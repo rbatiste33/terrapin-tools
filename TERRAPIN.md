@@ -62,7 +62,7 @@ Tool types determine agent behavior:
 
 Tool tiers:
 - Absence of `tier` in `tools.json` (or `"tier": "free"`) = free tool
-- `"tier": "premium"` + `"price_usd": N` = one-time purchase. Ships unlocked for now; license check is a later task. Rendered with gold `.premium-badge` on the homepage.
+- `"tier": "premium"` + `"price_usd": N` = one-time purchase. Server-side license enforcement is live — agent-server gates premium endpoints with `requireLicense(toolId)` middleware, which returns HTTP 402 for unlicensed machines. Client-side paywall blocks UI on load and stays up until a valid Gumroad key is activated. `TERRAPIN_DEV_UNLOCK=all` env var bypasses the gate for local dev only. Rendered with gold `.premium-badge` on the homepage.
 
 ---
 
@@ -368,7 +368,7 @@ Local AI for immigrant-owned small businesses. Every tool in English and Spanish
 - Invoice Follow-Up Generator — Gemma-powered email follow-ups
 - Review Response Generator — respond to Google/Yelp reviews
 - Customer Email Response Generator — professional replies in your voice
-- Premium license-key gating — ships with `"tier": "premium"` flagged in tools.json but no paywall yet
+- Premium license-key gating — LIVE. Server gates premium endpoints with `requireLicense('tool-id')` middleware (HTTP 402 on unlicensed); client shows blocking, non-dismissable paywall. `TERRAPIN_DEV_UNLOCK=all` env var bypasses for dev.
 
 ### Free Tools
 - Staff Schedule Builder — weekly schedule for small teams
