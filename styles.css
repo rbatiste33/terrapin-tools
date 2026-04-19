@@ -39,7 +39,7 @@
   --border: #E8E0D0;
 
   /* Type families */
-  --serif: 'Lora', 'Playfair Display', Georgia, serif;
+  --serif: 'Lora', Georgia, serif;
   --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --mono: 'DM Mono', 'SF Mono', Menlo, monospace;
 
@@ -83,6 +83,84 @@
   /* Layout */
   --container: 1120px;
   --container-narrow: 760px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Self-hosted webfonts (Latin + Latin-Ext subsets)
+   Downloaded from Google Webfonts Helper (gwfh.mranftl.com).
+   Lora v37, DM Sans v17, DM Mono v16, Caveat v23. woff2 only.
+
+   Why self-hosted: eliminates DNS + TLS handshake to
+   fonts.googleapis.com and fonts.gstatic.com, which was the
+   LCP bottleneck on first-visit mobile (median 75 on Lighthouse
+   Performance with GF; self-host targets ≥ 90).
+
+   Latin + Latin-Ext covers EN + ES + all Western European
+   accented glyphs. Skip Cyrillic, Greek, Vietnamese — no content
+   demands them on this site.
+   ═══════════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/lora-v37-latin_latin-ext-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/lora-v37-latin_latin-ext-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin_latin-ext-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin_latin-ext-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin_latin-ext-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/dm-sans-v17-latin_latin-ext-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/dm-mono-v16-latin_latin-ext-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/dm-mono-v16-latin_latin-ext-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/caveat-v23-latin_latin-ext-regular.woff2') format('woff2');
 }
 
 /* ── Base elements ── */
@@ -459,7 +537,7 @@ section:last-of-type { border-bottom: none; }
   border-radius: 5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: 600;
+  font-weight: 500; /* DM Mono ships 400/500 only; 600 would faux-bold */
 }
 .badge-no-install {
   background: #F0F5F1;
@@ -474,7 +552,7 @@ section:last-of-type { border-bottom: none; }
 .badge-premium {
   background: var(--gold);
   color: #1A1A1A;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 11px;
   padding: 5px 12px;
   letter-spacing: 0.08em;
@@ -497,7 +575,7 @@ section:last-of-type { border-bottom: none; }
   border: 1px solid var(--gold);
   text-transform: none;
   letter-spacing: 0.04em;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 10.5px;
   padding: 3px 9px;
 }
@@ -507,7 +585,7 @@ section:last-of-type { border-bottom: none; }
   border: 1px solid var(--gold);
   text-transform: none;
   letter-spacing: 0.02em;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 10.5px;
   padding: 3px 10px;
 }
