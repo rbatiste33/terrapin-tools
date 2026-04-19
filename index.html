@@ -524,12 +524,52 @@
       letter-spacing: 0.04em;
     }
 
+    /* Companion cards under the Smart Receipt Box showcase.
+       Holds other premium tools (Pricing Calc Pro now, Contract Generator next). */
+    .more-premium {
+      max-width: 1040px;
+      margin: 48px auto 0;
+      padding-top: 32px;
+      border-top: 1px dashed rgba(44, 62, 45, 0.15);
+    }
+    .more-premium .section-label {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .more-premium-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .more-premium .tool-card h3 {
+      font-size: 17px;
+      margin-bottom: 6px;
+      color: var(--dark);
+      padding-right: 90px;
+    }
+    .more-premium .tool-card p {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .more-premium .tool-card .tool-badge { margin-bottom: 10px; }
+    .more-premium .tool-card .tool-link {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--dark);
+      margin-top: auto;
+    }
+
     @media (max-width: 860px) {
       .premium-inner { grid-template-columns: 1fr; padding: 32px; gap: 28px; }
     }
     @media (max-width: 640px) {
       .premium-inner h2 { font-size: 26px; }
       .premium-price { font-size: 36px; }
+      .more-premium-grid { grid-template-columns: 1fr; }
     }
 
     /* ═══ FULL LIBRARY ═══
@@ -952,6 +992,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Also in premium — companion tools to Smart Receipt Box.
+         Contract Generator card will be added here when Tool 2 ships. -->
+    <div class="more-premium">
+      <p class="section-label" data-i18n="more_prem_label">Also in the premium collection</p>
+      <div class="more-premium-grid">
+        <a href="tools/pricing-calculator-pro/" class="tool-card premium-card" aria-label="Open Pricing Calculator Pro">
+          <span class="badge badge-premium-library" data-i18n="badge_premium_library">Premium · $29</span>
+          <h3 data-i18n="mp_pricing_h">Pricing Calculator Pro</h3>
+          <p data-i18n="mp_pricing_p">Stop underpricing. Real costs in, defensible prices out — three tiers and an AI-written rationale.</p>
+          <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
+          <span class="tool-link" data-i18n="open_tool">Open Tool →</span>
+        </a>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1039,11 +1095,18 @@
         <span class="tool-link" data-i18n="open_tool">Open Tool →</span>
       </a>
 
-      <!-- Premium tool -->
+      <!-- Premium tools -->
       <a href="tools/smart-receipt-box/" class="tool-card premium-card" aria-label="Open Smart Receipt Box">
         <span class="badge badge-premium-library" data-i18n="badge_premium_library">Premium · $29</span>
         <h3 data-i18n="t_receipt">Smart Receipt Box</h3>
         <p data-i18n="t_receipt_d">Snap a photo of any receipt. Local Gemma 4 extracts vendor, date, line items, totals — on your Mac. Auto-categorizes. Exports CSV + printable summary for tax time.</p>
+        <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
+        <span class="tool-link" data-i18n="open_tool">Open Tool →</span>
+      </a>
+      <a href="tools/pricing-calculator-pro/" class="tool-card premium-card" aria-label="Open Pricing Calculator Pro">
+        <span class="badge badge-premium-library" data-i18n="badge_premium_library">Premium · $29</span>
+        <h3 data-i18n="t_pricing">Pricing Calculator Pro</h3>
+        <p data-i18n="t_pricing_d">Stop underpricing. Real costs in, defensible prices out — with three-tier options and an AI-written rationale you can paste into any quote. EN/ES.</p>
         <span class="tool-badge" data-i18n="tag_all">All Businesses</span>
         <span class="tool-link" data-i18n="open_tool">Open Tool →</span>
       </a>
@@ -1234,6 +1297,11 @@ const T = {
     t_calendar_d: "Track appointments, jobs and deadlines. Always know what's next.",
     t_receipt: 'Smart Receipt Box',
     t_receipt_d: 'Snap a photo of any receipt. Local Gemma 4 extracts vendor, date, line items, totals — on your Mac. Auto-categorizes. Exports CSV + printable summary for tax time.',
+    t_pricing: 'Pricing Calculator Pro',
+    t_pricing_d: 'Stop underpricing. Real costs in, defensible prices out — with three-tier options and an AI-written rationale you can paste into any quote. EN/ES.',
+    more_prem_label: 'Also in the premium collection',
+    mp_pricing_h: 'Pricing Calculator Pro',
+    mp_pricing_p: 'Stop underpricing. Real costs in, defensible prices out — three tiers and an AI-written rationale.',
     tag_all: 'All Businesses',
     tag_catering: 'Food & Catering',
     tag_contractors: 'Contractors',
@@ -1390,6 +1458,11 @@ const T = {
     t_calendar_d: 'Rastrea citas, trabajos y fechas límite. Siempre sabe qué sigue.',
     t_receipt: 'Caja de Recibos Inteligente',
     t_receipt_d: 'Toma una foto de cualquier recibo. Gemma 4 local extrae el proveedor, la fecha, los artículos y los totales — en tu Mac. Categoriza automáticamente. Exporta CSV y resumen imprimible para impuestos.',
+    t_pricing: 'Calculadora de Precios Pro',
+    t_pricing_d: 'Deja de cobrar poco. Costos reales adentro, precios defendibles afuera — con tres niveles y una justificación escrita por IA que puedes pegar en cualquier cotización. EN/ES.',
+    more_prem_label: 'También en la colección premium',
+    mp_pricing_h: 'Calculadora de Precios Pro',
+    mp_pricing_p: 'Deja de cobrar poco. Costos reales adentro, precios defendibles afuera — tres niveles y una justificación escrita por IA.',
     tag_all: 'Todos los Negocios',
     tag_catering: 'Comida y Catering',
     tag_contractors: 'Contratistas',
@@ -1555,11 +1628,10 @@ window.copyCmd = function copyCmd(btn, command) {
 })();
 
 /* ── Returning-user CTA swap ──
-   Preserves the current site's logic verbatim: check localStorage
-   'terrapin-dashboard' (fast path) then GET localhost:7777/data/dashboard.
-   If onboarding_complete, swap hero primary CTA to "Open Your Dashboard".
-   Wired to #cta-start once the hero section lands. Exposed globally so
-   both paths can call it. */
+   Swaps the hero primary CTA to "Open Your Dashboard" only if the local
+   agent server is actually reachable. LocalStorage alone is unreliable —
+   it persists across sessions but the agent may not be running now,
+   which would leave users clicking a dead localhost link. */
 window.showDashboardCTA = function showDashboardCTA() {
   var btn = document.getElementById('cta-start');
   if (!btn) return;
@@ -1570,23 +1642,20 @@ window.showDashboardCTA = function showDashboardCTA() {
 };
 
 (function returningUserCheck() {
-  // Instant path — localStorage flag set during prior onboarding
-  try {
-    var dash = JSON.parse(localStorage.getItem('terrapin-dashboard') || '{}');
-    if (dash && dash.onboarding_complete) { window.showDashboardCTA(); return; }
-  } catch(e) {}
-  // Fallback — agent server running on this machine
-  try {
-    fetch('http://localhost:7777/data/dashboard', { signal: AbortSignal.timeout(2000) })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.onboarding_complete) {
-          try { localStorage.setItem('terrapin-dashboard', JSON.stringify(data)); } catch(e) {}
-          window.showDashboardCTA();
-        }
-      })
-      .catch(function() {});
-  } catch(e) {}
+  // Single source of truth: agent server must respond. LocalStorage alone is unreliable
+  // (persists across sessions but agent may not be running). If agent is unreachable,
+  // leave CTA as "Try a tool" — the default that always works for everyone.
+  fetch('http://localhost:7777/data/dashboard', { signal: AbortSignal.timeout(2000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (data && data.onboarding_complete) {
+        try { localStorage.setItem('terrapin-dashboard', JSON.stringify(data)); } catch(e) {}
+        window.showDashboardCTA();
+      }
+    })
+    .catch(function() {
+      // Agent not running — CTA stays as "Try a tool". Silent. Expected for cold visits.
+    });
 })();
 </script>
 
