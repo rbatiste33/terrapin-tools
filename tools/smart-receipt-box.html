@@ -1014,14 +1014,7 @@ function openPrintSummary() {
   html += '</div>';
 
   const w = window.open('', '_blank');
-  w.document.write('<!DOCTYPE html><html><head><title>' + T[lang].print_title + '</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans&family=Lora&display=swap" rel="stylesheet"></head><body style="background:#fff;margin:0;">' + html + '
-<!-- TT-FEEDBACK-START -->
-<div id="tt-feedback"></div>
-<script src="../feedback.js"></script>
-<script>terrapinFeedback.mount({ tool: 'smart-receipt-box', toolName: "Smart Receipt Box" });</script>
-<!-- TT-FEEDBACK-END -->
-
-</body></html>');
+  w.document.write('<!DOCTYPE html><html><head><title>' + T[lang].print_title + '</title><link href="https://fonts.googleapis.com/css2?family=DM+Sans&family=Lora&display=swap" rel="stylesheet"></head><body style="background:#fff;margin:0;">' + html + '</body></html>');
   w.document.close();
   setTimeout(() => { w.print(); }, 500);
 }
