@@ -1423,7 +1423,7 @@ app.post('/data/dashboard', (req, res) => {
 });
 
 // ── RECEIPTS ──
-app.get('/data/receipts', (req, res) => {
+app.get('/data/receipts', requireLicense('smart-receipt-box'), (req, res) => {
   try {
     const files = fs.readdirSync(DATA_FILES.receiptsDir).filter(f => f.endsWith('.json'));
     const list = files.map(f => {
@@ -1436,7 +1436,7 @@ app.get('/data/receipts', (req, res) => {
   }
 });
 
-app.post('/data/receipts', (req, res) => {
+app.post('/data/receipts', requireLicense('smart-receipt-box'), (req, res) => {
   try {
     const entry = req.body;
     if (!entry || !entry.id || !entry.date) {
@@ -1450,7 +1450,7 @@ app.post('/data/receipts', (req, res) => {
   }
 });
 
-app.delete('/data/receipts/:id', (req, res) => {
+app.delete('/data/receipts/:id', requireLicense('smart-receipt-box'), (req, res) => {
   try {
     const id = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
     const jsonPath = path.join(DATA_FILES.receiptsDir, id + '.json');
@@ -1465,7 +1465,7 @@ app.delete('/data/receipts/:id', (req, res) => {
 });
 
 // Serve stored receipt images (read-only, localhost CORS already enforced above)
-app.get('/data/receipts/image/:id', (req, res) => {
+app.get('/data/receipts/image/:id', requireLicense('smart-receipt-box'), (req, res) => {
   try {
     const id = req.params.id.replace(/[^a-zA-Z0-9_-]/g, '');
     const imgPath = path.join(DATA_FILES.receiptsImagesDir, id + '.jpg');
@@ -1477,7 +1477,7 @@ app.get('/data/receipts/image/:id', (req, res) => {
 });
 
 // ── RECEIPT SCAN — Gemma vision proxy ──
-app.post('/api/receipt-scan', async (req, res) => {
+app.post('/api/receipt-scan', requireLicense('smart-receipt-box'), async (req, res) => {
   const { image } = req.body || {};
   if (!image || typeof image !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing image (expected base64 string)' });
@@ -1640,6 +1640,47 @@ function loadLicenses() {
 
 function saveLicenses(all) {
   fs.writeFileSync(DATA_FILES.licenses, JSON.stringify(all, null, 2));
+}
+
+// ── License check helper — is this tool activated on this machine? ──
+// A license entry exists in ~/.terrapin/licenses.json only after successful
+// Gumroad verify via POST /api/license/activate. Any entry = the user paid.
+function isToolLicensed(toolId) {
+  try {
+    const all = loadLicenses();
+    const lic = all[toolId];
+    return !!(lic && lic.license_key);
+  } catch (e) {
+    return false;
+  }
+}
+
+// ── License gating middleware ──
+// Usage: app.post('/api/X', requireLicense('tool-id'), handler);
+// Returns 402 Payment Required if the tool is unlicensed. Failures are HARD —
+// any error in the license check counts as unlicensed (never unlock by accident).
+//
+// Dev bypass: start the agent with TERRAPIN_DEV_UNLOCK=all for local testing
+// (e.g., TERRAPIN_DEV_UNLOCK=all npm run dev:start). Never set in production.
+const DEV_UNLOCK_ALL = process.env.TERRAPIN_DEV_UNLOCK === 'all';
+if (DEV_UNLOCK_ALL) {
+  console.log('  ⚠  TERRAPIN_DEV_UNLOCK=all is set — all premium tools unlocked. LOCAL DEV ONLY.');
+}
+
+function requireLicense(toolId) {
+  return function licenseGate(req, res, next) {
+    if (DEV_UNLOCK_ALL) return next();
+    try {
+      if (isToolLicensed(toolId)) return next();
+    } catch (e) {
+      // Hard fail — don't unlock on error
+    }
+    res.status(402).json({
+      error: 'license_required',
+      tool: toolId,
+      message: 'This feature requires a license for ' + toolId + '. Visit the tool page to purchase.'
+    });
+  };
 }
 
 // ── GET /data/licenses — returns all activated licenses (safe to read, no secrets) ──
