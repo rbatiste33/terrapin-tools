@@ -1558,8 +1558,10 @@ window.copyCmd = function copyCmd(btn, command) {
    Preserves the current site's logic verbatim: check localStorage
    'terrapin-dashboard' (fast path) then GET localhost:7777/data/dashboard.
    If onboarding_complete, swap hero primary CTA to "Open Your Dashboard".
-   Wired to #cta-start once the hero section lands. Exposed globally so
-   both paths can call it. */
+   Wired to #cta-start. Exposed globally so both paths can call it.
+
+   Agent-reachability is the source of truth: LocalStorage alone is unreliable
+   (persists across sessions but agent may not be running now). */
 window.showDashboardCTA = function showDashboardCTA() {
   var btn = document.getElementById('cta-start');
   if (!btn) return;
@@ -1570,23 +1572,20 @@ window.showDashboardCTA = function showDashboardCTA() {
 };
 
 (function returningUserCheck() {
-  // Instant path — localStorage flag set during prior onboarding
-  try {
-    var dash = JSON.parse(localStorage.getItem('terrapin-dashboard') || '{}');
-    if (dash && dash.onboarding_complete) { window.showDashboardCTA(); return; }
-  } catch(e) {}
-  // Fallback — agent server running on this machine
-  try {
-    fetch('http://localhost:7777/data/dashboard', { signal: AbortSignal.timeout(2000) })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.onboarding_complete) {
-          try { localStorage.setItem('terrapin-dashboard', JSON.stringify(data)); } catch(e) {}
-          window.showDashboardCTA();
-        }
-      })
-      .catch(function() {});
-  } catch(e) {}
+  // Single source of truth: agent server must respond. LocalStorage alone is unreliable
+  // (persists across sessions but agent may not be running). If agent is unreachable,
+  // leave CTA as "Try a tool" — the default that always works for everyone.
+  fetch('http://localhost:7777/data/dashboard', { signal: AbortSignal.timeout(2000) })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      if (data && data.onboarding_complete) {
+        try { localStorage.setItem('terrapin-dashboard', JSON.stringify(data)); } catch(e) {}
+        window.showDashboardCTA();
+      }
+    })
+    .catch(function() {
+      // Agent not running — CTA stays as "Try a tool". Silent. Expected for cold visits.
+    });
 })();
 </script>
 
