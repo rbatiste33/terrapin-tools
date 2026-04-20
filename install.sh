@@ -135,6 +135,36 @@ warn()     { echo "$1" >&2; }
 fail()     { echo "$1" >&2; exit 1; }
 fail_msg() { msg "$1"; exit 1; }
 
+# A "healthy install" = every prerequisite present AND agent deps installed.
+# Keying mode detection on this (not on residual ~/terrapin/ files) means a
+# partial/broken previous install correctly falls back to fresh-install mode
+# instead of entering update mode and skipping prerequisite installs.
+has_healthy_install() {
+    command -v brew   >/dev/null 2>&1 || return 1
+    command -v node   >/dev/null 2>&1 || return 1
+    command -v npm    >/dev/null 2>&1 || return 1
+    command -v ollama >/dev/null 2>&1 || return 1
+    ollama list 2>/dev/null | grep -q "gemma4" || return 1
+    [ -d "$HOME/terrapin/node_modules/express" ] || return 1
+    return 0
+}
+
+# If plists exist but the install is not healthy, those plists point at
+# binaries that don't exist — they silently fail-loop in launchd forever.
+# Wipe them before we proceed so any subsequent bail-out leaves a clean slate.
+cleanup_stale_plists() {
+    local plist_agent="$HOME/Library/LaunchAgents/tools.terrapin.agent.plist"
+    local plist_mail="$HOME/Library/LaunchAgents/tools.terrapin.mail.plist"
+    if ! has_healthy_install; then
+        for plist in "$plist_agent" "$plist_mail"; do
+            if [ -f "$plist" ]; then
+                launchctl unload "$plist" 2>/dev/null || true
+                rm -f "$plist"
+            fi
+        done
+    fi
+}
+
 # ─────────────────────────────────────────────────────────────────────
 # 4. Cleanup trap — removes partial state only on failure, fresh-install only
 # ─────────────────────────────────────────────────────────────────────
@@ -153,26 +183,32 @@ cleanup() {
 trap cleanup EXIT
 
 # ─────────────────────────────────────────────────────────────────────
-# 5. Welcome + update-mode detection
+# 5. Welcome + mode detection (prerequisite-check based, not file-based)
 # ─────────────────────────────────────────────────────────────────────
 echo ""
 echo "🐢 Welcome to Terrapin Tools"
 echo ""
 
-TERRAPIN_UPDATE=false
-if [ -d "$HOME/terrapin" ] && [ -f "$HOME/terrapin/agent-server.js" ]; then
-    TERRAPIN_UPDATE=true
+if has_healthy_install; then
+    MODE="update"
     echo "Existing Terrapin install detected — running update..."
     echo ""
+else
+    MODE="fresh"
 fi
 
 # ─────────────────────────────────────────────────────────────────────
 # 6. Fresh-install path: admin detection + Homebrew + Node + Ollama + Gemma
 # ─────────────────────────────────────────────────────────────────────
-if [ "$TERRAPIN_UPDATE" = false ]; then
+if [ "$MODE" = "fresh" ]; then
     echo "Setting up your local AI business assistant..."
     echo "This takes about 10 minutes. Go make a coffee. ☕"
     echo ""
+
+    # Wipe any stale launchd plists from a previous broken install BEFORE the
+    # admin check — a non-admin user with stale plists bails on admin_required
+    # below, and we want their Mac left clean either way.
+    cleanup_stale_plists
 
     # 6a. Admin detection — bail early for non-admin accounts or un-primed sudo.
     # We only need sudo if Homebrew isn't already installed. If brew exists,
@@ -243,7 +279,7 @@ ok "Ollama running"
 # ─────────────────────────────────────────────────────────────────────
 # 8. Gemma AI model — only pulled on fresh install (or if missing on update)
 # ─────────────────────────────────────────────────────────────────────
-if [ "$TERRAPIN_UPDATE" = false ] || ! ollama list 2>/dev/null | grep -q "gemma4"; then
+if [ "$MODE" = "fresh" ] || ! ollama list 2>/dev/null | grep -q "gemma4"; then
     echo ""
     echo "Downloading your AI brain..."
     echo "About 5GB — like downloading a movie. ☕"
@@ -257,7 +293,7 @@ fi
 # Runs for both fresh install and update.
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-if [ "$TERRAPIN_UPDATE" = true ]; then
+if [ "$MODE" = "update" ]; then
     echo "Downloading latest Terrapin..."
 else
     echo "Setting up Terrapin agent..."
@@ -279,6 +315,13 @@ fi
 [ -d "$HOME/terrapin/node_modules/express" ] || fail_msg npm_failed
 ok "Terrapin agent installed"
 
+# Read version from the just-extracted package.json for the .installed marker
+# written at the end of a fully-verified install. Fallback to "unknown" if the
+# file is missing or the format changes — the marker is advisory, not critical.
+TERRAPIN_VERSION=$(grep -E '"version"[[:space:]]*:' "$HOME/terrapin/package.json" 2>/dev/null \
+    | head -n1 | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+[ -z "$TERRAPIN_VERSION" ] && TERRAPIN_VERSION="unknown"
+
 # ─────────────────────────────────────────────────────────────────────
 # 10. Data directory
 # ─────────────────────────────────────────────────────────────────────
@@ -289,7 +332,7 @@ ok "Data directory ready (~/.terrapin/)"
 # ─────────────────────────────────────────────────────────────────────
 # 11. Email setup — optional, fresh install only, interactive only
 # ─────────────────────────────────────────────────────────────────────
-if [ "$TERRAPIN_UPDATE" = false ] && [ -r /dev/tty ]; then
+if [ "$MODE" = "fresh" ] && [ -r /dev/tty ]; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  Optional: Set up email sending"
@@ -319,7 +362,7 @@ MAIL_PLIST="$HOME/Library/LaunchAgents/tools.terrapin.mail.plist"
 # Track plists we're about to write FRESH (not present before this run) so the
 # cleanup trap only removes the ones we created. On update, the plists already
 # exist and should survive a mid-run failure.
-if [ "$TERRAPIN_UPDATE" = false ]; then
+if [ "$MODE" = "fresh" ]; then
     [ ! -f "$AGENT_PLIST" ] && CREATED_PLISTS+=("$AGENT_PLIST")
     [ ! -f "$MAIL_PLIST" ]  && CREATED_PLISTS+=("$MAIL_PLIST")
 fi
@@ -379,7 +422,7 @@ PLIST
 # ─────────────────────────────────────────────────────────────────────
 # 13. Start (or restart) services — unload any stale copies first for idempotency
 # ─────────────────────────────────────────────────────────────────────
-if [ "$TERRAPIN_UPDATE" = true ]; then
+if [ "$MODE" = "update" ]; then
     echo "Restarting Terrapin services..."
     launchctl kickstart -k "gui/$(id -u)/tools.terrapin.agent" 2>/dev/null || {
         launchctl unload "$AGENT_PLIST" 2>/dev/null || true
@@ -443,13 +486,21 @@ fi
 
 echo ""
 if [ "$SUMMARY_OK" = true ]; then
-    if [ "$TERRAPIN_UPDATE" = true ]; then
+    if [ "$MODE" = "update" ]; then
         ok "Terrapin updated successfully"
         ok "Your data is untouched"
     else
         ok "Both start automatically on login"
         ok "Your data stays on this machine"
     fi
+
+    # Success marker — written only after all 3 health probes returned 200.
+    # Advisory only; has_healthy_install() is the source of truth for mode
+    # detection. Useful for forward-compatible version tracking.
+    INSTALLED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    printf '{"version":"%s","installed_at":"%s"}\n' \
+        "$TERRAPIN_VERSION" "$INSTALLED_AT" > "$HOME/.terrapin/.installed"
+
     echo ""
     echo "  Open: http://localhost:7777/agent.html"
     echo ""
