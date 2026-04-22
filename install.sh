@@ -309,18 +309,25 @@ fi
 # 7. Ollama daemon — must be running before `ollama pull` AND before agent starts.
 # Runs for both fresh install and update paths.
 # ─────────────────────────────────────────────────────────────────────
+echo "DEBUG-A: reached post-Ollama-ready, about to check daemon" >&2
 if ! curl -sf http://localhost:11434/api/version >/dev/null 2>&1; then
+    echo "DEBUG-B: entered daemon-start block" >&2
     echo "Starting Ollama service..."
     command -v ollama >/dev/null 2>&1 || fail_msg ollama_not_running
+    echo "DEBUG-C: about to ollama serve" >&2
     ollama serve >/dev/null 2>&1 &
+    echo "DEBUG-D: ollama serve backgrounded, PID=$!" >&2
     # Poll for up to 10 seconds
     for _ in 1 2 3 4 5 6 7 8 9 10; do
         curl -sf http://localhost:11434/api/version >/dev/null 2>&1 && break
         sleep 1
     done
+    echo "DEBUG-E: exited polling loop" >&2
 fi
+echo "DEBUG-F: about to final daemon verification" >&2
 curl -sf http://localhost:11434/api/version >/dev/null 2>&1 \
     || fail_msg ollama_not_running
+echo "DEBUG-G: daemon verified" >&2
 ok "Ollama running"
 
 # ─────────────────────────────────────────────────────────────────────
